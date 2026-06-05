@@ -53,12 +53,10 @@ public static class MeshBuilderService
         foreach (var bone in geometry.Bones)
         {
             var boneNode = new Node { Name = bone.Name };
-
-            Quaternion localRot = Quaternion.Identity;
             if (bone.Rotation is { Count: >= 3 })
             {
                 var euler = ConvertBedrockRotation(bone.Rotation);
-                localRot = CreateBlockbenchQuaternion(euler);
+                Quaternion localRot = CreateBlockbenchQuaternion(euler);
                 boneNode.RotationQuaternion = localRot;
             }
 

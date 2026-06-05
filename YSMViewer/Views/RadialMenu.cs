@@ -2,8 +2,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
-using Avalonia.Media.TextFormatting;
-using System.Collections.Generic;
 
 namespace YSMViewer.Views;
 
@@ -109,7 +107,7 @@ public sealed class RadialMenu : Control
         context.DrawText(closeFt, new Point(cx - 6, cy - 8));
     }
 
-    private void DrawSlice(DrawingContext context, double cx, double cy, double inner, double outer, double a1, double a2, IBrush fill, IPen stroke)
+    private static void DrawSlice(DrawingContext context, double cx, double cy, double inner, double outer, double a1, double a2, IBrush fill, IPen stroke)
     {
         var geo = new StreamGeometry();
         using (var ctx = geo.Open())

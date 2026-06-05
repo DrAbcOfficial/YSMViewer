@@ -1,13 +1,11 @@
-using System.Drawing;
-using System.Numerics;
+using Aura3D.Avalonia;
+using Aura3D.Core.Nodes;
+using Aura3D.Core.Resources;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using Aura3D.Avalonia;
-using Aura3D.Core;
-using Aura3D.Core.Nodes;
-using Aura3D.Core.Resources;
+using System.Numerics;
 using YSMViewer.ViewModels;
 
 namespace YSMViewer.Views;
@@ -362,10 +360,8 @@ public partial class MainView : UserControl
     {
         var overlay = this.FindControl<Border>("RadialOverlay");
         var menu = this.FindControl<RadialMenu>("RadialMenuControl");
-        if (menu is not null)
-            menu.ItemClicked -= OnRadialItemClicked;
-        if (overlay is not null)
-            overlay.IsVisible = false;
+        menu?.ItemClicked -= OnRadialItemClicked;
+        overlay?.IsVisible = false;
     }
 
     private void OnCopyErrorClick(object? sender, RoutedEventArgs e)

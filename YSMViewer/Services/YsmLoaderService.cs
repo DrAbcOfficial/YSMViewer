@@ -55,21 +55,21 @@ public sealed class YsmLoaderService
         return ModelCategory.SubEntity;
     }
 
-    public LoadedModel Load(string filePath)
+    public static LoadedModel Load(string filePath)
     {
         var parser = YSMParserFactory.Create(filePath);
         parser.Parse();
         return LoadFromParser(parser);
     }
 
-    public LoadedModel LoadFromBytes(byte[] data)
+    public static LoadedModel LoadFromBytes(byte[] data)
     {
         var parser = YSMParserFactory.CreateFromBytes(data);
         parser.Parse();
         return LoadFromParser(parser);
     }
 
-    private LoadedModel LoadFromParser(YSMParser.Core.Parsers.YSMParser parser)
+    private static LoadedModel LoadFromParser(YSMParser.Core.Parsers.YSMParser parser)
     {
         var resources = parser.GetResources();
 
@@ -90,7 +90,7 @@ public sealed class YsmLoaderService
         for (int i = 0; i < resources.Models.Count; i++)
         {
             var modelEntry = resources.Models[i];
-            var allGeometries = ParseAllGeometries(modelEntry.Data);
+            var allGeometries = ParseAllGeometries(modelEntry.Data, GetOptions());
             var geometry = allGeometries[0];
             var category = ClassifyModel(modelEntry.Name);
             bool defaultVisible = category == ModelCategory.Main;
@@ -121,7 +121,7 @@ public sealed class YsmLoaderService
             containerModel,
             modelNodes,
             primaryBoneNodes ?? [],
-            primaryBaseEulers ?? new Dictionary<string, Vector3>(),
+            primaryBaseEulers ?? [],
             primaryModelName ?? "Unknown",
             parser.GetYSGPVersion(),
             resources.Models,
@@ -130,16 +130,19 @@ public sealed class YsmLoaderService
             ParseMetadata(resources.YsmJson, resources.InfoJson));
     }
 
-    private static List<MinecraftGeometry> ParseAllGeometries(byte[] jsonData)
+    private static JsonSerializerOptions GetOptions()
     {
-        var options = new JsonSerializerOptions
+        return new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
             AllowTrailingCommas = true,
             ReadCommentHandling = JsonCommentHandling.Skip,
             NumberHandling = JsonNumberHandling.AllowReadingFromString,
         };
+    }
 
+    private static List<MinecraftGeometry> ParseAllGeometries(byte[] jsonData, JsonSerializerOptions options)
+    {
         var file = JsonSerializer.Deserialize<MinecraftGeometryFile>(jsonData, options)
                    ?? throw new InvalidOperationException("Failed to parse geometry JSON");
 
@@ -151,7 +154,7 @@ public sealed class YsmLoaderService
 
     private static MinecraftGeometry ParseGeometryJson(byte[] jsonData)
     {
-        var all = ParseAllGeometries(jsonData);
+        var all = ParseAllGeometries(jsonData, GetOptions());
         return all[0];
     }
 
@@ -166,8 +169,7 @@ public sealed class YsmLoaderService
         var meshes = model.GetNodesInChildren<Mesh>();
         foreach (var mesh in meshes)
         {
-            if (mesh.Material is not null)
-                mesh.Material.BaseColor = texture;
+            mesh.Material?.BaseColor = texture;
         }
     }
 
@@ -186,7 +188,6 @@ public sealed class YsmLoaderService
 
     private static YsmMetadata? ParseYsmJson(byte[] data)
     {
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         using var doc = JsonDocument.Parse(data);
         var root = doc.RootElement;
 
@@ -222,12 +223,11 @@ public sealed class YsmLoaderService
                 && hs.TryGetSingle(out var hsv)) heightScale = hsv;
         }
 
-        return new YsmMetadata(name, tips, licenseType, isFree, authors.ToArray(), widthScale, heightScale);
+        return new YsmMetadata(name, tips, licenseType, isFree, [.. authors], widthScale, heightScale);
     }
 
     private static YsmMetadata? ParseInfoJson(byte[] data)
     {
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         using var doc = JsonDocument.Parse(data);
         var root = doc.RootElement;
 
@@ -252,6 +252,6 @@ public sealed class YsmLoaderService
             }
         }
 
-        return new YsmMetadata(name, tips, licenseType, isFree, authors.ToArray(), 1f, 1f);
+        return new YsmMetadata(name, tips, licenseType, isFree, [.. authors], 1f, 1f);
     }
 }

@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Avalonia;
+using System;
 using System.Diagnostics;
-using Avalonia;
 
 namespace YSMViewer.Desktop;
 

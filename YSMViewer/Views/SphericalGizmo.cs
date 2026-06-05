@@ -1,8 +1,8 @@
-using System.Drawing;
-using System.Numerics;
 using Aura3D.Core.Geometries;
 using Aura3D.Core.Nodes;
 using Aura3D.Core.Resources;
+using System.Drawing;
+using System.Numerics;
 
 namespace YSMViewer.Views;
 
@@ -25,12 +25,12 @@ public class SphericalGizmo : Node
         globe.Material.BlendMode = BlendMode.Translucent;
         AddChild(globe, AttachToParentRule.KeepLocal);
 
-        AddAxis(new Vector3( 1,  0,  0), Color.FromArgb(255, 250, 70, 70));
-        AddAxis(new Vector3( 0,  1,  0), Color.FromArgb(255, 70, 230, 90));
-        AddAxis(new Vector3( 0,  0,  1), Color.FromArgb(255, 70, 140, 255));
-        AddAxis(new Vector3(-1,  0,  0), Color.FromArgb(140, 250, 70, 70));
-        AddAxis(new Vector3( 0, -1,  0), Color.FromArgb(140, 70, 230, 90));
-        AddAxis(new Vector3( 0,  0, -1), Color.FromArgb(140, 70, 140, 255));
+        AddAxis(new Vector3(1, 0, 0), Color.FromArgb(255, 250, 70, 70));
+        AddAxis(new Vector3(0, 1, 0), Color.FromArgb(255, 70, 230, 90));
+        AddAxis(new Vector3(0, 0, 1), Color.FromArgb(255, 70, 140, 255));
+        AddAxis(new Vector3(-1, 0, 0), Color.FromArgb(140, 250, 70, 70));
+        AddAxis(new Vector3(0, -1, 0), Color.FromArgb(140, 70, 230, 90));
+        AddAxis(new Vector3(0, 0, -1), Color.FromArgb(140, 70, 140, 255));
     }
 
     private static Material CreateMaterial(Color color)
@@ -54,16 +54,16 @@ public class SphericalGizmo : Node
         {
             Geometry = new BoxGeometry(w, h, d),
             Material = CreateMaterial(color),
+            Position = dir * RodHalf
         };
-        rod.Position = dir * RodHalf;
         AddChild(rod, AttachToParentRule.KeepLocal);
 
         var tip = new Mesh
         {
             Geometry = new SphereGeometry(TipRadius, 12, 12),
             Material = CreateMaterial(color),
+            Position = dir * len
         };
-        tip.Position = dir * len;
         AddChild(tip, AttachToParentRule.KeepLocal);
     }
 }

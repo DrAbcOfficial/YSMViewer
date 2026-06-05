@@ -1,7 +1,6 @@
-using System;
-using System.Diagnostics.CodeAnalysis;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
+using System.Diagnostics.CodeAnalysis;
 using YSMViewer.ViewModels;
 
 namespace YSMViewer;

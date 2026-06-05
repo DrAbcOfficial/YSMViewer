@@ -66,23 +66,23 @@ public sealed record MinecraftCubeUV(
 
         return new MinecraftCubeUV(
             North: new MinecraftCubeFaceUV(
-                new List<float> { u + z, v + z },
-                new List<float> { x, y }),
+                [u + z, v + z],
+                [x, y]),
             South: new MinecraftCubeFaceUV(
-                new List<float> { u + z + z + x, v + z },
-                new List<float> { x, y }),
+                [u + z + z + x, v + z],
+                [x, y]),
             East: new MinecraftCubeFaceUV(
-                new List<float> { u, v + z },
-                new List<float> { z, y }),
+                [u, v + z],
+                [z, y]),
             West: new MinecraftCubeFaceUV(
-                new List<float> { u + z + x, v + z },
-                new List<float> { z, y }),
+                [u + z + x, v + z],
+                [z, y]),
             Up: new MinecraftCubeFaceUV(
-                new List<float> { u + z + x, v + z },
-                new List<float> { -x, -z }),
+                [u + z + x, v + z],
+                [-x, -z]),
             Down: new MinecraftCubeFaceUV(
-                new List<float> { u + z + x + x, v },
-                new List<float> { -x, z })
+                [u + z + x + x, v],
+                [-x, z])
         );
     }
 }
@@ -154,10 +154,10 @@ public sealed class MinecraftCubeUVConverter : JsonConverter<MinecraftCubeUV>
         writer.WriteStartObject();
         if (value.North != null) { writer.WritePropertyName("north"); JsonSerializer.Serialize(writer, value.North, options); }
         if (value.South != null) { writer.WritePropertyName("south"); JsonSerializer.Serialize(writer, value.South, options); }
-        if (value.East  != null) { writer.WritePropertyName("east");  JsonSerializer.Serialize(writer, value.East,  options); }
-        if (value.West  != null) { writer.WritePropertyName("west");  JsonSerializer.Serialize(writer, value.West,  options); }
-        if (value.Up    != null) { writer.WritePropertyName("up");    JsonSerializer.Serialize(writer, value.Up,    options); }
-        if (value.Down  != null) { writer.WritePropertyName("down");  JsonSerializer.Serialize(writer, value.Down,  options); }
+        if (value.East != null) { writer.WritePropertyName("east"); JsonSerializer.Serialize(writer, value.East, options); }
+        if (value.West != null) { writer.WritePropertyName("west"); JsonSerializer.Serialize(writer, value.West, options); }
+        if (value.Up != null) { writer.WritePropertyName("up"); JsonSerializer.Serialize(writer, value.Up, options); }
+        if (value.Down != null) { writer.WritePropertyName("down"); JsonSerializer.Serialize(writer, value.Down, options); }
         writer.WriteEndObject();
     }
 }

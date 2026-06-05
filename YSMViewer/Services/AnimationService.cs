@@ -6,11 +6,13 @@ using YSMViewer.Models;
 
 namespace YSMViewer.Services;
 
-public sealed class AnimationService
+public sealed class AnimationService(
+    Dictionary<string, Node> boneNodes,
+    Dictionary<string, Vector3> baseEulers)
 {
-    private readonly Dictionary<string, Node> _boneNodes;
+    private readonly Dictionary<string, Node> _boneNodes = boneNodes;
     private readonly Dictionary<string, Vector3> _basePositions = [];
-    private readonly Dictionary<string, Vector3> _baseEulers = [];
+    private readonly Dictionary<string, Vector3> _baseEulers = baseEulers;
     private MinecraftAnimationFile? _currentFile;
     private MinecraftAnimation? _currentAnimation;
     private float _currentTime;
@@ -29,15 +31,7 @@ public sealed class AnimationService
         set => _isPlaying = value;
     }
 
-    public AnimationService() : this(new Dictionary<string, Node>(),
-        new Dictionary<string, Vector3>()) { }
-
-    public AnimationService(
-        Dictionary<string, Node> boneNodes,
-        Dictionary<string, Vector3> baseEulers)
-    {
-        _boneNodes = boneNodes;
-    }
+    public AnimationService() : this([], []) { }
 
     public void SetBoneNodes(
         Dictionary<string, Node> boneNodes,
@@ -61,11 +55,12 @@ public sealed class AnimationService
 
     public void LoadAnimations(byte[] animationJsonData)
     {
-        var options = new JsonSerializerOptions
+        JsonSerializerOptions jsonSerializerOptions = new()
         {
             PropertyNameCaseInsensitive = true,
             ReadCommentHandling = JsonCommentHandling.Skip,
         };
+        JsonSerializerOptions options = jsonSerializerOptions;
 
         _currentFile = JsonSerializer.Deserialize<MinecraftAnimationFile>(animationJsonData, options);
         if (_currentFile is null) return;

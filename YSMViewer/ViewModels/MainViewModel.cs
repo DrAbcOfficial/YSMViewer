@@ -1,7 +1,6 @@
-﻿using System.Collections.ObjectModel;
-using System.Threading.Tasks;
-using Aura3D.Core.Nodes;
+﻿using Aura3D.Core.Nodes;
 using CommunityToolkit.Mvvm.ComponentModel;
+using System.Collections.ObjectModel;
 using YSMViewer.Services;
 
 namespace YSMViewer.ViewModels;
@@ -137,7 +136,7 @@ public sealed partial class MainViewModel : ViewModelBase
 
             await Task.Run(() =>
             {
-                _currentModel = _loaderService.Load(filePath);
+                _currentModel = YsmLoaderService.Load(filePath);
             });
 
             if (_currentModel is null)
@@ -314,8 +313,8 @@ public sealed partial class MainViewModel : ViewModelBase
         {
             Name = node.Name,
             SceneNode = node,
+            IsVisible = node.Enable
         };
-        item.IsVisible = node.Enable;
 
         foreach (var child in node.Children)
         {
