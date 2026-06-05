@@ -12,7 +12,6 @@
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageVersion Include="Aura3D.Avalonia" Version="0.0.3" />
     <PackageVersion Include="Aura3D.Model.GltfLoader" Version="0.0.4-alpha.0.25" />
-    <PackageVersion Include="SixLabors.ImageSharp" Version="3.1.11" />
     <PackageVersion Include="ZstdSharp.Port" Version="0.8.7" />
     <PackageVersion Include="YSMParser.Core" Version="1.0.1" />
   </ItemGroup>

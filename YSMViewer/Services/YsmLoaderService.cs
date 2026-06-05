@@ -3,8 +3,7 @@ using System.Text.Json;
 using Aura3D.Core;
 using Aura3D.Core.Nodes;
 using Aura3D.Core.Resources;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Png;
+using Avalonia.Media.Imaging;
 using YSMParser.Core.Parsers;
 using YSMViewer.Models;
 
@@ -294,21 +293,29 @@ private static YsmMetadata? ParseInfoJson(byte[] data)
     {
         if (data is null or { Length: 0 }) return null;
 
-        if (data.Length >= 4)
+        if (data.Length >= 8)
         {
-            var header = System.Text.Encoding.ASCII.GetString(data, 0, 4);
-            if (header == "RIFF")
-                return ConvertWebPToPng(data);
+            if (data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47)
+                return data;
+
+            return ConvertImageToPng(data);
         }
 
         return data;
     }
 
-    private static byte[] ConvertWebPToPng(byte[] webpData)
+    private static byte[] ConvertImageToPng(byte[] imageData)
     {
-        using var image = Image.Load(webpData);
-        using var ms = new MemoryStream();
-        image.Save(ms, new PngEncoder());
-        return ms.ToArray();
+        try
+        {
+            using var bitmap = new Bitmap(new MemoryStream(imageData));
+            using var ms = new MemoryStream();
+            bitmap.Save(ms);
+            return ms.ToArray();
+        }
+        catch
+        {
+            return imageData;
+        }
     }
 }
