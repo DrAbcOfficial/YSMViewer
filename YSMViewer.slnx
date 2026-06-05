@@ -2,8 +2,4 @@
   <Project Path="YSMViewer.Browser/YSMViewer.Browser.csproj" />
   <Project Path="YSMViewer.Desktop/YSMViewer.Desktop.csproj" />
   <Project Path="YSMViewer/YSMViewer.csproj" />
-  <Project Path="..\YSMParser.Net\Core\YSMParser.Core.csproj" />
-  <Project Path="..\YSMParser.Net\CLI\YSMParser.CLI.csproj" />
-  <Project Path="..\YSMParser.Net\Export\YSMParser.Export.csproj" />
-  <Project Path="..\YSMParser.Net\Tests\YSMParser.Tests.csproj" />
 </Solution>

@@ -17,9 +17,6 @@
     <PackageReference Include="Avalonia.Fonts.Inter" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Aura3D.Avalonia" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\YSMParser.Net\Core\YSMParser.Core.csproj" />
+    <PackageReference Include="YSMParser.Core" />
   </ItemGroup>
 </Project>
