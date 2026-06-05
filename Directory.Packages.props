@@ -1,0 +1,18 @@
+<Project>
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageVersion Include="Avalonia" Version="12.0.4" />
+        <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.0.4" />
+        <PackageVersion Include="Avalonia.Fonts.Inter" Version="12.0.4" />
+        <PackageVersion Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.1" />
+        <PackageVersion Include="Avalonia.Desktop" Version="12.0.4" />
+        <PackageVersion Include="Avalonia.Browser" Version="12.0.4" />
+
+        <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+
+        <PackageVersion Include="Aura3D.Avalonia" Version="0.0.3" />
+        <PackageVersion Include="Aura3D.Model.GltfLoader" Version="0.0.4-alpha.0.25" />
+    </ItemGroup>
+</Project>
