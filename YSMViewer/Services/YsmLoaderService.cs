@@ -36,6 +36,9 @@ public sealed class YsmLoaderService
         IReadOnlyList<YsmResourceEntry> Models,
         IReadOnlyList<YsmResourceEntry> Textures,
         IReadOnlyList<YsmResourceEntry> Animations,
+        IReadOnlyList<YsmResourceEntry> Avatars,
+        IReadOnlyList<YsmResourceEntry> Backgrounds,
+        IReadOnlyList<YsmResourceEntry> SpecialImages,
         YsmMetadata? Metadata);
 
     public sealed record ModelNodeInfo(
@@ -130,6 +133,9 @@ public sealed class YsmLoaderService
             resources.Models,
             resources.Textures,
             resources.Animations,
+            resources.Avatars,
+            resources.Backgrounds,
+            resources.SpecialImages,
             ParseMetadata(resources.YsmJson, resources.InfoJson));
     }
 

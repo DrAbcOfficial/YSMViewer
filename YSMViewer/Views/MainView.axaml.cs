@@ -472,4 +472,16 @@ public partial class MainView : UserControl
         if (DataContext is MainViewModel vm)
             vm.CollapseAllBones();
     }
+
+    private void OnTextureItemPointerEntered(object? sender, PointerEventArgs e)
+    {
+        if (sender is Border border)
+            border.Background = new SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 36, 40, 59));
+    }
+
+    private void OnTextureItemPointerExited(object? sender, PointerEventArgs e)
+    {
+        if (sender is Border border)
+            border.Background = new SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 31, 35, 53));
+    }
 }

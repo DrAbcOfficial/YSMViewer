@@ -1,6 +1,9 @@
 ﻿using Aura3D.Core.Nodes;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
+using YSMParser.Core.Parsers;
 using YSMViewer.Services;
 
 namespace YSMViewer.ViewModels;
@@ -64,12 +67,19 @@ public sealed partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     private string _modelTips = string.Empty;
 
-    [ObservableProperty]
+[ObservableProperty]
     private bool _isFreeModel;
+
+    [ObservableProperty]
+    private bool _hasTextures;
+
+    [ObservableProperty]
+    private TextureItemViewModel? _selectedTexture;
 
     public ObservableCollection<ComponentViewModel> Components { get; } = [];
     public ObservableCollection<string> AnimationNames { get; } = [];
     public ObservableCollection<BoneTreeItemViewModel> BoneTreeRoots { get; } = [];
+    public ObservableCollection<TextureItemViewModel> TextureItems { get; } = [];
 
     private YsmLoaderService.LoadedModel? _currentModel;
     private Action<Model>? _onSceneReady;
@@ -254,6 +264,18 @@ public sealed partial class MainViewModel : ViewModelBase
 
         Components.Clear();
         BoneTreeRoots.Clear();
+        TextureItems.Clear();
+
+        if (loadedModel.Textures is { Count: > 0 })
+            AddTextureEntries(loadedModel.Textures, "Texture");
+        if (loadedModel.Avatars is { Count: > 0 })
+            AddTextureEntries(loadedModel.Avatars, "Avatar");
+        if (loadedModel.Backgrounds is { Count: > 0 })
+            AddTextureEntries(loadedModel.Backgrounds, "Background");
+        if (loadedModel.SpecialImages is { Count: > 0 })
+            AddTextureEntries(loadedModel.SpecialImages, "Special");
+
+        HasTextures = TextureItems.Count > 0;
 
         foreach (var modelInfo in loadedModel.ModelNodes)
         {
@@ -401,7 +423,7 @@ public sealed partial class MainViewModel : ViewModelBase
         return item;
     }
 
-    public void ExpandAllBones()
+public void ExpandAllBones()
     {
         foreach (var root in BoneTreeRoots)
             root.SetExpandedRecursive(true);
@@ -411,6 +433,51 @@ public sealed partial class MainViewModel : ViewModelBase
     {
         foreach (var root in BoneTreeRoots)
             root.SetExpandedRecursive(false);
+    }
+
+    private void AddTextureEntries(IReadOnlyList<YsmResourceEntry> entries, string category)
+    {
+        foreach (var entry in entries)
+        {
+            Bitmap? bitmap = null;
+            int width = 0;
+            int height = 0;
+            try
+            {
+                using var ms = new System.IO.MemoryStream(entry.Data);
+                bitmap = new Bitmap(ms);
+                width = bitmap.PixelSize.Width;
+                height = bitmap.PixelSize.Height;
+            }
+            catch { }
+
+            TextureItems.Add(new TextureItemViewModel
+            {
+                Name = entry.Name,
+                Category = category,
+                DataSize = entry.Data.Length,
+                Width = width,
+                Height = height,
+                Thumbnail = CreateThumbnail(bitmap),
+            });
+
+            bitmap?.Dispose();
+        }
+    }
+
+    private static Bitmap? CreateThumbnail(Bitmap? source, int maxSize = 128)
+    {
+        if (source is null) return null;
+        try
+        {
+            var (nw, nh) = source.PixelSize.Width >= source.PixelSize.Height
+                ? (maxSize, (int)(source.PixelSize.Height * (double)maxSize / source.PixelSize.Width))
+                : ((int)(source.PixelSize.Width * (double)maxSize / source.PixelSize.Height), maxSize);
+            nw = Math.Max(1, nw);
+            nh = Math.Max(1, nh);
+            return source.CreateScaledBitmap(new Avalonia.PixelSize(nw, nh));
+        }
+        catch { return null; }
     }
 }
 
@@ -451,7 +518,7 @@ public sealed partial class BoneTreeItemViewModel : ObservableObject
     public Node? SceneNode { get; set; }
     public ObservableCollection<BoneTreeItemViewModel> Children { get; } = [];
 
-    partial void OnIsVisibleChanged(bool value)
+partial void OnIsVisibleChanged(bool value)
     {
         if (SceneNode is not null)
             SceneNode.Enable = value;
@@ -465,4 +532,41 @@ public sealed partial class BoneTreeItemViewModel : ObservableObject
         foreach (var child in Children)
             child.SetExpandedRecursive(expanded);
     }
+}
+
+public sealed partial class TextureItemViewModel : ObservableObject
+{
+    [ObservableProperty]
+    private string _name = string.Empty;
+
+    [ObservableProperty]
+    private string _category = string.Empty;
+
+    [ObservableProperty]
+    private Bitmap? _thumbnail;
+
+    [ObservableProperty]
+    private int _width;
+
+    [ObservableProperty]
+    private int _height;
+
+    [ObservableProperty]
+    private long _dataSize;
+
+    public string SizeDisplay => DataSize < 1024
+        ? $"{DataSize} B"
+        : $"{DataSize / 1024.0:F1} KB";
+
+    public string DimensionsDisplay => Width > 0 && Height > 0
+        ? $"{Width} x {Height}"
+        : "Unknown";
+
+    public IBrush BadgeBrush => Category switch
+    {
+        "Avatar" => new SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 158, 206, 106)),
+        "Background" => new SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 224, 175, 104)),
+        "Special" => new SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 247, 118, 142)),
+        _ => new SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 122, 162, 247)),
+    };
 }

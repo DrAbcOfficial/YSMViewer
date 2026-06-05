@@ -170,6 +170,60 @@
                         </ScrollViewer>
                     </TabItem>
 
+                    <!-- Tab: Textures -->
+                    <TabItem Header="Textures"
+                             IsVisible="{Binding HasTextures}">
+                        <Grid RowDefinitions="Auto,*" Margin="12,8,12,0">
+                            <TextBlock Grid.Row="0" Text="Image resources in this YSM file"
+                                       FontSize="11" Foreground="{DynamicResource ThemeTextMuted}"
+                                       Margin="0,0,0,8" />
+                            <ScrollViewer Grid.Row="1">
+                                <ItemsControl ItemsSource="{Binding TextureItems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:TextureItemViewModel">
+                                            <Border CornerRadius="6" Margin="0,0,0,6"
+                                                    Padding="8" Background="{DynamicResource ThemeBgCard}"
+                                                    PointerEntered="OnTextureItemPointerEntered"
+                                                    PointerExited="OnTextureItemPointerExited">
+                                                <Grid ColumnDefinitions="64,*,Auto">
+                                                    <Border Grid.Column="0" Width="64" Height="64"
+                                                            CornerRadius="4"
+                                                            Background="{DynamicResource ThemeBgViewport}"
+                                                            ClipToBounds="True">
+                                                        <Image Source="{Binding Thumbnail}"
+                                                               Stretch="UniformToFill"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <StackPanel Grid.Column="1" Margin="10,0,0,0"
+                                                                VerticalAlignment="Center" Spacing="4">
+                                                        <TextBlock Text="{Binding Name}"
+                                                                   FontSize="12" Foreground="{DynamicResource ThemeTextPrimary}"
+                                                                   FontWeight="SemiBold"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                                            <TextBlock Text="{Binding DimensionsDisplay}"
+                                                                       FontSize="10" Foreground="{DynamicResource ThemeTextMuted}" />
+                                                            <TextBlock Text="{Binding SizeDisplay}"
+                                                                       FontSize="10" Foreground="{DynamicResource ThemeTextMuted}" />
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                    <Border Grid.Column="2" CornerRadius="3" Padding="6,2"
+                                                            VerticalAlignment="Center"
+                                                            Background="{Binding BadgeBrush}">
+                                                        <TextBlock Text="{Binding Category}" FontSize="10"
+                                                                   Foreground="White"
+                                                                   FontWeight="SemiBold" />
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </TabItem>
+
                     <!-- Tab 2: Bones -->
                     <TabItem Header="Bones">
                         <Grid RowDefinitions="Auto,*" Margin="12,8,12,0">
