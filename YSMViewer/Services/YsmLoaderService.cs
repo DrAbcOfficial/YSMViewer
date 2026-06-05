@@ -1,6 +1,5 @@
 using System.Numerics;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Aura3D.Core;
 using Aura3D.Core.Nodes;
 using Aura3D.Core.Resources;
@@ -90,7 +89,7 @@ public sealed class YsmLoaderService
         for (int i = 0; i < resources.Models.Count; i++)
         {
             var modelEntry = resources.Models[i];
-            var allGeometries = ParseAllGeometries(modelEntry.Data, GetOptions());
+            var allGeometries = ParseAllGeometries(modelEntry.Data);
             var geometry = allGeometries[0];
             var category = ClassifyModel(modelEntry.Name);
             bool defaultVisible = category == ModelCategory.Main;
@@ -130,32 +129,15 @@ public sealed class YsmLoaderService
             ParseMetadata(resources.YsmJson, resources.InfoJson));
     }
 
-    private static JsonSerializerOptions GetOptions()
+    private static List<MinecraftGeometry> ParseAllGeometries(byte[] jsonData)
     {
-        return new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            AllowTrailingCommas = true,
-            ReadCommentHandling = JsonCommentHandling.Skip,
-            NumberHandling = JsonNumberHandling.AllowReadingFromString,
-        };
-    }
-
-    private static List<MinecraftGeometry> ParseAllGeometries(byte[] jsonData, JsonSerializerOptions options)
-    {
-        var file = JsonSerializer.Deserialize<MinecraftGeometryFile>(jsonData, options)
+        var file = JsonSerializer.Deserialize(jsonData, YsmJsonContext.Default.MinecraftGeometryFile)
                    ?? throw new InvalidOperationException("Failed to parse geometry JSON");
 
         if (file.Geometries is not { Count: > 0 })
             throw new InvalidOperationException("No geometry definitions found");
 
         return file.Geometries;
-    }
-
-    private static MinecraftGeometry ParseGeometryJson(byte[] jsonData)
-    {
-        var all = ParseAllGeometries(jsonData, GetOptions());
-        return all[0];
     }
 
     public static void ApplyTextureToModel(Model model, byte[] texturePng)

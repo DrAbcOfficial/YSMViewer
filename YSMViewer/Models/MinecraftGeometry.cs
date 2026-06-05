@@ -124,7 +124,7 @@ public sealed class MinecraftCubeUVConverter : JsonConverter<MinecraftCubeUV>
                 {
                     var propName = reader.GetString()?.ToLowerInvariant();
                     if (!reader.Read()) break;
-                    var faceUV = JsonSerializer.Deserialize<MinecraftCubeFaceUV>(ref reader, options);
+                    var faceUV = ReadFaceUV(ref reader);
 
                     switch (propName)
                     {
@@ -152,12 +152,82 @@ public sealed class MinecraftCubeUVConverter : JsonConverter<MinecraftCubeUV>
             return;
         }
         writer.WriteStartObject();
-        if (value.North != null) { writer.WritePropertyName("north"); JsonSerializer.Serialize(writer, value.North, options); }
-        if (value.South != null) { writer.WritePropertyName("south"); JsonSerializer.Serialize(writer, value.South, options); }
-        if (value.East != null) { writer.WritePropertyName("east"); JsonSerializer.Serialize(writer, value.East, options); }
-        if (value.West != null) { writer.WritePropertyName("west"); JsonSerializer.Serialize(writer, value.West, options); }
-        if (value.Up != null) { writer.WritePropertyName("up"); JsonSerializer.Serialize(writer, value.Up, options); }
-        if (value.Down != null) { writer.WritePropertyName("down"); JsonSerializer.Serialize(writer, value.Down, options); }
+        WriteFaceUV(writer, "north", value.North);
+        WriteFaceUV(writer, "south", value.South);
+        WriteFaceUV(writer, "east", value.East);
+        WriteFaceUV(writer, "west", value.West);
+        WriteFaceUV(writer, "up", value.Up);
+        WriteFaceUV(writer, "down", value.Down);
+        writer.WriteEndObject();
+    }
+
+    private static MinecraftCubeFaceUV? ReadFaceUV(ref Utf8JsonReader reader)
+    {
+        if (reader.TokenType != JsonTokenType.StartObject)
+            return null;
+
+        List<float>? uv = null;
+        List<float>? uvSize = null;
+        string? material = null;
+
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+        {
+            if (reader.TokenType == JsonTokenType.PropertyName)
+            {
+                var prop = reader.GetString()?.ToLowerInvariant();
+                if (!reader.Read()) break;
+
+                switch (prop)
+                {
+                    case "uv":
+                        uv = ReadFloatArray(ref reader);
+                        break;
+                    case "uv_size":
+                        uvSize = ReadFloatArray(ref reader);
+                        break;
+                    case "material_instance":
+                        material = reader.GetString();
+                        break;
+                    default:
+                        reader.Skip();
+                        break;
+                }
+            }
+        }
+
+        return new MinecraftCubeFaceUV(uv, uvSize, material);
+    }
+
+    private static void WriteFaceUV(Utf8JsonWriter writer, string name, MinecraftCubeFaceUV? face)
+    {
+        if (face is null) return;
+        writer.WritePropertyName(name);
+        writer.WriteStartObject();
+        WriteFloatArray(writer, "uv", face.UvCoords);
+        WriteFloatArray(writer, "uv_size", face.UvSize);
+        if (face.MaterialInstance is not null)
+            writer.WriteString("material_instance", face.MaterialInstance);
+        writer.WriteEndObject();
+    }
+
+    private static List<float>? ReadFloatArray(ref Utf8JsonReader reader)
+    {
+        if (reader.TokenType != JsonTokenType.StartArray) return null;
+        var list = new List<float>();
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+        {
+            if (reader.TokenType == JsonTokenType.Number)
+                list.Add(reader.GetSingle());
+        }
+        return list;
+    }
+
+    private static void WriteFloatArray(Utf8JsonWriter writer, string name, List<float>? values)
+    {
+        if (values is not { Count: > 0 }) return;
+        writer.WritePropertyName(name);
+        writer.WriteStartArray();
+        foreach (var v in values) writer.WriteNumberValue(v);
         writer.WriteEndObject();
     }
 }

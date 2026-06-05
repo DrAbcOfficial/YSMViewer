@@ -55,14 +55,7 @@ public sealed class AnimationService(
 
     public void LoadAnimations(byte[] animationJsonData)
     {
-        JsonSerializerOptions jsonSerializerOptions = new()
-        {
-            PropertyNameCaseInsensitive = true,
-            ReadCommentHandling = JsonCommentHandling.Skip,
-        };
-        JsonSerializerOptions options = jsonSerializerOptions;
-
-        _currentFile = JsonSerializer.Deserialize<MinecraftAnimationFile>(animationJsonData, options);
+        _currentFile = JsonSerializer.Deserialize(animationJsonData, YsmJsonContext.Default.MinecraftAnimationFile);
         if (_currentFile is null) return;
 
         var names = new List<string>();

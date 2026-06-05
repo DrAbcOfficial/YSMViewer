@@ -1,11 +1,13 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using System.Diagnostics.CodeAnalysis;
 using YSMViewer.ViewModels;
 using YSMViewer.Views;
 
 namespace YSMViewer;
 
+[UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "ViewLocator reflection is required for Avalonia MVVM")]
 public partial class App : Application
 {
     public static string? StartupFilePath { get; set; }
