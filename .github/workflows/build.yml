@@ -52,8 +52,8 @@ jobs:
       - name: Restore
         run: dotnet restore YSMViewer.slnx
 
-      - name: Build Browser
-        run: dotnet build YSMViewer.Browser -c Release --no-restore
+      - name: Build
+        run: dotnet build YSMViewer.slnx -c Release --no-restore
 
       - name: Publish Browser
         run: dotnet publish YSMViewer.Browser -c Release --no-build -o publish/browser
