@@ -17,6 +17,9 @@ public sealed partial class MainViewModel : ViewModelBase
     private string _statusText = "Ready. Open a .ysm file to begin.";
 
     [ObservableProperty]
+    private bool _showToolbar;
+
+    [ObservableProperty]
     private string _modelName = string.Empty;
 
     [ObservableProperty]
@@ -78,9 +81,15 @@ public sealed partial class MainViewModel : ViewModelBase
 
     public string? StartupFilePath { get; set; }
 
+    public string? StartupFileUrl { get; set; }
+
     public async Task LoadStartupFileIfNeeded()
     {
-        if (StartupFilePath is { Length: > 0 } && !HasModel && !IsLoading)
+        if (StartupFileUrl is { Length: > 0 } && !HasModel && !IsLoading)
+        {
+            await LoadFromUrlAsync(StartupFileUrl);
+        }
+        else if (StartupFilePath is { Length: > 0 } && !HasModel && !IsLoading)
         {
             await LoadFileAsync(StartupFilePath);
         }
@@ -145,72 +154,7 @@ public sealed partial class MainViewModel : ViewModelBase
                 return;
             }
 
-            StatusText = "Building scene...";
-            ModelName = _currentModel.ModelName;
-            ModelVersion = _currentModel.Version;
-            HasModel = true;
-
-            if (_currentModel.Metadata is not null)
-            {
-                var meta = _currentModel.Metadata;
-                ModelDisplayName = meta.Name ?? _currentModel.ModelName;
-                ModelAuthors = meta.Authors is { Length: > 0 }
-                    ? string.Join(", ", meta.Authors) : "Unknown";
-                ModelLicense = meta.LicenseType ?? "Unknown";
-                IsFreeModel = meta.IsFree;
-                ModelTips = meta.Tips ?? string.Empty;
-            }
-            else
-            {
-                ModelDisplayName = _currentModel.ModelName;
-                ModelAuthors = string.Empty;
-                ModelLicense = string.Empty;
-                IsFreeModel = false;
-                ModelTips = string.Empty;
-            }
-
-            Components.Clear();
-            BoneTreeRoots.Clear();
-
-            foreach (var modelInfo in _currentModel.ModelNodes)
-            {
-                var displayName = modelInfo.Category switch
-                {
-                    YsmLoaderService.ModelCategory.Main => modelInfo.Name,
-                    YsmLoaderService.ModelCategory.Arm => $"{modelInfo.Name} (Arm)",
-                    _ => $"{modelInfo.Name} (Sub)",
-                };
-                if (modelInfo.GeometryCount > 1)
-                    displayName += $" [{modelInfo.GeometryCount} UV]";
-                Components.Add(new ComponentViewModel
-                {
-                    Name = displayName,
-                    ModelNode = modelInfo.Node,
-                    IsVisible = modelInfo.DefaultVisible,
-                });
-            }
-
-            _animationService.SetBoneNodes(_currentModel.BoneNodes, _currentModel.BaseBoneEulers);
-
-            if (_currentModel.Animations.Count > 0)
-            {
-                _animationService.LoadAnimations(_currentModel.Animations[0].Data);
-                HasAnimations = _animationService.AnimationNames.Count > 0;
-
-                AnimationNames.Clear();
-                foreach (var name in _animationService.AnimationNames)
-                    AnimationNames.Add(name);
-
-                IsAnimating = false;
-                CanPreviousAnimation = _animationService.AnimationNames.Count > 0;
-                CanNextAnimation = _animationService.AnimationNames.Count > 0;
-            }
-
-            BuildBoneTree();
-
-            _onSceneReady?.Invoke(_currentModel.ContainerNode);
-
-            StatusText = $"Loaded: {ModelName} (V{ModelVersion})";
+            PopulateModelData(_currentModel);
         }
         catch (Exception ex)
         {
@@ -221,6 +165,138 @@ public sealed partial class MainViewModel : ViewModelBase
         {
             IsLoading = false;
         }
+    }
+
+    public async Task LoadFromBytesAsync(byte[] data)
+    {
+        HasError = false;
+        ErrorDetail = string.Empty;
+        HasAnimations = false;
+        AnimationNames.Clear();
+        CurrentAnimationName = string.Empty;
+        IsAnimating = false;
+
+        try
+        {
+            IsLoading = true;
+            StatusText = "Parsing YSM...";
+
+            YsmLoaderService.LoadedModel? loadedModel = null;
+            await Task.Run(() =>
+            {
+                loadedModel = YsmLoaderService.LoadFromBytes(data);
+            });
+
+            if (loadedModel is null)
+            {
+                StatusText = "Error: failed to load model";
+                return;
+            }
+
+            PopulateModelData(loadedModel);
+        }
+        catch (Exception ex)
+        {
+            SetError(ex);
+            HasModel = false;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    public async Task LoadFromUrlAsync(string url)
+    {
+        HasError = false;
+        ErrorDetail = string.Empty;
+
+        try
+        {
+            IsLoading = true;
+            StatusText = "Downloading model...";
+
+            using var client = new System.Net.Http.HttpClient();
+            var bytes = await client.GetByteArrayAsync(url);
+            await LoadFromBytesAsync(bytes);
+        }
+        catch (Exception ex)
+        {
+            SetError(ex);
+            HasModel = false;
+            IsLoading = false;
+        }
+    }
+
+    private void PopulateModelData(YsmLoaderService.LoadedModel loadedModel)
+    {
+        StatusText = "Building scene...";
+        ModelName = loadedModel.ModelName;
+        ModelVersion = loadedModel.Version;
+        HasModel = true;
+        _currentModel = loadedModel;
+
+        if (loadedModel.Metadata is not null)
+        {
+            var meta = loadedModel.Metadata;
+            ModelDisplayName = meta.Name ?? loadedModel.ModelName;
+            ModelAuthors = meta.Authors is { Length: > 0 }
+                ? string.Join(", ", meta.Authors) : "Unknown";
+            ModelLicense = meta.LicenseType ?? "Unknown";
+            IsFreeModel = meta.IsFree;
+            ModelTips = meta.Tips ?? string.Empty;
+        }
+        else
+        {
+            ModelDisplayName = loadedModel.ModelName;
+            ModelAuthors = string.Empty;
+            ModelLicense = string.Empty;
+            IsFreeModel = false;
+            ModelTips = string.Empty;
+        }
+
+        Components.Clear();
+        BoneTreeRoots.Clear();
+
+        foreach (var modelInfo in loadedModel.ModelNodes)
+        {
+            var displayName = modelInfo.Category switch
+            {
+                YsmLoaderService.ModelCategory.Main => modelInfo.Name,
+                YsmLoaderService.ModelCategory.Arm => $"{modelInfo.Name} (Arm)",
+                _ => $"{modelInfo.Name} (Sub)",
+            };
+            if (modelInfo.GeometryCount > 1)
+                displayName += $" [{modelInfo.GeometryCount} UV]";
+            Components.Add(new ComponentViewModel
+            {
+                Name = displayName,
+                ModelNode = modelInfo.Node,
+                IsVisible = modelInfo.DefaultVisible,
+            });
+        }
+
+        _animationService.SetBoneNodes(loadedModel.BoneNodes, loadedModel.BaseBoneEulers);
+
+        if (loadedModel.Animations.Count > 0)
+        {
+            _animationService.LoadAnimations(loadedModel.Animations[0].Data);
+            HasAnimations = _animationService.AnimationNames.Count > 0;
+
+            AnimationNames.Clear();
+            foreach (var name in _animationService.AnimationNames)
+                AnimationNames.Add(name);
+
+            IsAnimating = false;
+            CanPreviousAnimation = _animationService.AnimationNames.Count > 0;
+            CanNextAnimation = _animationService.AnimationNames.Count > 0;
+        }
+
+        BuildBoneTree();
+
+        _onSceneReady?.Invoke(loadedModel.ContainerNode);
+
+        StatusText = $"Loaded: {ModelName} (V{ModelVersion})";
     }
 
     partial void OnIsAnimatingChanged(bool value)

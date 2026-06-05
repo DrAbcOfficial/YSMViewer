@@ -91,6 +91,10 @@ public sealed class YsmLoaderService
             var modelEntry = resources.Models[i];
             var allGeometries = ParseAllGeometries(modelEntry.Data);
             var geometry = allGeometries[0];
+            if (geometry?.Description is null)
+                throw new InvalidOperationException($"Geometry has no description for model '{modelEntry.Name}'");
+            if (geometry.Bones is null)
+                throw new InvalidOperationException($"Geometry has no bones for model '{modelEntry.Name}'");
             var category = ClassifyModel(modelEntry.Name);
             bool defaultVisible = category == ModelCategory.Main;
 

@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using System.Numerics;
 using YSMViewer.ViewModels;
 
@@ -28,6 +29,7 @@ public partial class MainView : UserControl
     {
         InitializeComponent();
         Loaded += OnLoaded;
+        OpenButton.Click += OnOpenButtonClick;
         PointerPressed += OnPointerPressed;
         PointerReleased += OnPointerReleased;
         PointerMoved += OnPointerMoved;
@@ -42,6 +44,35 @@ public partial class MainView : UserControl
             vm.SetSceneCallback(AddModelToScene);
             _ = vm.LoadStartupFileIfNeeded();
         }
+    }
+
+    private async void OnOpenButtonClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel?.StorageProvider is not { } storage) return;
+
+        var files = await storage.OpenFilePickerAsync(
+            new FilePickerOpenOptions
+            {
+                Title = "Open YSM Model",
+                AllowMultiple = false,
+                FileTypeFilter =
+                [
+                    new FilePickerFileType("YSM Models")
+                    {
+                        Patterns = ["*.ysm"],
+                    },
+                ],
+            });
+
+        if (files is not { Count: > 0 }) return;
+
+        await using var stream = await files[0].OpenReadAsync();
+        using var ms = new System.IO.MemoryStream();
+        await stream.CopyToAsync(ms);
+        await vm.LoadFromBytesAsync(ms.ToArray());
     }
 
     private void OnSceneInitialized(object sender, InitializedRoutedEventArgs args)

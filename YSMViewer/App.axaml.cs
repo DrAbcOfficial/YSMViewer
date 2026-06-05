@@ -12,6 +12,8 @@ public partial class App : Application
 {
     public static string? StartupFilePath { get; set; }
 
+    public static string? StartupFileUrl { get; set; }
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -26,6 +28,11 @@ public partial class App : Application
             vm.StartupFilePath = StartupFilePath;
         }
 
+        if (StartupFileUrl is not null)
+        {
+            vm.StartupFileUrl = StartupFileUrl;
+        }
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = new MainWindow
@@ -35,6 +42,7 @@ public partial class App : Application
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime single)
         {
+            vm.ShowToolbar = true;
             single.MainView = new MainView
             {
                 DataContext = vm,

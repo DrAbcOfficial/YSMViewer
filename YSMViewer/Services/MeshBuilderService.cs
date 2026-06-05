@@ -35,6 +35,9 @@ public static class MeshBuilderService
         var cubeMetadataList = new List<CubeMetadata>();
         var cubeMeshList = new List<(Mesh Mesh, CubeMetadata Metadata)>();
 
+        if (geometry.Bones is null)
+            return new BuildResult(model, boneNodes, baseEulers, cubeMetadataList, cubeMeshList);
+
         Texture? sharedTexture = null;
         if (textureData.Length > 0)
         {

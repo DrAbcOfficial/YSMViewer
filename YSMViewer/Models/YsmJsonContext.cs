@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace YSMViewer.Models;
 
+[JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
 [JsonSerializable(typeof(MinecraftAnimationFile))]
 [JsonSerializable(typeof(MinecraftAnimation))]
 [JsonSerializable(typeof(MinecraftBoneAnimation))]
