@@ -25,7 +25,7 @@ jobs:
         run: dotnet build YSMViewer.slnx -c Release --no-restore
 
       - name: Publish Desktop
-        run: dotnet publish YSMViewer.Desktop -c Release --no-build -o publish/desktop
+        run: dotnet publish YSMViewer.Desktop -c Release -o publish/desktop
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
@@ -56,7 +56,7 @@ jobs:
         run: dotnet build YSMViewer.slnx -c Release --no-restore
 
       - name: Publish Browser
-        run: dotnet publish YSMViewer.Browser -c Release --no-build -o publish/browser
+        run: dotnet publish YSMViewer.Browser -c Release -o publish/browser
 
       - name: Download desktop artifact
         uses: actions/download-artifact@v8
