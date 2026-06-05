@@ -6,18 +6,20 @@
 
 ## Submodule
 
-`YSMParser.Net/` is a **git submodule** (not a plain copy). After a fresh clone:
+~~`YSMParser.Net/` is a **git submodule** (not a plain copy). After a fresh clone:~~
 
-```powershell
+~~```powershell
 git submodule update --init --recursive
-```
+```~~
 
-The submodule points to `https://github.com/DrAbcOfficial/YSMParser.NET`. See `YSMParser.Net/AGENTS.md` for its build/test/architecture details.
+~~The submodule points to `https://github.com/DrAbcOfficial/YSMParser.NET`. See `YSMParser.Net/AGENTS.md` for its build/test/architecture details.~~
+
+YSMParser.Core is consumed as a **NuGet package** (`YSMParser.Core` 1.0.0) from nuget.org. No submodule needed.
 
 ## Build & Run
 
 ```powershell
-# Build everything (desktop + browser + YSMParser.Net submodule projects)
+# Build everything (desktop + browser)
 dotnet build YSMViewer.slnx
 
 # Run the desktop app
@@ -27,14 +29,14 @@ dotnet run --project YSMViewer.Desktop
 dotnet run --project YSMViewer.Desktop -- path\to\file.ysm
 ```
 
-There are **no tests** in YSMViewer itself. Tests live in the `YSMParser.Net/Tests/` submodule (xunit v3).
+There are **no tests** in YSMViewer itself.
 
 ## Solution & Toolchain
 
 - **Solution format**: `.slnx` (new XML format, not legacy `.sln`).
 - **Central package management**: `Directory.Packages.props` pins all NuGet versions.
 - **Targets**: Desktop (`net10.0`, WinExe) and Browser (`net10.0-browser`, WASM via `Microsoft.NET.Sdk.WebAssembly`).
-- **No lint, formatter, or CI config** in this repo.
+- **CI**: `.github/workflows/build.yml` — every push builds + uploads artifact; `v*` tag creates release + deploys Browser to `webpage` branch for GitHub Pages.
 
 ## Project Map
 
@@ -43,7 +45,6 @@ There are **no tests** in YSMViewer itself. Tests live in the `YSMParser.Net/Tes
 | `YSMViewer/` | Library | Main UI. Avalonia views, ViewModels (CommunityToolkit.Mvvm), services, 3D viewport (Aura3D). |
 | `YSMViewer.Desktop/` | Exe (WinExe) | Desktop launcher. `Program.cs` handles `STAThread`, optional file-open arg, developer tools in Debug. |
 | `YSMViewer.Browser/` | Exe (WASM) | Browser/WASM launcher. Single-view lifetime, `AllowUnsafeBlocks`. |
-| `YSMParser.Net/` | Submodule | Parser library, CLI, GLB exporter, xunit tests (see submodule `AGENTS.md`). |
 
 Only the Desktop and Browser projects are entrypoints. `YSMViewer/` is just the shared UI library.
 

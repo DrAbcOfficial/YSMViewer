@@ -1,0 +1,84 @@
+name: Build & Release
+
+on:
+  push:
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore YSMViewer.slnx
+
+      - name: Build
+        run: dotnet build YSMViewer.slnx -c Release --no-restore
+
+      - name: Publish Desktop
+        run: dotnet publish YSMViewer.Desktop -c Release --no-build -o publish/desktop
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: desktop-build
+          path: publish/desktop/
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore YSMViewer.slnx
+
+      - name: Build Browser
+        run: dotnet build YSMViewer.Browser -c Release --no-restore
+
+      - name: Publish Browser
+        run: dotnet publish YSMViewer.Browser -c Release --no-build -o publish/browser
+
+      - name: Download desktop artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: desktop-build
+          path: publish/desktop/
+
+      - name: Package assets
+        run: |
+          cd publish/desktop && zip -r ../YSMViewer-Desktop.zip .
+          cd ../browser && zip -r ../YSMViewer-Browser.zip .
+
+      - name: Add .nojekyll for GitHub Pages
+        run: touch publish/browser/wwwroot/.nojekyll
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            publish/YSMViewer-Desktop.zip
+            publish/YSMViewer-Browser.zip
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+
+      - name: Deploy to webpage branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: publish/browser/wwwroot
+          publish_branch: webpage
+          force_orphan: true
