@@ -41,8 +41,18 @@ public static class MeshBuilderService
         Texture? sharedTexture = null;
         if (textureData.Length > 0)
         {
-            try { sharedTexture = TextureLoader.LoadTexture(textureData).SetMinFilter(TextureFilterMode.Nearest).SetMagFilter(TextureFilterMode.Nearest).SetWarpS(TextureWrapMode.Repeat).SetWarpT(TextureWrapMode.Repeat); }
-            catch { }
+            try
+            {
+                sharedTexture = TextureLoader.LoadTexture(textureData)
+                    .SetMinFilter(TextureFilterMode.Nearest)
+                    .SetMagFilter(TextureFilterMode.Nearest)
+                    .SetWarpS(TextureWrapMode.Repeat)
+                    .SetWarpT(TextureWrapMode.Repeat);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MeshBuilderService] Failed to load texture ({textureData.Length} bytes): {ex.Message}");
+            }
         }
 
         var bonePivots = new Dictionary<string, Vector3>();

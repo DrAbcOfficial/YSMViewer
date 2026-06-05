@@ -18,5 +18,6 @@
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Aura3D.Avalonia" />
     <PackageReference Include="YSMParser.Core" />
+    <PackageReference Include="SixLabors.ImageSharp" />
   </ItemGroup>
 </Project>

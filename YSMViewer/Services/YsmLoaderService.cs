@@ -3,6 +3,8 @@ using System.Text.Json;
 using Aura3D.Core;
 using Aura3D.Core.Nodes;
 using Aura3D.Core.Resources;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Png;
 using YSMParser.Core.Parsers;
 using YSMViewer.Models;
 
@@ -81,9 +83,9 @@ public sealed class YsmLoaderService
         var containerModel = new Model { Name = "ysm_root" };
         var modelNodes = new List<ModelNodeInfo>();
 
-        byte[]? firstTexturePng = null;
+        byte[]? fallbackTexture = null;
         if (resources.Textures.Count > 0)
-            firstTexturePng = resources.Textures[0].Data;
+            fallbackTexture = EnsurePng(resources.Textures[0].Data);
 
         Dictionary<string, Node>? primaryBoneNodes = null;
         Dictionary<string, Vector3>? primaryBaseEulers = null;
@@ -101,7 +103,7 @@ public sealed class YsmLoaderService
             var category = ClassifyModel(modelEntry.Name);
             bool defaultVisible = category == ModelCategory.Main;
 
-            var textureData = firstTexturePng ?? [];
+            var textureData = FindTextureForModel(modelEntry.Name, resources.Textures) ?? fallbackTexture ?? [];
             var result = MeshBuilderService.BuildModelNode(
                 geometry, textureData,
                 geometry.Description.TextureWidth,
@@ -150,9 +152,10 @@ public sealed class YsmLoaderService
         return file.Geometries;
     }
 
-    public static void ApplyTextureToModel(Model model, byte[] texturePng)
+public static void ApplyTextureToModel(Model model, byte[] textureData)
     {
-        var texture = TextureLoader.LoadTexture(texturePng);
+        var pngData = EnsurePng(textureData) ?? textureData;
+        var texture = TextureLoader.LoadTexture(pngData);
         texture.SetMinFilter(TextureFilterMode.Nearest)
                .SetMagFilter(TextureFilterMode.Nearest);
         texture.SetWarpS(TextureWrapMode.Repeat)
@@ -218,7 +221,7 @@ public sealed class YsmLoaderService
         return new YsmMetadata(name, tips, licenseType, isFree, [.. authors], widthScale, heightScale);
     }
 
-    private static YsmMetadata? ParseInfoJson(byte[] data)
+private static YsmMetadata? ParseInfoJson(byte[] data)
     {
         using var doc = JsonDocument.Parse(data);
         var root = doc.RootElement;
@@ -245,5 +248,67 @@ public sealed class YsmLoaderService
         }
 
         return new YsmMetadata(name, tips, licenseType, isFree, [.. authors], 1f, 1f);
+    }
+
+    private static byte[]? FindTextureForModel(string modelName, IReadOnlyList<YsmResourceEntry> textures)
+    {
+        if (textures.Count == 0) return null;
+
+        string normalizedModel = modelName.Replace("models/", "").Replace(".json", "");
+        if (normalizedModel.Contains('/'))
+            normalizedModel = normalizedModel[(normalizedModel.LastIndexOf('/') + 1)..];
+        if (normalizedModel.Contains('\\'))
+            normalizedModel = normalizedModel[(normalizedModel.LastIndexOf('\\') + 1)..];
+
+        YsmResourceEntry? exactMatch = null;
+        YsmResourceEntry? containsMatch = null;
+        YsmResourceEntry? defaultMatch = null;
+
+        foreach (var tex in textures)
+        {
+            string normalizedTex = tex.Name.Replace("textures/", "").Replace(".png", "").Replace(".webp", "");
+            if (normalizedTex.Contains('/'))
+                normalizedTex = normalizedTex[(normalizedTex.LastIndexOf('/') + 1)..];
+            if (normalizedTex.Contains('\\'))
+                normalizedTex = normalizedTex[(normalizedTex.LastIndexOf('\\') + 1)..];
+
+            if (string.Equals(normalizedTex, normalizedModel, StringComparison.OrdinalIgnoreCase))
+                exactMatch = tex;
+
+            if (defaultMatch is null && string.Equals(normalizedTex, "default", StringComparison.OrdinalIgnoreCase))
+                defaultMatch = tex;
+
+            if (containsMatch is null &&
+                (normalizedTex.Contains(normalizedModel, StringComparison.OrdinalIgnoreCase) ||
+                 normalizedModel.Contains(normalizedTex, StringComparison.OrdinalIgnoreCase)))
+                containsMatch = tex;
+        }
+
+        var entry = exactMatch ?? containsMatch ?? defaultMatch;
+        if (entry is null) return null;
+
+        return EnsurePng(entry.Data);
+    }
+
+    private static byte[]? EnsurePng(byte[]? data)
+    {
+        if (data is null or { Length: 0 }) return null;
+
+        if (data.Length >= 4)
+        {
+            var header = System.Text.Encoding.ASCII.GetString(data, 0, 4);
+            if (header == "RIFF")
+                return ConvertWebPToPng(data);
+        }
+
+        return data;
+    }
+
+    private static byte[] ConvertWebPToPng(byte[] webpData)
+    {
+        using var image = Image.Load(webpData);
+        using var ms = new MemoryStream();
+        image.Save(ms, new PngEncoder());
+        return ms.ToArray();
     }
 }
