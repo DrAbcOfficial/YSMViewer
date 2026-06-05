@@ -1,6 +1,9 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
+using Avalonia.Styling;
 using System.Diagnostics.CodeAnalysis;
 using YSMViewer.ViewModels;
 using YSMViewer.Views;
@@ -21,6 +24,11 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        var interFont = new FontFamily("avares://Avalonia.Fonts.Inter#Inter");
+        var fontStyle = new Style(x => x.OfType<TextBlock>());
+        fontStyle.Setters.Add(new Setter(TextBlock.FontFamilyProperty, interFont));
+        Application.Current!.Styles.Add(fontStyle);
+
         var vm = new MainViewModel();
 
         if (StartupFilePath is not null)
@@ -42,7 +50,6 @@ public partial class App : Application
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime single)
         {
-            vm.ShowToolbar = true;
             single.MainView = new MainView
             {
                 DataContext = vm,

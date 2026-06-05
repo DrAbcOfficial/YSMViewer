@@ -17,9 +17,6 @@ public sealed partial class MainViewModel : ViewModelBase
     private string _statusText = "Ready. Open a .ysm file to begin.";
 
     [ObservableProperty]
-    private bool _showToolbar;
-
-    [ObservableProperty]
     private string _modelName = string.Empty;
 
     [ObservableProperty]

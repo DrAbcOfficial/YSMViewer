@@ -16,39 +16,5 @@
         <vm:MainViewModel />
     </Design.DataContext>
 
-    <Grid RowDefinitions="44,*">
-        <Border Grid.Row="0" Background="#0f3460" Padding="12,0">
-            <Grid ColumnDefinitions="Auto,*,Auto">
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8"
-                            VerticalAlignment="Center">
-                    <Button x:Name="OpenButton" Content="Open YSM"
-                            Background="#e94560" Foreground="White"
-                            FontSize="12" Padding="16,6"
-                            CornerRadius="4"
-                            IsEnabled="{Binding !IsLoading}" />
-                    <TextBlock Text="{Binding StatusText}"
-                               Foreground="#a0a0c0" FontSize="12"
-                               VerticalAlignment="Center"
-                               Margin="12,0,0,0" />
-                </StackPanel>
-
-                <TextBlock Grid.Column="1" Text="YSMViewer"
-                           Foreground="White" FontSize="16"
-                           FontWeight="Bold"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center" />
-
-                <Border Grid.Column="2" VerticalAlignment="Center"
-                        IsVisible="{Binding IsLoading}">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <ProgressBar Width="120" Height="4" IsIndeterminate="True" />
-                        <TextBlock Text="Loading..." Foreground="#e94560" FontSize="11"
-                                   VerticalAlignment="Center" />
-                    </StackPanel>
-                </Border>
-            </Grid>
-        </Border>
-
-        <views:MainView Grid.Row="1" />
-    </Grid>
+    <views:MainView />
 </Window>
