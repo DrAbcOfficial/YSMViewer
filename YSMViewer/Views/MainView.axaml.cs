@@ -24,6 +24,7 @@ public partial class MainView : UserControl
     private float _cameraDistance = 30f;
     private float _cameraYaw;
     private float _cameraPitch = -15f;
+    private bool _sceneInitialized;
 
     public MainView()
     {
@@ -42,7 +43,27 @@ public partial class MainView : UserControl
         if (DataContext is MainViewModel vm)
         {
             vm.SetSceneCallback(AddModelToScene);
+            vm.SetAnimationCallback(dt =>
+            {
+                if (_sceneInitialized)
+                    vm.UpdateAnimation(dt);
+            });
             _ = vm.LoadStartupFileIfNeeded();
+        }
+
+        _ = DetectRenderingFailureAsync();
+    }
+
+    private async Task DetectRenderingFailureAsync()
+    {
+        await Task.Delay(5000);
+
+        if (!_sceneInitialized && DataContext is MainViewModel vm)
+        {
+            vm.SetError(new InvalidOperationException(
+                "3D rendering failed to initialize. " +
+                "This may be caused by a WebGL2-incompatible browser or a rendering pipeline error. " +
+                "Please try using a modern browser with WebGL2 support (Chrome, Edge, Firefox)."));
         }
     }
 
@@ -77,65 +98,74 @@ public partial class MainView : UserControl
 
     private void OnSceneInitialized(object sender, InitializedRoutedEventArgs args)
     {
+        _sceneInitialized = true;
         var view = (Aura3DView)sender;
         var scene = args.Scene;
 
-        scene.Background = Texture.CreateFromColor(System.Drawing.Color.FromArgb(255, 26, 27, 38));
-
-        var camera = view.MainCamera;
-        camera.FieldOfView = 50f;
-        camera.NearPlane = 0.1f;
-        camera.FarPlane = 5000f;
-        UpdateCameraPosition(camera);
-        SyncGizmoCamera();
-
-        var ambientLight = new DirectionalLight
+        try
         {
-            LightColor = System.Drawing.Color.FromArgb(255, 80, 80, 100),
-            RotationDegrees = new Vector3(-30, 45, 0),
-        };
-        view.AddNode(ambientLight);
+            scene.Background = Texture.CreateFromColor(System.Drawing.Color.FromArgb(255, 26, 27, 38));
 
-        var keyLight = new DirectionalLight
-        {
-            LightColor = System.Drawing.Color.FromArgb(255, 220, 210, 190),
-            RotationDegrees = new Vector3(-45, -30, 0),
-        };
-        view.AddNode(keyLight);
+            var camera = view.MainCamera;
+            camera.FieldOfView = 50f;
+            camera.NearPlane = 0.1f;
+            camera.FarPlane = 5000f;
+            UpdateCameraPosition(camera);
+            SyncGizmoCamera();
 
-        var fillLight = new DirectionalLight
-        {
-            LightColor = System.Drawing.Color.FromArgb(255, 100, 120, 150),
-            RotationDegrees = new Vector3(-10, 150, 0),
-        };
-        view.AddNode(fillLight);
-
-        if (_pendingModel is not null)
-        {
-            try
+            var ambientLight = new DirectionalLight
             {
-                view.AddNode(_pendingModel);
-                FitCameraToModel(view.MainCamera, _pendingModel);
-                _loadedModel = _pendingModel;
+                LightColor = System.Drawing.Color.FromArgb(255, 80, 80, 100),
+                RotationDegrees = new Vector3(-30, 45, 0),
+            };
+            view.AddNode(ambientLight);
 
-                if (DataContext is MainViewModel vm)
+            var keyLight = new DirectionalLight
+            {
+                LightColor = System.Drawing.Color.FromArgb(255, 220, 210, 190),
+                RotationDegrees = new Vector3(-45, -30, 0),
+            };
+            view.AddNode(keyLight);
+
+            var fillLight = new DirectionalLight
+            {
+                LightColor = System.Drawing.Color.FromArgb(255, 100, 120, 150),
+                RotationDegrees = new Vector3(-10, 150, 0),
+            };
+            view.AddNode(fillLight);
+
+            if (_pendingModel is not null)
+            {
+                try
                 {
-                    foreach (var comp in vm.Components)
+                    view.AddNode(_pendingModel);
+                    FitCameraToModel(view.MainCamera, _pendingModel);
+                    _loadedModel = _pendingModel;
+
+                    if (DataContext is MainViewModel vm)
                     {
-                        if (comp.ModelNode is not null)
-                            comp.ModelNode.Enable = comp.IsVisible;
+                        foreach (var comp in vm.Components)
+                        {
+                            if (comp.ModelNode is not null)
+                                comp.ModelNode.Enable = comp.IsVisible;
+                        }
                     }
                 }
+                catch (Exception ex)
+                {
+                    if (DataContext is MainViewModel vm)
+                        vm.SetError(ex);
+                }
+                finally
+                {
+                    _pendingModel = null;
+                }
             }
-            catch (Exception ex)
-            {
-                if (DataContext is MainViewModel vm)
-                    vm.SetError(ex);
-            }
-            finally
-            {
-                _pendingModel = null;
-            }
+        }
+        catch (Exception ex)
+        {
+            if (DataContext is MainViewModel vm)
+                vm.SetError(ex);
         }
     }
 
@@ -144,17 +174,25 @@ public partial class MainView : UserControl
         var view = (Aura3DView)sender;
         var scene = args.Scene;
 
-        scene.Background = Texture.CreateFromColor(System.Drawing.Color.FromArgb(255, 26, 27, 38));
+        try
+        {
+            scene.Background = Texture.CreateFromColor(System.Drawing.Color.FromArgb(255, 26, 27, 38));
 
-        var camera = view.MainCamera;
-        camera.FieldOfView = 40f;
-        camera.NearPlane = 0.01f;
-        camera.FarPlane = 100f;
+            var camera = view.MainCamera;
+            camera.FieldOfView = 40f;
+            camera.NearPlane = 0.01f;
+            camera.FarPlane = 100f;
 
-        _gizmo = new SphericalGizmo();
-        view.AddNode(_gizmo);
+            _gizmo = new SphericalGizmo();
+            view.AddNode(_gizmo);
 
-        SyncGizmoCamera();
+            SyncGizmoCamera();
+        }
+        catch (Exception ex)
+        {
+            if (DataContext is MainViewModel vm)
+                vm.SetError(ex);
+        }
     }
 
     private void SyncGizmoCamera()
@@ -323,7 +361,7 @@ public partial class MainView : UserControl
 
     private void OnSceneUpdated(object sender, UpdateRoutedEventArgs e)
     {
-        if (DataContext is MainViewModel vm)
+        if (_sceneInitialized && DataContext is MainViewModel vm)
         {
             vm.UpdateAnimation((float)e.DeltaTime);
         }
