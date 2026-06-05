@@ -1,0 +1,3 @@
+[submodule "YSMParser.Net"]
+	path = YSMParser.Net
+	url = https://github.com/DrAbcOfficial/YSMParser.NET

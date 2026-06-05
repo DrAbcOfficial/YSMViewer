@@ -20,6 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\YSMParser.Net\Core\YSMParser.Core.csproj" />
+    <ProjectReference Include="..\YSMParser.Net\Core\YSMParser.Core.csproj" />
   </ItemGroup>
 </Project>
