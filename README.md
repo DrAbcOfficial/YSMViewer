@@ -33,11 +33,10 @@ dotnet run --project YSMViewer.Desktop -- path\to\model.ysm
 ## Tech Stack
 
 - **UI**: [Avalonia](https://avaloniaui.net/) 12.0
-- **3D**: [Aura3D](https://github.com/aarthificial/Aura3D)
+- **3D**: [Aura3D](https://github.com/cesun/Aura3D)
 - **MVVM**: [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) (source generators)
 - **Parser**: [YSMParser.Net](https://github.com/DrAbcOfficial/YSMParser.NET) (git submodule)
 
 ## Acknowledgements
 
 - [YSMParser](https://github.com/OpenYSM/YSMParser) — original YSM format research
-- [Aura3D](https://github.com/aarthificial/Aura3D) — 3D rendering engine
