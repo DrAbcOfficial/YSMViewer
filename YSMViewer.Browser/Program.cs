@@ -34,7 +34,9 @@ internal sealed partial class Program
         }
 
         return BuildAvaloniaApp()
-            .WithInterFont()
+            // TODO: This suck, all utf-8 char turn into mess
+            // Use custom font instead
+            //.WithInterFont()
             .StartBrowserAppAsync("out");
     }
 
