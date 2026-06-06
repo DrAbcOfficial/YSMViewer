@@ -93,7 +93,18 @@ public sealed class YsmLoaderService
         for (int i = 0; i < resources.Models.Count; i++)
         {
             var modelEntry = resources.Models[i];
-            var allGeometries = ParseAllGeometries(modelEntry.Data);
+
+            List<MinecraftGeometry> allGeometries;
+            try
+            {
+                allGeometries = ParseAllGeometries(modelEntry.Data);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[YsmLoaderService] Skipping non-geometry model '{modelEntry.Name}': {ex.Message}");
+                continue;
+            }
+
             var geometry = allGeometries[0];
             if (geometry?.Description is null)
                 throw new InvalidOperationException($"Geometry has no description for model '{modelEntry.Name}'");
@@ -116,13 +127,16 @@ public sealed class YsmLoaderService
                 allGeometries.Count, geometry.Description.Identifier);
             modelNodes.Add(info);
 
-            if (i == 0)
+            if (modelNodes.Count == 1 || primaryModelName is null)
             {
                 primaryModelName = geometry.Description.Identifier;
                 primaryBoneNodes = result.BoneNodes;
                 primaryBaseEulers = result.BaseBoneEulers;
             }
         }
+
+        if (modelNodes.Count == 0)
+            throw new InvalidOperationException("No valid geometry models found in YSM file");
 
         return new LoadedModel(
             containerModel,
@@ -142,13 +156,42 @@ public sealed class YsmLoaderService
 
     private static List<MinecraftGeometry> ParseAllGeometries(byte[] jsonData)
     {
-        var file = JsonSerializer.Deserialize(jsonData, YsmJsonContext.Default.MinecraftGeometryFile)
+        var json = StripJsonComments(System.Text.Encoding.UTF8.GetString(jsonData));
+        var cleanData = System.Text.Encoding.UTF8.GetBytes(json);
+
+        var file = JsonSerializer.Deserialize(cleanData, YsmJsonContext.Default.MinecraftGeometryFile)
                    ?? throw new InvalidOperationException("Failed to parse geometry JSON");
 
         if (file.Geometries is not { Count: > 0 })
             throw new InvalidOperationException("No geometry definitions found");
 
         return file.Geometries;
+    }
+
+    private static string StripJsonComments(string json)
+    {
+        var sb = new System.Text.StringBuilder(json.Length);
+        var lines = json.Split('\n');
+        foreach (var line in lines)
+        {
+            var trimmed = line.TrimStart();
+            if (trimmed.StartsWith("//"))
+                continue;
+            var commentIdx = line.IndexOf("//");
+            if (commentIdx >= 0)
+            {
+                var before = line[..commentIdx];
+                if (before.Any(c => c == '"'))
+                    sb.AppendLine(line);
+                else
+                    sb.AppendLine(before.TrimEnd());
+            }
+            else
+            {
+                sb.AppendLine(line);
+            }
+        }
+        return sb.ToString();
     }
 
     public static void ApplyTextureToModel(Model model, byte[] textureData)
