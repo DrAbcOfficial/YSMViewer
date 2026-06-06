@@ -65,7 +65,6 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         ysmFiles.Sort(StringComparer.OrdinalIgnoreCase);
 
         var items = new List<YsmFileItemViewModel>(ysmFiles.Count);
-        var complexityValues = new List<int>();
 
         await Task.Run(async () =>
         {
@@ -76,11 +75,11 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
                     : file;
 
                 var (displayName, complexity) = await ParseYsmFileAsync(file);
-                complexityValues.Add(complexity);
 
                 Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
                     var vm = new YsmFileItemViewModel(file, relPath, displayName, complexity);
+                    vm.UpdateComplexityColor(0, 0);
                     items.Add(vm);
                     Files.Add(vm);
                 });
@@ -89,14 +88,6 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
 
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            if (complexityValues.Count > 0)
-            {
-                int min = complexityValues.Min();
-                int max = complexityValues.Max();
-                if (min == max) max = min + 1;
-                foreach (var item in items)
-                    item.UpdateComplexityColor(min, max);
-            }
             IsScanning = false;
         });
     }
@@ -246,13 +237,14 @@ public sealed partial class YsmFileItemViewModel : ViewModelBase
 
     public void UpdateComplexityColor(int min, int max)
     {
-        if (Complexity <= 0 || max <= min)
+        if (Complexity <= 0)
         {
             ComplexityColor = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Colors.Gray);
             return;
         }
 
-        double t = (double)(Complexity - min) / (max - min);
+        double clamped = Math.Min(Complexity, 3000);
+        double t = clamped / 3000.0;
         double hue = 120.0 * (1.0 - t);
         double sat = 0.85;
         double val = 0.65;
