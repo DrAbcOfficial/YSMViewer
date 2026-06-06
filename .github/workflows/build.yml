@@ -15,14 +15,8 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Install wasm-tools
-        run: dotnet workload install wasm-tools
-
-      - name: Restore
-        run: dotnet restore YSMViewer.slnx
-
       - name: Build
-        run: dotnet build YSMViewer.slnx -c Release --no-restore
+        run: dotnet build YSMViewer.slnx -c Release
 
       - name: Publish Desktop
         run: dotnet publish YSMViewer.Desktop -c Release -o publish/desktop
@@ -48,12 +42,6 @@ jobs:
 
       - name: Install wasm-tools
         run: dotnet workload install wasm-tools
-
-      - name: Restore
-        run: dotnet restore YSMViewer.slnx
-
-      - name: Build
-        run: dotnet build YSMViewer.slnx -c Release --no-restore
 
       - name: Publish Browser
         run: dotnet publish YSMViewer.Browser -c Release -o publish/browser
