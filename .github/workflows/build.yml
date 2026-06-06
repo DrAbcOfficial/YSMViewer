@@ -16,7 +16,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Build
-        run: dotnet build YSMViewer.slnx -c Release
+        run: dotnet build YSMViewer.Desktop -c Release
 
   publish-desktop:
     needs: build
