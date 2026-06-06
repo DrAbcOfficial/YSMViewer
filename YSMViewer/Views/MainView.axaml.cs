@@ -30,7 +30,6 @@ public partial class MainView : UserControl
     {
         InitializeComponent();
         Loaded += OnLoaded;
-        OpenButton.Click += OnOpenButtonClick;
         PointerPressed += OnPointerPressed;
         PointerReleased += OnPointerReleased;
         PointerMoved += OnPointerMoved;
@@ -104,7 +103,7 @@ public partial class MainView : UserControl
 
         try
         {
-            scene.Background = Texture.CreateFromColor(System.Drawing.Color.FromArgb(255, 26, 27, 38));
+            scene.Background = Texture.CreateFromColor(System.Drawing.Color.FromArgb(255, 13, 17, 23));
 
             var camera = view.MainCamera;
             camera.FieldOfView = 50f;
@@ -176,7 +175,7 @@ public partial class MainView : UserControl
 
         try
         {
-            scene.Background = Texture.CreateFromColor(System.Drawing.Color.FromArgb(255, 26, 27, 38));
+            scene.Background = Texture.CreateFromColor(System.Drawing.Color.FromArgb(255, 13, 17, 23));
 
             var camera = view.MainCamera;
             camera.FieldOfView = 40f;
@@ -274,35 +273,8 @@ public partial class MainView : UserControl
     {
         var props = e.GetCurrentPoint(this).Properties;
 
-        if (props.IsMiddleButtonPressed)
-        {
-            var overlay = this.FindControl<Border>("RadialOverlay");
-            if (overlay is not null && overlay.IsVisible)
-            {
-                CloseRadialMenu();
-                e.Handled = true;
-                return;
-            }
-
-            if (DataContext is MainViewModel vm && vm.Components.Count > 0)
-            {
-                var pos = e.GetPosition(this);
-                ShowRadialMenuAt(pos.X, pos.Y);
-            }
-            e.Handled = true;
-            return;
-        }
-
         if (props.IsRightButtonPressed)
         {
-            var overlay = this.FindControl<Border>("RadialOverlay");
-            if (overlay is not null && overlay.IsVisible)
-            {
-                CloseRadialMenu();
-                e.Handled = true;
-                return;
-            }
-
             _isDragging = true;
             _lastMousePos = e.GetPosition(this);
             e.Handled = true;
@@ -408,50 +380,11 @@ public partial class MainView : UserControl
     {
         if (e.Key == Key.Escape)
         {
-            CloseRadialMenu();
+            // Could be used for closing overlays in the future
         }
     }
 
-    private void ShowRadialMenuAt(double x, double y)
-    {
-        if (DataContext is not MainViewModel vm || vm.Components.Count == 0) return;
-
-        var overlay = this.FindControl<Border>("RadialOverlay");
-        var menu = this.FindControl<RadialMenu>("RadialMenuControl");
-        if (overlay is null || menu is null) return;
-
-        double menuSize = 200;
-        var panel = this.FindControl<Panel>("ViewportPanel");
-        double areaW = panel?.Bounds.Width ?? Bounds.Width;
-        double areaH = panel?.Bounds.Height ?? Bounds.Height;
-
-        double marginLeft = Math.Max(0, Math.Min(x - menuSize / 2, areaW - menuSize));
-        double marginTop = Math.Max(0, Math.Min(y - menuSize / 2, areaH - menuSize));
-
-        overlay.Margin = new Avalonia.Thickness(marginLeft, marginTop, 0, 0);
-
-        var items = vm.Components.Select(c => new RadialMenuItem
-        {
-            Label = c.Name.Length > 8 ? c.Name[..8] : c.Name,
-            IsOn = c.IsVisible,
-            ToggleAction = () => c.IsVisible = !c.IsVisible,
-        }).ToList();
-
-        menu.SetItems(items);
-        menu.IsOpen = true;
-        menu.ItemClicked += OnRadialItemClicked;
-        overlay.IsVisible = true;
-    }
-
-    private void CloseRadialMenu()
-    {
-        var overlay = this.FindControl<Border>("RadialOverlay");
-        var menu = this.FindControl<RadialMenu>("RadialMenuControl");
-        menu?.ItemClicked -= OnRadialItemClicked;
-        overlay?.IsVisible = false;
-    }
-
-    private void OnCopyErrorClick(object? sender, RoutedEventArgs e)
+    private void OnDismissErrorClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainViewModel vm)
         {
@@ -483,10 +416,12 @@ public partial class MainView : UserControl
             vm.NextAnimation();
     }
 
-    private void OnAnimationDoubleTapped(object? sender, TappedEventArgs e)
+    private void OnAnimationSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (DataContext is MainViewModel vm && vm.HasAnimations)
-            vm.IsAnimating = true;
+        if (DataContext is MainViewModel vm && e.AddedItems.Count > 0 && e.AddedItems[0] is string name)
+        {
+            vm.SelectAnimation(name);
+        }
     }
 
     private void OnShowAllComponentsClick(object? sender, RoutedEventArgs e)
@@ -507,16 +442,6 @@ public partial class MainView : UserControl
         }
     }
 
-    private void OnRadialToggleClick(object? sender, RoutedEventArgs e)
-    {
-        ShowRadialMenuAt(Bounds.Width / 2, Bounds.Height / 2);
-    }
-
-    private void OnRadialItemClicked(object? sender, int index)
-    {
-        CloseRadialMenu();
-    }
-
     private void OnExpandAllBonesClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainViewModel vm)
@@ -527,17 +452,5 @@ public partial class MainView : UserControl
     {
         if (DataContext is MainViewModel vm)
             vm.CollapseAllBones();
-    }
-
-    private void OnTextureItemPointerEntered(object? sender, PointerEventArgs e)
-    {
-        if (sender is Border border)
-            border.Background = new SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 36, 40, 59));
-    }
-
-    private void OnTextureItemPointerExited(object? sender, PointerEventArgs e)
-    {
-        if (sender is Border border)
-            border.Background = new SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 31, 35, 53));
     }
 }

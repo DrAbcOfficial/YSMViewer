@@ -4,13 +4,13 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:views="clr-namespace:YSMViewer.Views"
-        mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="680"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
         x:Class="YSMViewer.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="YSMViewer"
-        MinWidth="800" MinHeight="500"
+        MinWidth="900" MinHeight="600"
         ExtendClientAreaToDecorationsHint="False"
-        Background="#1a1b26">
+        Background="#0d1117">
 
     <Design.DataContext>
         <vm:MainViewModel />

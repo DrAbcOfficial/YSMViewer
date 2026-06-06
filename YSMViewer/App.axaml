@@ -2,8 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:YSMViewer"
              x:Class="YSMViewer.App"
-             RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+             RequestedThemeVariant="Dark">
 
     <Application.DataTemplates>
         <local:ViewLocator/>
@@ -11,54 +10,53 @@
 
     <Application.Resources>
         <ResourceDictionary>
-            <!-- ============================================ -->
-            <!-- Theme Colors — change values here to switch  -->
-            <!-- ============================================ -->
-
             <!-- Backgrounds -->
-            <Color x:Key="ThemeBgViewport">#1a1b26</Color>
-            <Color x:Key="ThemeBgPanel">#16161e</Color>
-            <Color x:Key="ThemeBgCard">#1f2335</Color>
-            <Color x:Key="ThemeBgHover">#24283b</Color>
-            <Color x:Key="ThemeBgButton">#24283b</Color>
-            <Color x:Key="ThemeBgItemRow">#1f2335</Color>
+            <Color x:Key="ThemeBgViewport">#0d1117</Color>
+            <Color x:Key="ThemeBgSurface">#161b22</Color>
+            <Color x:Key="ThemeBgElevated">#1c2333</Color>
+            <Color x:Key="ThemeBgHover">#222d3d</Color>
+            <Color x:Key="ThemeBgActive">#2a3a55</Color>
+            <Color x:Key="ThemeBgButton">#222d3d</Color>
+            <Color x:Key="ThemeBgItemRow">#1c2333</Color>
+            <Color x:Key="ThemeBgCard">#1c2333</Color>
 
             <!-- Text -->
-            <Color x:Key="ThemeTextPrimary">#c0caf5</Color>
-            <Color x:Key="ThemeTextSecondary">#a9b1d6</Color>
-            <Color x:Key="ThemeTextMuted">#565f89</Color>
-            <Color x:Key="ThemeTextLabel">#787c99</Color>
+            <Color x:Key="ThemeTextPrimary">#e6edf3</Color>
+            <Color x:Key="ThemeTextSecondary">#8b949e</Color>
+            <Color x:Key="ThemeTextMuted">#484f58</Color>
+            <Color x:Key="ThemeTextLabel">#6e7681</Color>
 
             <!-- Accents -->
-            <Color x:Key="ThemeAccent">#7aa2f7</Color>
-            <Color x:Key="ThemeAccentGreen">#9ece6a</Color>
-            <Color x:Key="ThemeAccentRed">#f7768e</Color>
+            <Color x:Key="ThemeAccent">#58a6ff</Color>
+            <Color x:Key="ThemeAccentGreen">#3fb950</Color>
+            <Color x:Key="ThemeAccentRed">#f85149</Color>
+            <Color x:Key="ThemeAccentYellow">#e3b341</Color>
 
             <!-- Borders & Splitters -->
-            <Color x:Key="ThemeBorder">#3b4261</Color>
+            <Color x:Key="ThemeBorder">#30363d</Color>
 
             <!-- Eye Toggle States -->
-            <Color x:Key="ThemeToggleChecked">#2e4a3a</Color>
-            <Color x:Key="ThemeToggleUnchecked">#3a2020</Color>
+            <Color x:Key="ThemeToggleChecked">#1a3a2a</Color>
+            <Color x:Key="ThemeToggleUnchecked">#3d1a1a</Color>
             <Color x:Key="ThemeToggleDefault">Transparent</Color>
 
             <!-- Error Bar -->
-            <Color x:Key="ThemeErrorBg">#2d1016</Color>
-            <Color x:Key="ThemeErrorText">#f7768e</Color>
+            <Color x:Key="ThemeErrorBg">#2d1520</Color>
+            <Color x:Key="ThemeErrorText">#f85149</Color>
 
             <!-- Tab -->
-            <Color x:Key="ThemeTabActiveBg">#1f2335</Color>
-            <Color x:Key="ThemeTabHoverBg">#24283b</Color>
+            <Color x:Key="ThemeTabActiveBg">#1c2333</Color>
+            <Color x:Key="ThemeTabHoverBg">#222d3d</Color>
 
             <!-- Tree Arrow -->
-            <Color x:Key="ThemeTreeArrow">#7aa2f7</Color>
+            <Color x:Key="ThemeTreeArrow">#58a6ff</Color>
 
             <!-- Animation -->
-            <Color x:Key="ThemeAnimSelected">#2a3a5f</Color>
-            <Color x:Key="ThemeAnimTransport">#16161e</Color>
+            <Color x:Key="ThemeAnimSelected">#1a3050</Color>
+            <Color x:Key="ThemeAnimTransport">#161b22</Color>
 
             <!-- Info Tab -->
-            <Color x:Key="ThemeDivider">#24283b</Color>
+            <Color x:Key="ThemeDivider">#21262d</Color>
         </ResourceDictionary>
     </Application.Resources>
 
