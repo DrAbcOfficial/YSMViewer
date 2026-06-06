@@ -62,7 +62,7 @@
         <!-- ===== Top Bar ===== -->
         <Border Grid.Row="0" Background="{DynamicResource ThemeBgSurface}"
                 BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,0,0,1">
-            <Grid ColumnDefinitions="Auto,Auto,*,Auto" MinHeight="48" Margin="16,0">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" MinHeight="48" Margin="16,0">
                 <Button x:Name="OpenButton" Content="Open File"
                         Click="OnOpenButtonClick"
                         IsEnabled="{Binding !IsLoading}"
@@ -82,6 +82,14 @@
                         VerticalAlignment="Center"
                         ToolTip.Tip="Toggle theme">
                     <Image x:Name="ThemeSvgImage" Width="20" Height="20" />
+                </Button>
+                <Button x:Name="GitHubButton" Grid.Column="4"
+                        Click="OnGitHubClick"
+                        Width="36" Height="36" Padding="0" CornerRadius="6"
+                        VerticalAlignment="Center"
+                        ToolTip.Tip="View on GitHub">
+                    <svg:Svg Path="avares://YSMViewer/Assets/svg/github.svg"
+                             Stretch="Uniform" Width="20" Height="20" />
                 </Button>
             </Grid>
         </Border>

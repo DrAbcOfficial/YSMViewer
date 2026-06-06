@@ -144,6 +144,13 @@ public partial class MainView : UserControl
         ThemeService.Instance.CycleTheme();
     }
 
+    private async void OnGitHubClick(object? sender, RoutedEventArgs e)
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is null) return;
+        await topLevel.Launcher.LaunchUriAsync(new Uri("https://github.com/DrAbcOfficial/YSMViewer"));
+    }
+
     private async void OnDrop(object? sender, DragEventArgs e)
     {
         var overlay = this.FindControl<Border>("DragOverlay");
