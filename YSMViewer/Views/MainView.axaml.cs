@@ -25,7 +25,7 @@ public partial class MainView : UserControl
     private Avalonia.Point _gizmoLastPos;
     private Vector3 _cameraOrbitTarget = Vector3.Zero;
     private float _cameraDistance = 30f;
-    private float _cameraYaw;
+    private float _cameraYaw = 180f;
     private float _cameraPitch = -15f;
     private bool _sceneInitialized;
 
@@ -434,7 +434,7 @@ public partial class MainView : UserControl
             bb.Max.Z - bb.Min.Z);
         _cameraOrbitTarget = center;
         _cameraDistance = MathF.Max(size.X, MathF.Max(size.Y, size.Z)) * 1.5f;
-        _cameraYaw = 0f;
+        _cameraYaw = 180f;
         _cameraPitch = -15f;
         UpdateCameraPosition(camera);
         SyncGizmoCamera();
