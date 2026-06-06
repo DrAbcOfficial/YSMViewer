@@ -4,17 +4,82 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:views="clr-namespace:YSMViewer.Views"
+        xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Svg.Controls.Skia.Avalonia"
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
         x:Class="YSMViewer.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="YSMViewer"
         MinWidth="900" MinHeight="600"
-        ExtendClientAreaToDecorationsHint="False"
         Background="{DynamicResource ThemeBgViewport}">
 
     <Design.DataContext>
         <vm:MainViewModel />
     </Design.DataContext>
 
-    <views:MainView />
+    <Window.Styles>
+        <Style Selector="Button.window-btn">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource ThemeTextSecondary}" />
+            <Setter Property="Width" Value="48" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Transitions" Value="{x:Null}" />
+        </Style>
+        <Style Selector="Button.window-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource ThemeBgHover}" />
+        </Style>
+        <Style Selector="Button.close-btn">
+            <Setter Property="Background" Value="#4d1a1a" />
+        </Style>
+        <Style Selector="Button.close-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#e81123" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="32,*">
+        <!-- Custom Title Bar -->
+        <Border Grid.Row="0" Background="{DynamicResource ThemeBgSurface}"
+                x:Name="TitleBar">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+                <Border Width="32" HorizontalAlignment="Left" VerticalAlignment="Center"
+                        Margin="12,0,0,0">
+                    <Image Source="avares://YSMViewer/Assets/Icon.png"
+                           Width="20" Height="20" Stretch="Uniform" />
+                </Border>
+
+                <!-- Minimize -->
+                <Button Grid.Column="2" Classes="window-btn"
+                        x:Name="MinimizeBtn" Click="OnMinimizeClick">
+                    <Panel Width="14" Height="14">
+                        <svg:Svg Path="avares://YSMViewer/Assets/svg/minus.svg"
+                                 Stretch="Uniform" Width="14" Height="14" />
+                    </Panel>
+                </Button>
+
+                <!-- Maximize/Restore -->
+                <Button Grid.Column="3" Classes="window-btn"
+                        x:Name="MaximizeBtn" Click="OnMaximizeClick">
+                    <Panel x:Name="MaxIconPanel" Width="14" Height="14">
+                        <svg:Svg x:Name="MaxSvg"
+                                 Path="avares://YSMViewer/Assets/svg/maximize.svg"
+                                 Stretch="Uniform" Width="14" Height="14" />
+                    </Panel>
+                </Button>
+
+                <!-- Close -->
+                <Button Grid.Column="4" Classes="window-btn close-btn"
+                        x:Name="CloseBtn" Click="OnCloseClick">
+                    <Panel Width="14" Height="14">
+                        <svg:Svg Path="avares://YSMViewer/Assets/svg/cross.svg"
+                                 Stretch="Uniform" Width="14" Height="14" />
+                    </Panel>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- Main Content -->
+        <views:MainView Grid.Row="1" x:Name="ContentArea" />
+    </Grid>
 </Window>
