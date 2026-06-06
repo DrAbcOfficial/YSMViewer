@@ -442,14 +442,15 @@
             </Border>
         </Grid>
 
-        <!-- ===== Animation Transport Bar ===== -->
-        <Border Grid.Row="2" IsVisible="{Binding HasAnimations}"
-                Background="{DynamicResource ThemeBgSurface}"
+        <!-- ===== Bottom Bar ===== -->
+        <Border Grid.Row="2" Background="{DynamicResource ThemeBgSurface}"
                 BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,1,0,0"
                 Padding="16,0" Height="48">
-            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto"
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto"
                   VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <!-- Animation controls (visible when animations exist) -->
+                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center"
+                            IsVisible="{Binding HasAnimations}">
                     <Button x:Name="PrevAnimBtn"
                             IsEnabled="{Binding CanPreviousAnimation}"
                             Click="OnPreviousAnimationClick" CornerRadius="4"
@@ -472,19 +473,57 @@
                         <PathIcon Data="M2 8 L14 16 L2 24 Z M14 8 L26 16 L14 24 Z"
                                   Foreground="{DynamicResource ThemeTextSecondary}" />
                     </Button>
+                    <Button Click="OnStopAnimationClick" CornerRadius="4"
+                            Width="32" Height="32" Padding="0"
+                            ToolTip.Tip="Stop and reset animation">
+                        <PathIcon Data="M6 6 L6 26 L26 26 L26 6 Z"
+                                  Foreground="{DynamicResource ThemeAccentRed}" />
+                    </Button>
                 </StackPanel>
+
+                <!-- Animation name + progress (visible when animations exist) -->
                 <Border Grid.Column="1" Background="{DynamicResource ThemeAnimTransport}"
-                        CornerRadius="4" Padding="10,4" Margin="12,0"
-                        VerticalAlignment="Center">
+                        CornerRadius="4" Padding="10,4" Margin="12,0,0,0"
+                        VerticalAlignment="Center"
+                        IsVisible="{Binding HasAnimations}">
                     <TextBlock Text="{Binding CurrentAnimationName, FallbackValue=''}"
                                Foreground="{DynamicResource ThemeTextPrimary}" FontSize="13"
                                FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                 </Border>
-                <ProgressBar Grid.Column="3" Value="{Binding AnimationProgress}" Maximum="1.0"
-                             Height="4" Margin="12,0" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="4" Text="{Binding AnimationTimeText, FallbackValue=''}"
-                           Foreground="{DynamicResource ThemeTextMuted}" FontSize="11"
-                           VerticalAlignment="Center" HorizontalAlignment="Right" />
+
+                <!-- Progress + time (column 3, visible when animations exist) -->
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8"
+                            IsVisible="{Binding HasAnimations}" VerticalAlignment="Center">
+                    <ProgressBar Value="{Binding AnimationProgress}" Maximum="1.0"
+                                 Height="4" Width="120" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding AnimationTimeText, FallbackValue=''}"
+                               Foreground="{DynamicResource ThemeTextMuted}" FontSize="11"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- Spacer (column 4) -->
+
+                <!-- Camera view buttons -->
+                <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <Button Click="OnCameraFrontClick" CornerRadius="4"
+                            Width="32" Height="32" Padding="0"
+                            ToolTip.Tip="Front view">
+                        <PathIcon Data="M4 4 L4 28 L12 28 L12 18 L20 18 L20 28 L28 28 L28 4 Z"
+                                  Foreground="{DynamicResource ThemeTextSecondary}" />
+                    </Button>
+                    <Button Click="OnCameraLeftClick" CornerRadius="4"
+                            Width="32" Height="32" Padding="0"
+                            ToolTip.Tip="Left view">
+                        <PathIcon Data="M4 4 L4 28 L12 28 L20 4 Z"
+                                  Foreground="{DynamicResource ThemeTextSecondary}" />
+                    </Button>
+                    <Button Click="OnCameraTopClick" CornerRadius="4"
+                            Width="32" Height="32" Padding="0"
+                            ToolTip.Tip="Top view">
+                        <PathIcon Data="M4 28 L28 28 L16 4 Z M4 4 L4 8 M28 4 L28 8 M16 4 L16 7"
+                                  Foreground="{DynamicResource ThemeTextSecondary}" />
+                    </Button>
+                </StackPanel>
             </Grid>
         </Border>
 </Grid>

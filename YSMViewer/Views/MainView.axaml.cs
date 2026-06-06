@@ -641,4 +641,41 @@ public partial class MainView : UserControl
         if (DataContext is MainViewModel vm)
             vm.CollapseAllBones();
     }
+
+    private void OnStopAnimationClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            vm.StopAnimation();
+            PlayPauseBtn.Content = new PathIcon
+            {
+                Data = StreamGeometry.Parse("M8 4 L8 28 L24 16 Z"),
+                Foreground = Brushes.White,
+            };
+        }
+    }
+
+    private void SetCameraView(float yaw, float pitch)
+    {
+        if (!_sceneInitialized || AuraView.Scene is null) return;
+        _cameraYaw = yaw;
+        _cameraPitch = pitch;
+        UpdateCameraPosition(AuraView.MainCamera);
+        SyncGizmoCamera();
+    }
+
+    private void OnCameraFrontClick(object? sender, RoutedEventArgs e)
+    {
+        SetCameraView(0f, 0f);
+    }
+
+    private void OnCameraLeftClick(object? sender, RoutedEventArgs e)
+    {
+        SetCameraView(90f, 0f);
+    }
+
+    private void OnCameraTopClick(object? sender, RoutedEventArgs e)
+    {
+        SetCameraView(0f, -89f);
+    }
 }

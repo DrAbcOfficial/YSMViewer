@@ -383,6 +383,14 @@ public sealed partial class MainViewModel : ViewModelBase
         SelectAnimation(names[nextIndex]);
     }
 
+    public void StopAnimation()
+    {
+        IsAnimating = false;
+        CurrentAnimationName = string.Empty;
+        AnimationProgress = 0f;
+        AnimationTimeText = string.Empty;
+    }
+
     public void PreviousAnimation()
     {
         if (_animationService.AnimationNames.Count == 0) return;
