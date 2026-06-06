@@ -203,7 +203,7 @@ public sealed class YsmLoaderService
         texture.SetWarpS(TextureWrapMode.Repeat)
                .SetWarpT(TextureWrapMode.Repeat);
 
-        var meshes = model.GetNodesInChildren<Mesh>();
+        var meshes = model.GetNodesInChildren<InstancedMesh>();
         foreach (var mesh in meshes)
         {
             mesh.Material?.BaseColor = texture;

@@ -571,7 +571,8 @@ public sealed partial class MainViewModel : ViewModelBase
 
     private static BoneTreeItemViewModel? BuildBoneTreeItem(Node node)
     {
-        if (node is Mesh) return null;
+        if (node is Mesh) 
+            return null;
 
         var item = new BoneTreeItemViewModel
         {

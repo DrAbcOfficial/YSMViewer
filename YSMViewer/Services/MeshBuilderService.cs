@@ -20,7 +20,7 @@ public static class MeshBuilderService
         Dictionary<string, Node> BoneNodes,
         Dictionary<string, Vector3> BaseBoneEulers,
         List<CubeMetadata> CubeMetadataList,
-        List<(Mesh Mesh, CubeMetadata Metadata)> CubeMeshList);
+        List<(InstancedMesh Mesh, CubeMetadata Metadata)> CubeMeshList);
 
     public static BuildResult BuildModelNode(
         Models.MinecraftGeometry geometry,
@@ -33,7 +33,7 @@ public static class MeshBuilderService
         var boneNodes = new Dictionary<string, Node>();
         var baseEulers = new Dictionary<string, Vector3>();
         var cubeMetadataList = new List<CubeMetadata>();
-        var cubeMeshList = new List<(Mesh Mesh, CubeMetadata Metadata)>();
+        var cubeMeshList = new List<(InstancedMesh Mesh, CubeMetadata Metadata)>();
 
         if (geometry.Bones is null)
             return new BuildResult(model, boneNodes, baseEulers, cubeMetadataList, cubeMeshList);
@@ -191,7 +191,7 @@ public static class MeshBuilderService
 
                 var metadata = new CubeMetadata(bone.Name, cubePivot, cubeMesh.RotationQuaternion);
                 cubeMetadataList.Add(metadata);
-                cubeMeshList.Add((cubeMesh, metadata));
+                cubeMeshList.Add((InstancedMesh.FromMesh(cubeMesh), metadata));
                 boneIdx++;
             }
         }
