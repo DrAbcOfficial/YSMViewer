@@ -1,8 +1,9 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace YSMViewer.Models;
 
-[JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
+[JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true, ReadCommentHandling = JsonCommentHandling.Skip)]
 [JsonSerializable(typeof(MinecraftAnimationFile))]
 [JsonSerializable(typeof(MinecraftAnimation))]
 [JsonSerializable(typeof(MinecraftBoneAnimation))]
