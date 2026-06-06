@@ -16,7 +16,7 @@ public sealed class ThemeService
     private static ThemeService? _instance;
     public static ThemeService Instance => _instance ??= new ThemeService();
 
-    private AppThemeMode _currentMode = AppThemeMode.Dark;
+    private AppThemeMode _currentMode = AppThemeMode.System;
     public AppThemeMode CurrentMode
     {
         get => _currentMode;
@@ -25,13 +25,27 @@ public sealed class ThemeService
             if (_currentMode == value) return;
             _currentMode = value;
             ApplyTheme();
-            ModeChanged?.Invoke(value);
         }
     }
 
     public event Action<AppThemeMode>? ModeChanged;
 
-    private ThemeService() { }
+    private ThemeService()
+    {
+        if (Application.Current is not null)
+        {
+            Application.Current.ActualThemeVariantChanged += OnActualThemeVariantChanged;
+        }
+    }
+
+    private void OnActualThemeVariantChanged(object? sender, EventArgs e)
+    {
+        if (_currentMode == AppThemeMode.System)
+        {
+            RefreshPalette();
+            ModeChanged?.Invoke(_currentMode);
+        }
+    }
 
     public void CycleTheme()
     {
@@ -56,17 +70,25 @@ public sealed class ThemeService
         {
             AppThemeMode.Light => ThemeVariant.Light,
             AppThemeMode.Dark => ThemeVariant.Dark,
-            _ => ThemeVariant.Default,
+            _ => null,
         };
 
-        Application.Current.RequestedThemeVariant = requested;
+        if (requested is not null)
+            Application.Current.RequestedThemeVariant = requested;
+        else
+            Application.Current.RequestedThemeVariant = ThemeVariant.Default;
+
+        RefreshPalette();
+        ModeChanged?.Invoke(_currentMode);
+    }
+
+    private void RefreshPalette()
+    {
+        if (Application.Current is null) return;
 
         var resources = Application.Current.Resources;
         resources.MergedDictionaries.Clear();
-
-        bool isDark = requested == ThemeVariant.Dark || requested == ThemeVariant.Default;
-
-        resources.MergedDictionaries.Add(isDark ? CreateDarkPalette() : CreateLightPalette());
+        resources.MergedDictionaries.Add(IsDarkTheme() ? CreateDarkPalette() : CreateLightPalette());
     }
 
     public bool IsDarkTheme()
@@ -77,15 +99,33 @@ public sealed class ThemeService
         {
             AppThemeMode.Light => false,
             AppThemeMode.Dark => true,
-            _ => Application.Current.ActualThemeVariant == ThemeVariant.Dark,
+            _ => Application.Current.ActualThemeVariant != ThemeVariant.Light,
         };
     }
 
     public byte[] GetViewportBackgroundColor()
     {
         return IsDarkTheme()
-            ? [255, 13, 17, 23]
-            : [255, 240, 242, 245];
+            ? (byte[])[255, 13, 17, 23]
+            : (byte[])[255, 240, 242, 245];
+    }
+
+public (byte A, byte R, byte G, byte B) GetAmbientLightColor()
+    {
+        if (IsDarkTheme()) return (255, 80, 80, 100);
+        return (255, 160, 160, 180);
+    }
+
+    public (byte A, byte R, byte G, byte B) GetKeyLightColor()
+    {
+        if (IsDarkTheme()) return (255, 220, 210, 190);
+        return (255, 255, 250, 245);
+    }
+
+    public (byte A, byte R, byte G, byte B) GetFillLightColor()
+    {
+        if (IsDarkTheme()) return (255, 100, 120, 150);
+        return (255, 200, 215, 240);
     }
 
     private static ResourceDictionary CreateDarkPalette() => new ResourceDictionary

@@ -74,7 +74,7 @@
                         VerticalAlignment="Center"
                         ToolTip.Tip="Toggle theme">
                     <PathIcon x:Name="ThemeIcon"
-                              Data="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1Z"
+                              Data="M4 2 L20 2 Q22 2 22 4 L22 14 Q22 16 20 16 L4 16 Q2 16 2 14 L2 4 Q2 2 4 2 Z M3 9 L21 9 L21 11 L3 11 Z M9 16 L15 16 L15 19 L9 19 Z M7 20 L17 20 L17 22 L7 22 Z"
                               Foreground="{DynamicResource ThemeTextSecondary}"
                               Width="20" Height="20" />
                 </Button>

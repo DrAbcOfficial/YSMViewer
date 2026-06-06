@@ -27,14 +27,20 @@ public partial class MainView : UserControl
     private float _cameraPitch = -15f;
     private bool _sceneInitialized;
 
-    private static readonly StreamGeometry DarkIconData =
-        StreamGeometry.Parse("M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1Z");
-    private static readonly StreamGeometry LightIconData =
-        StreamGeometry.Parse("M12 7a5 5 0 1 0 0 10a5 5 0 0 0 0-10Zm0-4a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1Zm0 17a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1Zm9-8a1 1 0 0 1 1 1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1 0-2ZM4 12a1 1 0 0 1-1 1H2a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1ZM18.36 5.64a1 1 0 0 1 1.41 0l.71.7a1 1 0 0 1-1.42 1.42l-.7-.71a1 1 0 0 1 0-1.41ZM5.64 18.36a1 1 0 0 1 0 1.41l-.7.71a1 1 0 0 1-1.42-1.42l.71-.7a1 1 0 0 1 1.41 0Zm12.72 0a1 1 0 0 1 1.41 0l.71.7a1 1 0 1 1-1.42 1.42l-.7-.71a1 1 0 0 1 0-1.41ZM5.64 5.64a1 1 0 0 1-1.41 0l-.71-.7a1 1 0 0 1 1.42-1.42l.7.71a1 1 0 0 1 0 1.41Z");
-    private static readonly StreamGeometry SystemIconData =
-        StreamGeometry.Parse("M12 2a1 1 0 0 1 1 1v3a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm6.5 3.5a1 1 0 0 1 1.41 0l.71.71a1 1 0 0 1-1.42 1.41l-.7-.7a1 1 0 0 1 0-1.42ZM6.5 5.5a1 1 0 0 1 0 1.42l-.7.7a1 1 0 0 1-1.42-1.41l.71-.71a1 1 0 0 1 1.41 0ZM12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8Zm7 3a1 1 0 1 1 0 2h-3a1 1 0 1 1 0-2ZM8 12a1 1 0 0 1 0 2H5a1 1 0 1 1 0-2Zm3.5 6.5a1 1 0 0 1 1 0v3a1 1 0 1 1-2 0v-3a1 1 0 0 1 1 0Z");
+    private DirectionalLight? _ambientLight;
+    private DirectionalLight? _keyLight;
+    private DirectionalLight? _fillLight;
 
-    private static readonly string[] ThemeTooltips = ["Dark mode", "Light mode", "System theme"];
+    private static readonly StreamGeometry MoonIconData =
+        StreamGeometry.Parse("M20.996 11.712 L22.245 11.672 A1.25 1.25 0 0 0 20.64 10.513 L12.289 3.005 L13.487 3.36 A1.25 1.25 0 0 0 12.327 1.755 L21.639 12.712 A5.8 5.8 0 0 1 19 10.75 L19 13.25 A8.3 8.3 0 0 0 21.351 12.91 L19 10.75 A5.75 5.75 0 0 1 13.25 5 L10.75 5 A8.25 8.25 0 0 0 19 13.25 L13.25 5 C13.25 4.428 13.333 3.878 13.487 3.36 L11.09 2.65 A8.3 8.3 0 0 0 10.75 5 L12 4.25 Q12.124 4.25 12.25 4.254 L12.328 1.755 A10 10 0 0 0 12 1.75 L4.25 12 A7.75 7.75 0 0 1 12 4.25 L12 1.75 C6.34 1.75 1.75 6.34 1.75 12 L12 19.75 A7.75 7.75 0 0 1 4.25 12 L1.75 12 C1.75 17.66 6.34 22.25 12 22.25 L19.75 12 A7.75 7.75 0 0 1 12 19.75 L12 22.25 C17.66 22.25 22.25 17.66 22.25 12 L19.746 11.75 Q19.75 11.876 19.75 12 L22.25 12 Q22.25 11.835 22.245 11.672 Z");
+
+    private static readonly StreamGeometry SunIconData =
+        StreamGeometry.Parse("M11 2 L13 2 L13 7 L11 7 Z M11 17 L13 17 L13 22 L11 22 Z M2 11 L7 11 L7 13 L2 13 Z M17 11 L22 11 L22 13 L17 13 Z M5.64 4.22 L7.76 6.34 L6.34 7.76 L4.22 5.64 Z M16.24 16.24 L18.36 18.36 L16.95 19.78 L14.83 17.66 Z M4.22 19.78 L6.34 17.66 L7.76 16.24 L5.64 18.36 Z M17.66 7.76 L16.24 6.34 L18.36 4.22 L19.78 5.64 Z M12 8 A4 4 0 0 1 12 16 A4 4 0 0 1 12 8 Z");
+
+    private static readonly StreamGeometry SystemIconData =
+        StreamGeometry.Parse("M4 2 L20 2 Q22 2 22 4 L22 14 Q22 16 20 16 L4 16 Q2 16 2 14 L2 4 Q2 2 4 2 Z M3 9 L21 9 L21 11 L3 11 Z M9 16 L15 16 L15 19 L9 19 Z M7 20 L17 20 L17 22 L7 22 Z");
+
+    private static readonly string[] ThemeTooltips = ["Switch to Light mode", "Switch to System theme", "Switch to Dark mode"];
 
     public MainView()
     {
@@ -53,7 +59,7 @@ public partial class MainView : UserControl
     private void OnThemeChanged(AppThemeMode mode)
     {
         UpdateThemeIcon();
-        UpdateSceneBackgrounds();
+        UpdateSceneAppearance();
     }
 
     private void UpdateThemeIcon()
@@ -64,9 +70,9 @@ public partial class MainView : UserControl
         var mode = ThemeService.Instance.CurrentMode;
         icon.Data = mode switch
         {
-            AppThemeMode.Light => LightIconData,
+            AppThemeMode.Light => SunIconData,
             AppThemeMode.System => SystemIconData,
-            _ => DarkIconData,
+            _ => MoonIconData,
         };
 
         var btn = this.FindControl<Button>("ThemeToggleButton");
@@ -74,6 +80,12 @@ public partial class MainView : UserControl
         {
             ToolTip.SetTip(btn, ThemeTooltips[(int)mode]);
         }
+    }
+
+    private void UpdateSceneAppearance()
+    {
+        UpdateSceneBackgrounds();
+        UpdateSceneLights();
     }
 
     private void UpdateSceneBackgrounds()
@@ -85,6 +97,22 @@ public partial class MainView : UserControl
             AuraView.Scene.Background = Texture.CreateFromColor(color);
         if (GizmoView.Scene is not null)
             GizmoView.Scene.Background = Texture.CreateFromColor(color);
+    }
+
+    private void UpdateSceneLights()
+    {
+        if (!_sceneInitialized) return;
+
+        var ambient = ThemeService.Instance.GetAmbientLightColor();
+        var key = ThemeService.Instance.GetKeyLightColor();
+        var fill = ThemeService.Instance.GetFillLightColor();
+
+        if (_ambientLight is not null)
+            _ambientLight.LightColor = System.Drawing.Color.FromArgb(ambient.A, ambient.R, ambient.G, ambient.B);
+        if (_keyLight is not null)
+            _keyLight.LightColor = System.Drawing.Color.FromArgb(key.A, key.R, key.G, key.B);
+        if (_fillLight is not null)
+            _fillLight.LightColor = System.Drawing.Color.FromArgb(fill.A, fill.R, fill.G, fill.B);
     }
 
     private void OnThemeToggleClick(object? sender, RoutedEventArgs e)
@@ -163,26 +191,29 @@ public partial class MainView : UserControl
             UpdateCameraPosition(camera);
             SyncGizmoCamera();
 
-            var ambientLight = new DirectionalLight
+            var ambient = ThemeService.Instance.GetAmbientLightColor();
+            _ambientLight = new DirectionalLight
             {
-                LightColor = System.Drawing.Color.FromArgb(255, 80, 80, 100),
+                LightColor = System.Drawing.Color.FromArgb(ambient.A, ambient.R, ambient.G, ambient.B),
                 RotationDegrees = new Vector3(-30, 45, 0),
             };
-            view.AddNode(ambientLight);
+            view.AddNode(_ambientLight);
 
-            var keyLight = new DirectionalLight
+            var key = ThemeService.Instance.GetKeyLightColor();
+            _keyLight = new DirectionalLight
             {
-                LightColor = System.Drawing.Color.FromArgb(255, 220, 210, 190),
+                LightColor = System.Drawing.Color.FromArgb(key.A, key.R, key.G, key.B),
                 RotationDegrees = new Vector3(-45, -30, 0),
             };
-            view.AddNode(keyLight);
+            view.AddNode(_keyLight);
 
-            var fillLight = new DirectionalLight
+            var fill = ThemeService.Instance.GetFillLightColor();
+            _fillLight = new DirectionalLight
             {
-                LightColor = System.Drawing.Color.FromArgb(255, 100, 120, 150),
+                LightColor = System.Drawing.Color.FromArgb(fill.A, fill.R, fill.G, fill.B),
                 RotationDegrees = new Vector3(-10, 150, 0),
             };
-            view.AddNode(fillLight);
+            view.AddNode(_fillLight);
 
             if (_pendingModel is not null)
             {
