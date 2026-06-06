@@ -394,7 +394,13 @@ public partial class MainView : UserControl
             vm.IsAnimating = !vm.IsAnimating;
             if (sender is Button btn)
             {
-                btn.Content = vm.IsAnimating ? "\u23F8" : "\u25B6";
+                var icon = btn.FindControl<PathIcon>("PlayPauseIcon") ?? this.FindControl<PathIcon>("PlayPauseIcon");
+                if (icon is not null)
+                {
+                    icon.Data = vm.IsAnimating
+                        ? Avalonia.Media.Geometry.Parse("M6 4 L6 28 L12 28 L12 4 Z M18 4 L18 28 L24 28 L24 4 Z")
+                        : Avalonia.Media.Geometry.Parse("M8 4 L8 28 L24 16 Z");
+                }
             }
         }
     }

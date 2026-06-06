@@ -397,22 +397,32 @@
         <Border Grid.Row="2" IsVisible="{Binding HasAnimations}"
                 Background="{DynamicResource ThemeBgSurface}"
                 BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,1,0,0"
-                Padding="16,0">
+                Padding="16,0" Height="48">
             <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto"
-                  MinHeight="52" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="4">
-                    <Button x:Name="PrevAnimBtn" Content="&#x23EE;" FontSize="14"
-                            MinWidth="36" MinHeight="32" Padding="6,4"
+                  VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <Button x:Name="PrevAnimBtn"
                             IsEnabled="{Binding CanPreviousAnimation}"
-                            Click="OnPreviousAnimationClick" CornerRadius="4" />
-                    <Button x:Name="PlayPauseBtn" Content="&#x25B6;" FontSize="14"
-                            MinWidth="40" MinHeight="32" Padding="8,4"
+                            Click="OnPreviousAnimationClick" CornerRadius="4"
+                            Width="32" Height="32" Padding="0">
+                        <PathIcon Data="M2 16 L14 8 L14 24 Z M14 16 L26 8 L26 24 Z"
+                                  Foreground="{Binding $self.Foreground}" />
+                    </Button>
+                    <Button x:Name="PlayPauseBtn"
                             Click="OnPlayPauseClick" CornerRadius="4"
-                            Background="{DynamicResource ThemeAccentRed}" Foreground="White" />
-                    <Button x:Name="NextAnimBtn" Content="&#x23ED;" FontSize="14"
-                            MinWidth="36" MinHeight="32" Padding="6,4"
+                            Background="{DynamicResource ThemeAccentRed}" Foreground="White"
+                            Width="36" Height="36" Padding="0">
+                        <PathIcon x:Name="PlayPauseIcon"
+                                  Data="M8 4 L8 28 L24 16 Z"
+                                  Foreground="White" />
+                    </Button>
+                    <Button x:Name="NextAnimBtn"
                             IsEnabled="{Binding CanNextAnimation}"
-                            Click="OnNextAnimationClick" CornerRadius="4" />
+                            Click="OnNextAnimationClick" CornerRadius="4"
+                            Width="32" Height="32" Padding="0">
+                        <PathIcon Data="M2 8 L14 16 L2 24 Z M14 8 L26 16 L14 24 Z"
+                                  Foreground="{Binding $self.Foreground}" />
+                    </Button>
                 </StackPanel>
                 <Border Grid.Column="1" Background="{DynamicResource ThemeAnimTransport}"
                         CornerRadius="4" Padding="10,4" Margin="12,0"
