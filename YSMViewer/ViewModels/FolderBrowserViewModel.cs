@@ -59,7 +59,8 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
 
         await Task.Run(() =>
         {
-            var ysmFiles = Directory.EnumerateFiles(path, "*.ysm", SearchOption.AllDirectories);
+            var ysmFiles = new List<string>();
+            CollectYsmFiles(path, depth: 0, maxDepth: 2, ysmFiles);
             foreach (var file in ysmFiles.OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
             {
                 var relPath = file.StartsWith(path) ? file[path.Length..].TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) : file;
@@ -71,6 +72,23 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         });
 
         IsScanning = false;
+    }
+
+    private static void CollectYsmFiles(string dir, int depth, int maxDepth, List<string> results)
+    {
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(dir, "*.ysm"))
+                results.Add(file);
+
+            if (depth < maxDepth)
+            {
+                foreach (var sub in Directory.EnumerateDirectories(dir))
+                    CollectYsmFiles(sub, depth + 1, maxDepth, results);
+            }
+        }
+        catch (UnauthorizedAccessException) { }
+        catch (DirectoryNotFoundException) { }
     }
 
     public async Task SelectFileAsync(YsmFileItemViewModel item)
