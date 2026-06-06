@@ -33,12 +33,12 @@ public partial class MainView : UserControl
     private DirectionalLight? _keyLight;
     private DirectionalLight? _fillLight;
 
-    private static readonly string[] ThemeTooltips = ["Switch to Light mode", "Switch to System theme", "Switch to Dark mode"];
+    private static readonly string[] ThemeTooltips = ["Switch to Dark mode", "Switch to System theme", "Switch to Light mode"];
     private static readonly string[] ThemeSvgPaths =
     [
-        "avares://YSMViewer/Assets/svg/mode-dark.svg",
-        "avares://YSMViewer/Assets/svg/mode-light.svg",
         "avares://YSMViewer/Assets/svg/mode-system.svg",
+        "avares://YSMViewer/Assets/svg/mode-light.svg",
+        "avares://YSMViewer/Assets/svg/mode-dark.svg",
     ];
 
     public MainView()
