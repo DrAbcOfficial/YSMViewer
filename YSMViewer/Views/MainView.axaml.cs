@@ -156,7 +156,10 @@ public partial class MainView : UserControl
     private void OnLanguageButtonClick(object? sender, RoutedEventArgs e)
     {
         var menu = new ContextMenu();
-        var enItem = new MenuItem { Header = "English" };
+
+        var enIcon = new Image { Width = 18, Height = 18 };
+        LoadSvgWithColor(enIcon, "avares://YSMViewer/Assets/svg/lang-en.svg");
+        var enItem = new MenuItem { Header = "English", Icon = enIcon };
         enItem.Click += (_, _) =>
         {
             LocalizationService.Instance.SetLanguage("en");
@@ -164,7 +167,9 @@ public partial class MainView : UserControl
         };
         menu.Items.Add(enItem);
 
-        var zhItem = new MenuItem { Header = "中文" };
+        var zhIcon = new Image { Width = 18, Height = 18 };
+        LoadSvgWithColor(zhIcon, "avares://YSMViewer/Assets/svg/lang-cn.svg");
+        var zhItem = new MenuItem { Header = "中文", Icon = zhIcon };
         zhItem.Click += (_, _) =>
         {
             LocalizationService.Instance.SetLanguage("zh");
