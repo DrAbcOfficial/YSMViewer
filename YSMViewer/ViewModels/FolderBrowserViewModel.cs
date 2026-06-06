@@ -113,6 +113,11 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
             parser.Parse();
             var resources = parser.GetResources();
 
+            // Parse metadata from ysm.json / info.json (same as MainViewModel info panel)
+            displayName = ParseMetaName(resources.YsmJson)
+                         ?? ParseMetaName(resources.InfoJson)
+                         ?? displayName;
+
             if (resources.Models.Count > 0)
             {
                 var jsonStr = Encoding.UTF8.GetString(resources.Models[0].Data);
@@ -122,14 +127,17 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
                 if (root.TryGetProperty("minecraft:geometry", out var geoms) && geoms.GetArrayLength() > 0)
                 {
                     var geom = geoms[0];
-                    if (geom.TryGetProperty("description", out var desc))
+
+                    // Fallback: use description identifier if metadata didn't provide name
+                    if (displayName == Path.GetFileName(filePath)
+                        && geom.TryGetProperty("description", out var desc)
+                        && desc.TryGetProperty("identifier", out var id))
                     {
-                        if (desc.TryGetProperty("ysm_extra_info", out var extra)
-                            && extra.TryGetProperty("name", out var metaName))
-                            displayName = metaName.GetString() ?? displayName;
-                        else if (desc.TryGetProperty("identifier", out var id))
-                            displayName = id.GetString() ?? displayName;
+                        var identifier = id.GetString();
+                        if (!string.IsNullOrEmpty(identifier) && identifier != "geometry.unknown")
+                            displayName = identifier;
                     }
+
                     complexity = CountGeometryStats(geom);
                 }
             }
@@ -139,6 +147,23 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         }
 
         return (displayName, complexity);
+    }
+
+    private static string? ParseMetaName(byte[]? jsonData)
+    {
+        if (jsonData is null or { Length: 0 }) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(jsonData);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("metadata", out var meta)
+                && meta.TryGetProperty("name", out var name))
+                return name.GetString();
+            if (root.TryGetProperty("name", out var rootName))
+                return rootName.GetString();
+        }
+        catch { }
+        return null;
     }
 
     private static int CountGeometryStats(JsonElement geom)
