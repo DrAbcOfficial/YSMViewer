@@ -74,6 +74,15 @@ public sealed partial class MainViewModel : ViewModelBase
     private bool _hasTextures;
 
     [ObservableProperty]
+    private bool _hasModelAuthors;
+
+    [ObservableProperty]
+    private bool _hasModelLicense;
+
+    [ObservableProperty]
+    private bool _hasModelTips;
+
+    [ObservableProperty]
     private TextureItemViewModel? _selectedTexture;
 
     public ObservableCollection<ComponentViewModel> Components { get; } = [];
@@ -248,8 +257,8 @@ public sealed partial class MainViewModel : ViewModelBase
             var meta = loadedModel.Metadata;
             ModelDisplayName = meta.Name ?? loadedModel.ModelName;
             ModelAuthors = meta.Authors is { Length: > 0 }
-                ? string.Join(", ", meta.Authors) : "Unknown";
-            ModelLicense = meta.LicenseType ?? "Unknown";
+                ? string.Join(", ", meta.Authors) : string.Empty;
+            ModelLicense = meta.LicenseType ?? string.Empty;
             IsFreeModel = meta.IsFree;
             ModelTips = meta.Tips ?? string.Empty;
         }
@@ -261,6 +270,10 @@ public sealed partial class MainViewModel : ViewModelBase
             IsFreeModel = false;
             ModelTips = string.Empty;
         }
+
+        HasModelAuthors = !string.IsNullOrEmpty(ModelAuthors);
+        HasModelLicense = !string.IsNullOrEmpty(ModelLicense);
+        HasModelTips = !string.IsNullOrEmpty(ModelTips);
 
         Components.Clear();
         BoneTreeRoots.Clear();
