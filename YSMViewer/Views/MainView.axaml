@@ -101,14 +101,14 @@ ToolTip.Tip="{Binding LocSwitchLang}"
         </Border>
 
         <!-- ===== Main Content ===== -->
-        <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*,4,310">
+        <Grid Grid.Row="1" ColumnDefinitions="*,4,3*,4,*">
 
             <!-- Folder Browser -->
             <Border Grid.Column="0" Background="{DynamicResource ThemeBgSurface}"
                     BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,0,1,0"
                     IsVisible="{Binding IsDesktop}"
-                    MinWidth="200" MaxWidth="320">
-                <v:FolderBrowserView DataContext="{Binding FolderBrowser}" Margin="8" Width="240" />
+                    MinWidth="200" MaxWidth="400">
+                <v:FolderBrowserView DataContext="{Binding FolderBrowser}" Margin="8" />
             </Border>
 
             <GridSplitter Grid.Column="1" Width="4"
