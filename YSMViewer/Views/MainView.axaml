@@ -62,7 +62,7 @@
         <!-- ===== Top Bar ===== -->
         <Border Grid.Row="0" Background="{DynamicResource ThemeBgSurface}"
                 BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,0,0,1">
-            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" MinHeight="48" Margin="16,0">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto" MinHeight="48" Margin="16,0">
                 <Button x:Name="OpenButton" Content="Open File"
                         Click="OnOpenButtonClick"
                         IsEnabled="{Binding !IsLoading}"
@@ -76,15 +76,14 @@
                            Foreground="{DynamicResource ThemeTextSecondary}" FontSize="12"
                            VerticalAlignment="Center" Margin="16,0,0,0"
                            TextTrimming="CharacterEllipsis" />
-                <Button x:Name="ThemeToggleButton" Grid.Column="3"
-                        Click="OnThemeToggleClick"
-                        Width="36" Height="36" Padding="0" CornerRadius="6"
-                        VerticalAlignment="Center"
-                        ToolTip.Tip="Toggle theme">
-                    <Image x:Name="ThemeSvgImage" Width="20" Height="20" />
-                </Button>
-                <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4"
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8"
                             VerticalAlignment="Center">
+                    <Button x:Name="ThemeToggleButton"
+                            Click="OnThemeToggleClick"
+                            Width="36" Height="36" Padding="0" CornerRadius="6"
+                            ToolTip.Tip="Toggle theme">
+                        <Image x:Name="ThemeSvgImage" Width="20" Height="20" />
+                    </Button>
                     <Button x:Name="GitHubButton"
                             Click="OnGitHubClick"
                             Width="36" Height="36" Padding="0" CornerRadius="6"
