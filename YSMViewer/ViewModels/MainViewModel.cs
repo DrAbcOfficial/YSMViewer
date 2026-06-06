@@ -401,16 +401,16 @@ public sealed partial class MainViewModel : ViewModelBase
         if (loadedModel.Metadata is not null)
         {
             var meta = loadedModel.Metadata;
-            ModelDisplayName = meta.Name ?? loadedModel.ModelName;
+            ModelDisplayName = MinecraftFormatHelper.StripFormatting(meta.Name ?? loadedModel.ModelName);
             ModelAuthors = meta.Authors is { Length: > 0 }
-                ? string.Join(", ", meta.Authors) : string.Empty;
+                ? MinecraftFormatHelper.StripFormatting(string.Join(", ", meta.Authors)) : string.Empty;
             ModelLicense = meta.LicenseType ?? string.Empty;
             IsFreeModel = meta.IsFree;
-            ModelTips = meta.Tips ?? string.Empty;
+            ModelTips = MinecraftFormatHelper.StripFormatting(meta.Tips ?? string.Empty);
         }
         else
         {
-            ModelDisplayName = loadedModel.ModelName;
+            ModelDisplayName = MinecraftFormatHelper.StripFormatting(loadedModel.ModelName);
             ModelAuthors = string.Empty;
             ModelLicense = string.Empty;
             IsFreeModel = false;
@@ -552,6 +552,7 @@ public sealed partial class MainViewModel : ViewModelBase
 
         _onAnimationUpdate?.Invoke(deltaTime);
     }
+
 
     private void BuildBoneTree()
     {

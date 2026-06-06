@@ -245,10 +245,11 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
 
             var peekResult = parser.Peek();
 
-            displayName = ParseMetaName(peekResult.YsmJson)
-                         ?? ParseMetaName(peekResult.InfoJson)
-                         ?? peekResult.HeaderName
-                         ?? displayName;
+            displayName = MinecraftFormatHelper.StripFormatting(
+                ParseMetaName(peekResult.YsmJson)
+                ?? ParseMetaName(peekResult.InfoJson)
+                ?? peekResult.HeaderName
+                ?? displayName);
 
             if (peekResult.Models is { Count: > 0 })
             {
