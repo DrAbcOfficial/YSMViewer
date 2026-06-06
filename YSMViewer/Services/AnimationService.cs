@@ -88,6 +88,21 @@ public sealed class AnimationService(
         return result;
     }
 
+    public void ResetBones()
+    {
+        _currentTime = 0f;
+        _isPlaying = false;
+
+        foreach (var (name, node) in _boneNodes)
+        {
+            if (_basePositions.TryGetValue(name, out var basePos))
+                node.Position = basePos;
+            if (_baseEulers.TryGetValue(name, out var baseEuler))
+                node.RotationQuaternion = CreateBlockbenchQuaternion(baseEuler);
+            node.Scale = Vector3.One;
+        }
+    }
+
     public void PlayAnimation(string name)
     {
         if (_currentFile?.Animations.TryGetValue(name, out var anim) == true)

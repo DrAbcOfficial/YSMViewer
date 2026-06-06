@@ -389,6 +389,7 @@ public sealed partial class MainViewModel : ViewModelBase
         CurrentAnimationName = string.Empty;
         AnimationProgress = 0f;
         AnimationTimeText = string.Empty;
+        _animationService.ResetBones();
     }
 
     public void PreviousAnimation()
