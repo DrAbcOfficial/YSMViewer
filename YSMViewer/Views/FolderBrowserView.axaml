@@ -62,8 +62,15 @@
                      FontSize="12" Padding="4,2" />
         </Border>
 
-        <ProgressBar Grid.Row="3" IsVisible="{Binding IsScanning}"
-                     IsIndeterminate="True" Height="3" VerticalAlignment="Top" />
+        <Grid Grid.Row="3" IsVisible="{Binding IsScanning}"
+              ColumnDefinitions="*,Auto" Margin="0,6,0,0"
+              VerticalAlignment="Center">
+            <ProgressBar Height="4" Value="{Binding ScanProgress}" Maximum="1.0"
+                         VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Text="{Binding ScanProgressText}"
+                       Foreground="{DynamicResource ThemeTextMuted}" FontSize="10"
+                       VerticalAlignment="Center" Margin="6,0,0,0" />
+        </Grid>
 
         <!-- Column headers + list -->
         <Grid Grid.Row="4" RowDefinitions="Auto,*" Margin="0,4,0,0"

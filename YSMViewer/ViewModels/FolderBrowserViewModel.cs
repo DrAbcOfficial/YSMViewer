@@ -35,6 +35,12 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
     [ObservableProperty]
     private bool _sortAscending = true;
 
+    [ObservableProperty]
+    private double _scanProgress;
+
+    [ObservableProperty]
+    private string _scanProgressText = string.Empty;
+
     private readonly List<YsmFileItemViewModel> _allFiles = [];
 
     public ObservableCollection<YsmFileItemViewModel> FilteredFiles { get; } = [];
@@ -133,6 +139,8 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         FolderName = Path.GetFileName(path) ?? path;
         HasFolder = true;
         IsScanning = true;
+        ScanProgress = 0;
+        ScanProgressText = "";
         SearchText = "";
         SortColumn = FileSortColumn.None;
         _allFiles.Clear();
@@ -142,25 +150,48 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         CollectYsmFiles(path, depth: 0, maxDepth: 2, ysmFiles);
         ysmFiles.Sort(StringComparer.OrdinalIgnoreCase);
 
-        await Task.Run(async () =>
+        int total = ysmFiles.Count;
+        int processed = 0;
+        var maxParallelism = Math.Max(2, Environment.ProcessorCount);
+        var semaphore = new SemaphoreSlim(maxParallelism);
+        var tasks = new List<Task>();
+
+        foreach (var file in ysmFiles)
         {
-            foreach (var file in ysmFiles)
+            tasks.Add(Task.Run(async () =>
             {
-                var relPath = file.StartsWith(path)
-                    ? file[path.Length..].TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-                    : file;
-
-                var (displayName, complexity) = await ParseYsmFileAsync(file);
-
-                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                await semaphore.WaitAsync();
+                try
                 {
-                    var vm = new YsmFileItemViewModel(file, relPath, displayName, complexity);
-                    vm.UpdateComplexityColor(0, 0);
-                    _allFiles.Add(vm);
-                    FilteredFiles.Add(vm);
-                });
-            }
-        });
+                    var relPath = file.StartsWith(path)
+                        ? file[path.Length..].TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                        : file;
+
+                    var (displayName, complexity) = await ParseYsmFileAsync(file);
+                    var current = Interlocked.Increment(ref processed);
+
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    {
+                        var vm = new YsmFileItemViewModel(file, relPath, displayName, complexity);
+                        vm.UpdateComplexityColor(0, 0);
+                        _allFiles.Add(vm);
+                        FilteredFiles.Add(vm);
+                        ScanProgress = (double)current / total;
+                        ScanProgressText = $"{current}/{total}";
+                    });
+                }
+                catch
+                {
+                    Interlocked.Increment(ref processed);
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }));
+        }
+
+        await Task.WhenAll(tasks);
 
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
