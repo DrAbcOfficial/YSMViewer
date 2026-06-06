@@ -4,6 +4,8 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using YSMViewer.Resources;
+using YSMViewer.Services;
 
 namespace YSMViewer.ViewModels;
 
@@ -47,6 +49,42 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
 
     public event Func<string, Task>? FileSelected;
     public event Action<string>? ScanError;
+
+    public FolderBrowserViewModel()
+    {
+        RefreshLocStrings();
+        Services.LocalizationService.Instance.CultureChanged += RefreshLocStrings;
+    }
+
+    private void RefreshLocStrings()
+    {
+        var r = Resources.Strings.ResourceManager;
+        var c = Services.LocalizationService.Instance.CurrentCulture;
+        LocOpenFolder = r.GetString("OpenFolder", c)!;
+        LocSearchPrompt = r.GetString("SearchPrompt", c)!;
+        LocName = r.GetString("Name", c)!;
+        LocComplexityCol = r.GetString("ComplexityCol", c)!;
+        LocEmptyFolder = r.GetString("EmptyFolder", c)!;
+        LocSelectFolder = r.GetString("SelectFolder", c)!;
+    }
+
+    [ObservableProperty]
+    private string _locOpenFolder = "";
+
+    [ObservableProperty]
+    private string _locSearchPrompt = "";
+
+    [ObservableProperty]
+    private string _locName = "";
+
+    [ObservableProperty]
+    private string _locComplexityCol = "";
+
+    [ObservableProperty]
+    private string _locEmptyFolder = "";
+
+    [ObservableProperty]
+    private string _locSelectFolder = "";
 
     partial void OnSearchTextChanged(string value)
     {

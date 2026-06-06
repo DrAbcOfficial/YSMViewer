@@ -4,6 +4,7 @@ using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 using YSMParser.Core.Parsers;
+using YSMViewer.Resources;
 using YSMViewer.Services;
 
 namespace YSMViewer.ViewModels;
@@ -25,7 +26,75 @@ public sealed partial class MainViewModel : ViewModelBase
         FolderBrowser = new FolderBrowserViewModel();
         FolderBrowser.FileSelected += OnFileSelectedFromBrowser;
         FolderBrowser.ScanError += OnScanError;
+        RefreshLocalizedStrings();
+        Services.LocalizationService.Instance.CultureChanged += RefreshLocalizedStrings;
     }
+
+    private void RefreshLocalizedStrings()
+    {
+        var L = Resources.Strings.ResourceManager;
+        var culture = Services.LocalizationService.Instance.CurrentCulture;
+        LocOpenFile = L.GetString("OpenFile", culture)!;
+        LocStatusReady = L.GetString("ReadyStatus", culture)!;
+        LocToggleTheme = L.GetString("ToggleTheme", culture)!;
+        LocSwitchLang = L.GetString("SwitchLanguage", culture)!;
+        LocViewGitHub = L.GetString("ViewOnGitHub", culture)!;
+        LocInfo = L.GetString("Info", culture)!;
+        LocComponents = L.GetString("Components", culture)!;
+        LocBones = L.GetString("Bones", culture)!;
+        LocTextures = L.GetString("Textures", culture)!;
+        LocAnimations = L.GetString("Animations", culture)!;
+        LocShowAll = L.GetString("ShowAll", culture)!;
+        LocHideAll = L.GetString("HideAll", culture)!;
+        LocExpandAll = L.GetString("ExpandAll", culture)!;
+        LocCollapseAll = L.GetString("CollapseAll", culture)!;
+        LocEmptyState = L.GetString("EmptyState", culture)!;
+        LocErrorTitle = L.GetString("Error", culture)!;
+        LocDismiss = L.GetString("Dismiss", culture)!;
+        LocCopy = L.GetString("Copy", culture)!;
+        LocDropHint = L.GetString("DropHint", culture)!;
+        LocDropHintExt = L.GetString("DropHintExt", culture)!;
+        LocFrontView = L.GetString("FrontView", culture)!;
+        LocLeftView = L.GetString("LeftView", culture)!;
+        LocTopView = L.GetString("TopView", culture)!;
+        LocStopAnim = L.GetString("StopAnim", culture)!;
+        LocOpenFolder = L.GetString("OpenFolder", culture)!;
+        LocSearchPrompt = L.GetString("SearchPrompt", culture)!;
+        LocEmptyFolder = L.GetString("EmptyFolder", culture)!;
+        LocSelectFolder = L.GetString("SelectFolder", culture)!;
+        LocOpenYSMTitle = L.GetString("OpenYSMTitle", culture)!;
+        StatusText = LocStatusReady;
+    }
+
+    [ObservableProperty] private string _locOpenFile = "";
+    [ObservableProperty] private string _locStatusReady = "";
+    [ObservableProperty] private string _locToggleTheme = "";
+    [ObservableProperty] private string _locSwitchLang = "";
+    [ObservableProperty] private string _locViewGitHub = "";
+    [ObservableProperty] private string _locInfo = "";
+    [ObservableProperty] private string _locComponents = "";
+    [ObservableProperty] private string _locBones = "";
+    [ObservableProperty] private string _locTextures = "";
+    [ObservableProperty] private string _locAnimations = "";
+    [ObservableProperty] private string _locShowAll = "";
+    [ObservableProperty] private string _locHideAll = "";
+    [ObservableProperty] private string _locExpandAll = "";
+    [ObservableProperty] private string _locCollapseAll = "";
+    [ObservableProperty] private string _locEmptyState = "";
+    [ObservableProperty] private string _locErrorTitle = "";
+    [ObservableProperty] private string _locDismiss = "";
+    [ObservableProperty] private string _locCopy = "";
+    [ObservableProperty] private string _locDropHint = "";
+    [ObservableProperty] private string _locDropHintExt = "";
+    [ObservableProperty] private string _locFrontView = "";
+    [ObservableProperty] private string _locLeftView = "";
+    [ObservableProperty] private string _locTopView = "";
+    [ObservableProperty] private string _locStopAnim = "";
+    [ObservableProperty] private string _locOpenFolder = "";
+    [ObservableProperty] private string _locSearchPrompt = "";
+    [ObservableProperty] private string _locEmptyFolder = "";
+    [ObservableProperty] private string _locSelectFolder = "";
+    [ObservableProperty] private string _locOpenYSMTitle = "";
 
     private async Task OnFileSelectedFromBrowser(string filePath)
     {

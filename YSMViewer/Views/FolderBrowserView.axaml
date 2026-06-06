@@ -33,7 +33,7 @@
     </UserControl.Styles>
 
     <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
-        <Button Grid.Row="0" Content="Open Folder"
+        <Button Grid.Row="0" Content="{Binding LocOpenFolder}"
                 Command="{Binding BrowseFolderCommand}"
                 IsEnabled="{Binding !IsScanning}"
                 HorizontalAlignment="Stretch"
@@ -56,7 +56,7 @@
         <Border Grid.Row="2" IsVisible="{Binding HasFolder}" Margin="0,6,0,0"
                 Background="{DynamicResource ThemeBgElevated}" CornerRadius="4" Padding="4">
             <TextBox Text="{Binding SearchText}"
-                     PlaceholderText="Search..."
+                     PlaceholderText="{Binding LocSearchPrompt}"
                      Background="Transparent" BorderThickness="0"
                      Foreground="{DynamicResource ThemeTextPrimary}"
                      FontSize="12" Padding="4,5" VerticalContentAlignment="Center" />
@@ -83,12 +83,12 @@
                             HorizontalAlignment="Left"
                             Command="{Binding ToggleSortCommand}"
                             CommandParameter="Name">
-                        <TextBlock Text="Name" />
+                        <TextBlock Text="{Binding LocName}" />
                     </Button>
                     <Button Grid.Column="1" Classes="sort-btn"
                             Command="{Binding ToggleSortCommand}"
                             CommandParameter="Complexity">
-                        <TextBlock Text="Complexity" />
+                        <TextBlock Text="{Binding LocComplexityCol}" />
                     </Button>
                 </Grid>
             </Border>
@@ -126,7 +126,7 @@
         </Grid>
 
         <TextBlock Grid.Row="5" IsVisible="{Binding !HasFolder}"
-                   Text="Open a folder to browse YSM models"
+                   Text="{Binding LocEmptyFolder}"
                    Foreground="{DynamicResource ThemeTextMuted}" FontSize="11"
                    HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,24"
                    TextWrapping="Wrap" />

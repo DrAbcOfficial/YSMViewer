@@ -63,7 +63,7 @@
         <Border Grid.Row="0" Background="{DynamicResource ThemeBgSurface}"
                 BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,0,0,1">
             <Grid ColumnDefinitions="Auto,Auto,*,Auto" MinHeight="48" Margin="16,0">
-                <Button x:Name="OpenButton" Content="Open File"
+                <Button x:Name="OpenButton" Content="{Binding LocOpenFile}"
                         Click="OnOpenButtonClick"
                         IsEnabled="{Binding !IsLoading}"
                         Background="{DynamicResource ThemeAccentRed}" Foreground="White"
@@ -80,20 +80,20 @@
                             VerticalAlignment="Center">
                     <Button x:Name="LanguageButton"
                             Width="36" Height="36" Padding="0" CornerRadius="6"
-                            ToolTip.Tip="Switch language"
-                            Click="OnLanguageButtonClick">
+ToolTip.Tip="{Binding LocSwitchLang}"
+                             Click="OnLanguageButtonClick">
                         <Image x:Name="LangSvgImage" Width="20" Height="20" />
                     </Button>
                     <Button x:Name="ThemeToggleButton"
                             Click="OnThemeToggleClick"
                             Width="36" Height="36" Padding="0" CornerRadius="6"
-                            ToolTip.Tip="Toggle theme">
+                            ToolTip.Tip="{Binding LocToggleTheme}">
                         <Image x:Name="ThemeSvgImage" Width="20" Height="20" />
                     </Button>
                     <Button x:Name="GitHubButton"
                             Click="OnGitHubClick"
                             Width="36" Height="36" Padding="0" CornerRadius="6"
-                            ToolTip.Tip="View on GitHub">
+                            ToolTip.Tip="{Binding LocViewGitHub}">
                         <Image x:Name="GitHubSvgImage" Width="20" Height="20" />
                     </Button>
                 </StackPanel>
@@ -148,10 +148,10 @@
                         <TextBlock Text="YSMViewer" FontSize="36" FontWeight="Bold"
                                    Foreground="{DynamicResource ThemeTextPrimary}"
                                    HorizontalAlignment="Center" />
-                        <TextBlock Text="Open a .ysm file or drag and drop here"
+                        <TextBlock Text="{Binding LocEmptyState}"
                                    FontSize="15" Foreground="{DynamicResource ThemeTextSecondary}"
                                    HorizontalAlignment="Center" />
-                        <Button Content="Open File" Click="OnOpenButtonClick"
+                        <Button Content="{Binding LocOpenFile}" Click="OnOpenButtonClick"
                                 HorizontalAlignment="Center"
                                 Background="{DynamicResource ThemeAccentRed}" Foreground="White"
                                 FontSize="14" Padding="24,10" CornerRadius="8" FontWeight="SemiBold" />
@@ -167,10 +167,10 @@
                         CornerRadius="12" Margin="8"
                         BorderBrush="{DynamicResource ThemeAccent}" BorderThickness="2">
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
-                        <TextBlock Text="Drop to open" FontSize="22" FontWeight="SemiBold"
+                        <TextBlock Text="{Binding LocDropHint}" FontSize="22" FontWeight="SemiBold"
                                    Foreground="{DynamicResource ThemeAccent}"
                                    HorizontalAlignment="Center" />
-                        <TextBlock Text=".ysm file" FontSize="14"
+                        <TextBlock Text="{Binding LocDropHintExt}" FontSize="14"
                                    Foreground="{DynamicResource ThemeTextSecondary}"
                                    HorizontalAlignment="Center" />
                     </StackPanel>
@@ -183,17 +183,17 @@
                         MaxWidth="560"
                         Background="{DynamicResource ThemeErrorBg}" Opacity="0.95">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="Error" FontWeight="Bold" FontSize="15"
+                        <TextBlock Text="{Binding LocErrorTitle}" FontWeight="Bold" FontSize="15"
                                    Foreground="{DynamicResource ThemeErrorText}" />
                         <ScrollViewer MaxHeight="140">
                             <SelectableTextBlock Text="{Binding ErrorDetail}" FontSize="11"
                                                   Foreground="{DynamicResource ThemeErrorText}" Opacity="0.8" TextWrapping="Wrap" />
                         </ScrollViewer>
                         <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-                            <Button Content="Copy" Click="OnCopyErrorClick"
+                            <Button Content="{Binding LocCopy}" Click="OnCopyErrorClick"
                                     Background="{DynamicResource ThemeBgButton}" Foreground="{DynamicResource ThemeTextSecondary}"
                                     Padding="12,4" CornerRadius="4" FontSize="11" />
-                            <Button Content="Dismiss" Click="OnDismissErrorClick"
+                            <Button Content="{Binding LocDismiss}" Click="OnDismissErrorClick"
                                     Background="{DynamicResource ThemeAccentRed}" Foreground="White"
                                     Padding="14,4" CornerRadius="4" FontSize="11" FontWeight="SemiBold" />
                         </StackPanel>
@@ -217,7 +217,7 @@
                         <!-- Info Section -->
                         <Expander IsExpanded="True" Padding="0">
                             <Expander.Header>
-                                <TextBlock Text="Info" FontWeight="SemiBold" FontSize="13"
+                                <TextBlock Text="{Binding LocInfo}" FontWeight="SemiBold" FontSize="13"
                                            Foreground="{DynamicResource ThemeTextPrimary}" />
                             </Expander.Header>
                             <StackPanel Spacing="10" Margin="12,8">
@@ -265,15 +265,15 @@
                         <!-- Components Section -->
                         <Expander IsExpanded="False" Padding="0">
                             <Expander.Header>
-                                <TextBlock Text="Components" FontWeight="SemiBold" FontSize="13"
+                                <TextBlock Text="{Binding LocComponents}" FontWeight="SemiBold" FontSize="13"
                                            Foreground="{DynamicResource ThemeTextPrimary}" />
                             </Expander.Header>
                             <StackPanel Spacing="6" Margin="12,8">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <Button Content="Show All" FontSize="10"
+                                    <Button Content="{Binding LocShowAll}" FontSize="10"
                                             Click="OnShowAllComponentsClick"
                                             Padding="8,3" CornerRadius="4" />
-                                    <Button Content="Hide All" FontSize="10"
+                                    <Button Content="{Binding LocHideAll}" FontSize="10"
                                             Click="OnHideAllComponentsClick"
                                             Padding="8,3" CornerRadius="4" />
                                 </StackPanel>
@@ -304,15 +304,15 @@
                         <!-- Bones Section -->
                         <Expander IsExpanded="False" Padding="0">
                             <Expander.Header>
-                                <TextBlock Text="Bones" FontWeight="SemiBold" FontSize="13"
+                                <TextBlock Text="{Binding LocBones}" FontWeight="SemiBold" FontSize="13"
                                            Foreground="{DynamicResource ThemeTextPrimary}" />
                             </Expander.Header>
                             <StackPanel Spacing="6" Margin="12,8">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <Button Content="Expand All" FontSize="10"
+                                    <Button Content="{Binding LocExpandAll}" FontSize="10"
                                             Click="OnExpandAllBonesClick"
                                             Padding="8,3" CornerRadius="4" />
-                                    <Button Content="Collapse All" FontSize="10"
+                                    <Button Content="{Binding LocCollapseAll}" FontSize="10"
                                             Click="OnCollapseAllBonesClick"
                                             Padding="8,3" CornerRadius="4" />
                                 </StackPanel>
@@ -366,7 +366,7 @@
                         <Expander IsExpanded="False" Padding="0"
                                   IsVisible="{Binding HasTextures}">
                             <Expander.Header>
-                                <TextBlock Text="Textures" FontWeight="SemiBold" FontSize="13"
+                                <TextBlock Text="{Binding LocTextures}" FontWeight="SemiBold" FontSize="13"
                                            Foreground="{DynamicResource ThemeTextPrimary}" />
                             </Expander.Header>
                             <StackPanel Spacing="6" Margin="12,8">
@@ -418,7 +418,7 @@
                         <Expander IsExpanded="True" Padding="0"
                                   IsVisible="{Binding HasAnimations}">
                             <Expander.Header>
-                                <TextBlock Text="Animations" FontWeight="SemiBold" FontSize="13"
+                                <TextBlock Text="{Binding LocAnimations}" FontWeight="SemiBold" FontSize="13"
                                            Foreground="{DynamicResource ThemeTextPrimary}" />
                             </Expander.Header>
                             <StackPanel Spacing="6" Margin="12,8">
@@ -490,7 +490,7 @@
                     </Button>
                     <Button Click="OnStopAnimationClick" CornerRadius="4"
                             Width="32" Height="32" Padding="0"
-                            ToolTip.Tip="Stop and reset animation">
+                            ToolTip.Tip="{Binding LocStopAnim}">
                         <PathIcon Data="M6 6 L6 26 L26 26 L26 6 Z"
                                   Foreground="{DynamicResource ThemeAccentRed}" />
                     </Button>
@@ -522,17 +522,17 @@
                 <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                     <Button Click="OnCameraFrontClick" CornerRadius="4"
                             Width="32" Height="32" Padding="0"
-                            ToolTip.Tip="Front view">
+                            ToolTip.Tip="{Binding LocFrontView}">
                         <Image x:Name="CameraFrontImg" Width="20" Height="20" />
                     </Button>
                     <Button Click="OnCameraLeftClick" CornerRadius="4"
                             Width="32" Height="32" Padding="0"
-                            ToolTip.Tip="Left view">
+                            ToolTip.Tip="{Binding LocLeftView}">
                         <Image x:Name="CameraLeftImg" Width="20" Height="20" />
                     </Button>
                     <Button Click="OnCameraTopClick" CornerRadius="4"
                             Width="32" Height="32" Padding="0"
-                            ToolTip.Tip="Top view">
+                            ToolTip.Tip="{Binding LocTopView}">
                         <Image x:Name="CameraTopImg" Width="20" Height="20" />
                     </Button>
                 </StackPanel>
