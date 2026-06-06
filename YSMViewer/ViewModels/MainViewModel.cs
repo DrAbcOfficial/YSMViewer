@@ -67,7 +67,7 @@ public sealed partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     private string _modelTips = string.Empty;
 
-[ObservableProperty]
+    [ObservableProperty]
     private bool _isFreeModel;
 
     [ObservableProperty]
@@ -423,7 +423,7 @@ public sealed partial class MainViewModel : ViewModelBase
         return item;
     }
 
-public void ExpandAllBones()
+    public void ExpandAllBones()
     {
         foreach (var root in BoneTreeRoots)
             root.SetExpandedRecursive(true);
@@ -518,7 +518,7 @@ public sealed partial class BoneTreeItemViewModel : ObservableObject
     public Node? SceneNode { get; set; }
     public ObservableCollection<BoneTreeItemViewModel> Children { get; } = [];
 
-partial void OnIsVisibleChanged(bool value)
+    partial void OnIsVisibleChanged(bool value)
     {
         if (SceneNode is not null)
             SceneNode.Enable = value;

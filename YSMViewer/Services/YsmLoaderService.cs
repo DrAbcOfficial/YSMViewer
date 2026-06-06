@@ -1,9 +1,9 @@
-using System.Numerics;
-using System.Text.Json;
 using Aura3D.Core;
 using Aura3D.Core.Nodes;
 using Aura3D.Core.Resources;
 using Avalonia.Media.Imaging;
+using System.Numerics;
+using System.Text.Json;
 using YSMParser.Core.Parsers;
 using YSMViewer.Models;
 
@@ -151,7 +151,7 @@ public sealed class YsmLoaderService
         return file.Geometries;
     }
 
-public static void ApplyTextureToModel(Model model, byte[] textureData)
+    public static void ApplyTextureToModel(Model model, byte[] textureData)
     {
         var pngData = EnsurePng(textureData) ?? textureData;
         var texture = TextureLoader.LoadTexture(pngData);
@@ -220,7 +220,7 @@ public static void ApplyTextureToModel(Model model, byte[] textureData)
         return new YsmMetadata(name, tips, licenseType, isFree, [.. authors], widthScale, heightScale);
     }
 
-private static YsmMetadata? ParseInfoJson(byte[] data)
+    private static YsmMetadata? ParseInfoJson(byte[] data)
     {
         using var doc = JsonDocument.Parse(data);
         var root = doc.RootElement;
