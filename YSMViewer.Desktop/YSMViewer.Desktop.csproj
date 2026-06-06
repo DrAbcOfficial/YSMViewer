@@ -22,4 +22,15 @@
   <ItemGroup>
     <ProjectReference Include="..\YSMViewer\YSMViewer.csproj" />
   </ItemGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <PublishTrimmed>true</PublishTrimmed>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <TrimmerRootAssembly Include="YSMViewer" />
+  </ItemGroup>
 </Project>

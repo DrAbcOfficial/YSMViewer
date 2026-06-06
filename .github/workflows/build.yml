@@ -18,17 +18,37 @@ jobs:
       - name: Build
         run: dotnet build YSMViewer.slnx -c Release
 
-      - name: Publish Desktop
-        run: dotnet publish YSMViewer.Desktop -c Release -o publish/desktop
+  publish-desktop:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - rid: win-x64
+            os: windows-latest
+          - rid: linux-x64
+            os: ubuntu-latest
+          - rid: osx-arm64
+            os: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish Desktop (${{ matrix.rid }})
+        run: dotnet publish YSMViewer.Desktop -c Release -r ${{ matrix.rid }} -o publish/desktop-${{ matrix.rid }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: desktop-build
-          path: publish/desktop/
+          name: desktop-${{ matrix.rid }}
+          path: publish/desktop-${{ matrix.rid }}/
 
   release:
-    needs: build
+    needs: publish-desktop
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
@@ -46,16 +66,35 @@ jobs:
       - name: Publish Browser
         run: dotnet publish YSMViewer.Browser -c Release -o publish/browser
 
-      - name: Download desktop artifact
-        uses: actions/download-artifact@v8
+      - name: Download desktop (win-x64)
+        uses: actions/download-artifact@v7
         with:
-          name: desktop-build
-          path: publish/desktop/
+          name: desktop-win-x64
+          path: publish/desktop/win-x64
 
-      - name: Package assets
+      - name: Download desktop (linux-x64)
+        uses: actions/download-artifact@v7
+        with:
+          name: desktop-linux-x64
+          path: publish/desktop/linux-x64
+
+      - name: Download desktop (osx-arm64)
+        uses: actions/download-artifact@v7
+        with:
+          name: desktop-osx-arm64
+          path: publish/desktop/osx-arm64
+
+      - name: Package desktop assets
         run: |
-          cd publish/desktop && zip -r ../YSMViewer-Desktop.zip .
-          cd ../browser && zip -r ../YSMViewer-Browser.zip .
+          cd publish/desktop
+          zip -r ../YSMViewer-win-x64.zip win-x64/
+          zip -r ../YSMViewer-linux-x64.zip linux-x64/
+          zip -r ../YSMViewer-osx-arm64.zip osx-arm64/
+
+      - name: Package browser assets
+        run: |
+          cd publish/browser
+          zip -r ../YSMViewer-Browser.zip .
 
       - name: Add .nojekyll for GitHub Pages
         run: touch publish/browser/wwwroot/.nojekyll
@@ -64,10 +103,11 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            publish/YSMViewer-Desktop.zip
+            publish/YSMViewer-win-x64.zip
+            publish/YSMViewer-linux-x64.zip
+            publish/YSMViewer-osx-arm64.zip
             publish/YSMViewer-Browser.zip
           generate_release_notes: true
-          fail_on_unmatched_files: true
 
       - name: Deploy to webpage branch
         uses: peaceiris/actions-gh-pages@v4

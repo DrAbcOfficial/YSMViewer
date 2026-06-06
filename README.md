@@ -19,6 +19,10 @@ dotnet run --project YSMViewer.Desktop -- path\to\model.ysm
 
 - **SDK**: .NET 10.0
 
+## Live Preview
+
+Try it in your browser: [YSMViewer Live](https://drabcofficial.github.io/YSMViewer/)
+
 ## Project Structure
 
 | Project | Target | Purpose |
