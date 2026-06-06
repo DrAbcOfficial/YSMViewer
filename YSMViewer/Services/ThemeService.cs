@@ -107,27 +107,6 @@ public sealed class ThemeService
             : (byte[])[245, 180, 180, 180];
     }
 
-    public (byte A, byte R, byte G, byte B) GetAmbientLightColor()
-    {
-        if (IsDarkTheme()) 
-            return (255, 80, 80, 100);
-        return (255, 255, 255, 255);
-    }
-
-    public (byte A, byte R, byte G, byte B) GetKeyLightColor()
-    {
-        if (IsDarkTheme()) 
-            return (255, 220, 210, 190);
-        return (255, 255, 255, 255);
-    }
-
-    public (byte A, byte R, byte G, byte B) GetFillLightColor()
-    {
-        if (IsDarkTheme()) 
-            return (255, 100, 120, 150);
-        return (255, 255, 255, 255);
-    }
-
     private static ResourceDictionary CreateDarkPalette() => new()
     {
         ["ThemeBgViewport"] = Avalonia.Media.Color.FromRgb(0x0d, 0x11, 0x17),

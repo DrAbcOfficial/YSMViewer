@@ -1,8 +1,8 @@
+using Avalonia.Data.Converters;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.Globalization;
-using Avalonia.Data.Converters;
 
 namespace YSMViewer.ViewModels;
 
@@ -14,22 +14,16 @@ public enum NotificationType
     Error,
 }
 
-public sealed partial class NotificationViewModel : ObservableObject
+public sealed partial class NotificationViewModel(string message, NotificationType type = NotificationType.Info) : ObservableObject
 {
     [ObservableProperty]
-    private string _message;
+    public partial string Message { get; set; } = message;
 
     [ObservableProperty]
-    private NotificationType _type;
+    public partial NotificationType Type { get; set; } = type;
 
     [ObservableProperty]
-    private bool _isDismissing;
-
-    public NotificationViewModel(string message, NotificationType type = NotificationType.Info)
-    {
-        _message = message;
-        _type = type;
-    }
+    public partial bool IsDismissing { get; set; }
 }
 
 public sealed partial class NotificationService : ObservableObject

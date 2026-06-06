@@ -22,7 +22,7 @@ public class SphericalGizmo : Node
             Geometry = new SphereGeometry(0.1f, 24, 24),
             Material = CreateMaterial(Color.FromArgb(80, 180, 180, 200)),
         };
-        globe.Material.BlendMode = BlendMode.Masked;
+        globe.Material.BlendMode = BlendMode.Translucent;
         AddChild(globe, AttachToParentRule.KeepLocal);
 
         AddAxis(new Vector3(1, 0, 0), Color.FromArgb(255, 250, 70, 70));
@@ -39,7 +39,7 @@ public class SphericalGizmo : Node
         return new Material
         {
             BaseColor = tex,
-            BlendMode = BlendMode.Opaque,
+            BlendMode = BlendMode.Translucent,
         };
     }
 

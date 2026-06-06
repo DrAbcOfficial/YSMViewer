@@ -12,7 +12,7 @@ public partial class MainWindow : Window
 
         ExtendClientAreaToDecorationsHint = true;
         ExtendClientAreaTitleBarHeightHint = -1;
-        WindowDecorations = Avalonia.Controls.WindowDecorations.BorderOnly;
+        WindowDecorations = WindowDecorations.BorderOnly;
 
         TitleBar.PointerPressed += OnTitleBarPointerPressed;
     }

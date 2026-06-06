@@ -1,11 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
-using System.IO;
 using System.Text;
 using System.Text.Json;
-using YSMViewer.Resources;
-using YSMViewer.Services;
 
 namespace YSMViewer.ViewModels;
 
@@ -14,34 +11,34 @@ public enum FileSortColumn { None, Name, Complexity }
 public sealed partial class FolderBrowserViewModel : ViewModelBase
 {
     [ObservableProperty]
-    private string _folderPath = string.Empty;
+    public partial string FolderPath { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _hasFolder;
+    public partial bool HasFolder { get; set; }
 
     [ObservableProperty]
-    private bool _isScanning;
+    public partial bool IsScanning { get; set; }
 
     [ObservableProperty]
-    private string _folderName = string.Empty;
+    public partial string FolderName { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private YsmFileItemViewModel? _selectedFile;
+    public partial YsmFileItemViewModel? SelectedFile { get; set; }
 
     [ObservableProperty]
-    private string _searchText = string.Empty;
+    public partial string SearchText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private FileSortColumn _sortColumn = FileSortColumn.None;
+    public partial FileSortColumn SortColumn { get; set; } = FileSortColumn.None;
 
     [ObservableProperty]
-    private bool _sortAscending = true;
+    public partial bool SortAscending { get; set; } = true;
 
     [ObservableProperty]
-    private double _scanProgress;
+    public partial double ScanProgress { get; set; }
 
     [ObservableProperty]
-    private string _scanProgressText = string.Empty;
+    public partial string ScanProgressText { get; set; } = string.Empty;
 
     private readonly List<YsmFileItemViewModel> _allFiles = [];
 
@@ -69,22 +66,22 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
     }
 
     [ObservableProperty]
-    private string _locOpenFolder = "";
+    public partial string LocOpenFolder { get; set; } = "";
 
     [ObservableProperty]
-    private string _locSearchPrompt = "";
+    public partial string LocSearchPrompt { get; set; } = "";
 
     [ObservableProperty]
-    private string _locName = "";
+    public partial string LocName { get; set; } = "";
 
     [ObservableProperty]
-    private string _locComplexityCol = "";
+    public partial string LocComplexityCol { get; set; } = "";
 
     [ObservableProperty]
-    private string _locEmptyFolder = "";
+    public partial string LocEmptyFolder { get; set; } = "";
 
     [ObservableProperty]
-    private string _locSelectFolder = "";
+    public partial string LocSelectFolder { get; set; } = "";
 
     partial void OnSearchTextChanged(string value)
     {
@@ -211,7 +208,7 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
                     Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                     {
                         var vm = new YsmFileItemViewModel(file, relPath, displayName, complexity);
-                        vm.UpdateComplexityColor(0, 0);
+                        vm.UpdateComplexityColor();
                         _allFiles.Add(vm);
                         FilteredFiles.Add(vm);
                         ScanProgress = (double)current / total;
@@ -348,37 +345,26 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
     }
 }
 
-public sealed partial class YsmFileItemViewModel : ViewModelBase
+public sealed partial class YsmFileItemViewModel(string fullPath, string relativePath, string displayName, int complexity) : ViewModelBase
 {
     [ObservableProperty]
-    private string _name;
+    public partial string Name { get; set; } = displayName;
+    [ObservableProperty]
+    public partial string RelativePath { get; set; } = relativePath;
+    [ObservableProperty]
+    public partial string FullPath { get; set; } = fullPath;
 
     [ObservableProperty]
-    private string _relativePath;
+    public partial int Complexity { get; set; } = complexity;
 
     [ObservableProperty]
-    private string _fullPath;
+    public partial string ComplexityText { get; set; } = complexity > 0 ? $"{complexity:N0} elems" : "";
 
     [ObservableProperty]
-    private int _complexity;
-
-    [ObservableProperty]
-    private string _complexityText = "";
-
-    [ObservableProperty]
-    private Avalonia.Media.IBrush _complexityColor =
+    public partial Avalonia.Media.IBrush ComplexityColor { get; set; } =
         new Avalonia.Media.SolidColorBrush(Avalonia.Media.Colors.Gray);
 
-    public YsmFileItemViewModel(string fullPath, string relativePath, string displayName, int complexity)
-    {
-        FullPath = fullPath;
-        RelativePath = relativePath;
-        Name = displayName;
-        Complexity = complexity;
-        ComplexityText = complexity > 0 ? $"{complexity:N0} elems" : "";
-    }
-
-    public void UpdateComplexityColor(int min, int max)
+    public void UpdateComplexityColor()
     {
         if (Complexity <= 0)
         {

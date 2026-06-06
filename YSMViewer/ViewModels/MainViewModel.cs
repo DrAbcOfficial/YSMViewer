@@ -4,7 +4,6 @@ using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 using YSMParser.Core.Parsers;
-using YSMViewer.Resources;
 using YSMViewer.Services;
 
 namespace YSMViewer.ViewModels;
@@ -66,35 +65,90 @@ public sealed partial class MainViewModel : ViewModelBase
         StatusText = LocStatusReady;
     }
 
-    [ObservableProperty] private string _locOpenFile = "";
-    [ObservableProperty] private string _locStatusReady = "";
-    [ObservableProperty] private string _locToggleTheme = "";
-    [ObservableProperty] private string _locSwitchLang = "";
-    [ObservableProperty] private string _locViewGitHub = "";
-    [ObservableProperty] private string _locInfo = "";
-    [ObservableProperty] private string _locComponents = "";
-    [ObservableProperty] private string _locBones = "";
-    [ObservableProperty] private string _locTextures = "";
-    [ObservableProperty] private string _locAnimations = "";
-    [ObservableProperty] private string _locShowAll = "";
-    [ObservableProperty] private string _locHideAll = "";
-    [ObservableProperty] private string _locExpandAll = "";
-    [ObservableProperty] private string _locCollapseAll = "";
-    [ObservableProperty] private string _locEmptyState = "";
-    [ObservableProperty] private string _locErrorTitle = "";
-    [ObservableProperty] private string _locDismiss = "";
-    [ObservableProperty] private string _locCopy = "";
-    [ObservableProperty] private string _locDropHint = "";
-    [ObservableProperty] private string _locDropHintExt = "";
-    [ObservableProperty] private string _locFrontView = "";
-    [ObservableProperty] private string _locLeftView = "";
-    [ObservableProperty] private string _locTopView = "";
-    [ObservableProperty] private string _locStopAnim = "";
-    [ObservableProperty] private string _locOpenFolder = "";
-    [ObservableProperty] private string _locSearchPrompt = "";
-    [ObservableProperty] private string _locEmptyFolder = "";
-    [ObservableProperty] private string _locSelectFolder = "";
-    [ObservableProperty] private string _locOpenYSMTitle = "";
+    [ObservableProperty]
+    public partial string LocOpenFile { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocStatusReady { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocToggleTheme { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocSwitchLang { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocViewGitHub { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocInfo { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocComponents { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocBones { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocTextures { get; set; } = "";
+    [ObservableProperty]
+    public partial string LocAnimations { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocShowAll { get; set; } = "";
+    [ObservableProperty]
+    public partial string LocHideAll { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocExpandAll { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocCollapseAll { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocEmptyState { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocErrorTitle { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocDismiss { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocCopy { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocDropHint { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocDropHintExt { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocFrontView { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocLeftView { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocTopView { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocStopAnim { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocOpenFolder { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocSearchPrompt { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocEmptyFolder { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocSelectFolder { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocOpenYSMTitle { get; set; } = "";
 
     private async Task OnFileSelectedFromBrowser(string filePath)
     {
@@ -107,77 +161,76 @@ public sealed partial class MainViewModel : ViewModelBase
     }
 
     [ObservableProperty]
-    private bool _isLoading;
+    public partial bool IsLoading { get; set; }
 
     [ObservableProperty]
-    private string _statusText = "Ready. Open a .ysm file to begin.";
+    public partial string StatusText { get; set; } = "Ready. Open a .ysm file to begin.";
 
     [ObservableProperty]
-    private string _modelName = string.Empty;
+    public partial string ModelName { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private int _modelVersion;
+    public partial int ModelVersion { get; set; }
 
     [ObservableProperty]
-    private bool _hasModel;
+    public partial bool HasModel { get; set; }
 
     [ObservableProperty]
-    private bool _hasError;
+    public partial bool HasError { get; set; }
 
     [ObservableProperty]
-    private string _errorDetail = string.Empty;
+    public partial string ErrorDetail { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _hasAnimations;
+    public partial bool HasAnimations { get; set; }
 
     [ObservableProperty]
-    private string _currentAnimationName = string.Empty;
+    public partial string CurrentAnimationName { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private float _animationProgress;
+    public partial float AnimationProgress { get; set; }
 
     [ObservableProperty]
-    private bool _isAnimating;
+    public partial bool IsAnimating { get; set; }
 
     [ObservableProperty]
-    private string _animationTimeText = string.Empty;
+    public partial string AnimationTimeText { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _canPreviousAnimation;
+    public partial bool CanPreviousAnimation { get; set; }
 
     [ObservableProperty]
-    private bool _canNextAnimation;
+    public partial bool CanNextAnimation { get; set; }
 
     [ObservableProperty]
-    private string _modelDisplayName = string.Empty;
+    public partial string ModelDisplayName { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _modelAuthors = string.Empty;
+    public partial string ModelAuthors { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _modelLicense = string.Empty;
+    public partial string ModelLicense { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _modelTips = string.Empty;
+    public partial string ModelTips { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _isFreeModel;
+    public partial bool IsFreeModel { get; set; }
 
     [ObservableProperty]
-    private bool _hasTextures;
+    public partial bool HasTextures { get; set; }
 
     [ObservableProperty]
-    private bool _hasModelAuthors;
+    public partial bool HasModelAuthors { get; set; }
 
     [ObservableProperty]
-    private bool _hasModelLicense;
+    public partial bool HasModelLicense { get; set; }
 
     [ObservableProperty]
-    private bool _hasModelTips;
+    public partial bool HasModelTips { get; set; }
 
     [ObservableProperty]
-    private TextureItemViewModel? _selectedTexture;
-
+    public partial TextureItemViewModel? SelectedTexture { get; set; }
     public ObservableCollection<ComponentViewModel> Components { get; } = [];
     public ObservableCollection<string> AnimationNames { get; } = [];
     public ObservableCollection<BoneTreeItemViewModel> BoneTreeRoots { get; } = [];
@@ -252,18 +305,18 @@ public sealed partial class MainViewModel : ViewModelBase
             IsLoading = true;
             StatusText = "Parsing YSM...";
 
-            await Task.Run(() =>
+            var modelData = await Task.Run(() =>
             {
-                _currentModel = YsmLoaderService.Load(filePath);
+                return YsmLoaderService.Load(filePath);
             });
 
-            if (_currentModel is null)
+            if (modelData is null)
             {
                 StatusText = "Error: failed to load model";
                 return;
             }
 
-            PopulateModelData(_currentModel);
+            PopulateModelData(modelData);
         }
         catch (Exception ex)
         {
@@ -325,7 +378,7 @@ public sealed partial class MainViewModel : ViewModelBase
             IsLoading = true;
             StatusText = "Downloading model...";
 
-            using var client = new System.Net.Http.HttpClient();
+            using var client = new HttpClient();
             var bytes = await client.GetByteArrayAsync(url);
             await LoadFromBytesAsync(bytes);
         }
@@ -428,8 +481,8 @@ public sealed partial class MainViewModel : ViewModelBase
     partial void OnIsAnimatingChanged(bool value)
     {
         _animationService.IsPlaying = value;
-        if (value && _currentAnimationName is { Length: > 0 })
-            _animationService.PlayAnimation(_currentAnimationName);
+        if (value && CurrentAnimationName is { Length: > 0 })
+            _animationService.PlayAnimation(CurrentAnimationName);
     }
 
     public void SelectAnimation(string name)
@@ -600,11 +653,10 @@ public sealed partial class MainViewModel : ViewModelBase
 public sealed partial class ComponentViewModel : ObservableObject
 {
     [ObservableProperty]
-    private string _name = string.Empty;
+    public partial string Name { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _isVisible = false;
-
+    public partial bool IsVisible { get; set; } = false;
     public Model? ModelNode { get; set; }
 
     partial void OnIsVisibleChanged(bool value)
@@ -617,20 +669,19 @@ public sealed partial class ComponentViewModel : ObservableObject
 public sealed partial class BoneTreeItemViewModel : ObservableObject
 {
     [ObservableProperty]
-    private string _name = string.Empty;
+    public partial string Name { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _isVisible = true;
+    public partial bool IsVisible { get; set; } = true;
 
     [ObservableProperty]
-    private bool _isExpanded = true;
+    public partial bool IsExpanded { get; set; } = true;
 
     [ObservableProperty]
-    private bool _hasChildren;
+    public partial bool HasChildren { get; set; }
 
     [ObservableProperty]
-    private string _icon = "🧊";
-
+    public partial string Icon { get; set; } = "🧊";
     public Node? SceneNode { get; set; }
     public ObservableCollection<BoneTreeItemViewModel> Children { get; } = [];
 
@@ -653,22 +704,22 @@ public sealed partial class BoneTreeItemViewModel : ObservableObject
 public sealed partial class TextureItemViewModel : ObservableObject
 {
     [ObservableProperty]
-    private string _name = string.Empty;
+    public partial string Name { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _category = string.Empty;
+    public partial string Category { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private Bitmap? _thumbnail;
+    public partial Bitmap? Thumbnail { get; set; }
 
     [ObservableProperty]
-    private int _width;
+    public partial int Width { get; set; }
 
     [ObservableProperty]
-    private int _height;
+    public partial int Height { get; set; }
 
     [ObservableProperty]
-    private long _dataSize;
+    public partial long DataSize { get; set; }
 
     public string SizeDisplay => DataSize < 1024
         ? $"{DataSize} B"

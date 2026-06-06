@@ -26,11 +26,11 @@ public sealed class LocalizationService
 
     public event Action? CultureChanged;
 
-    public IReadOnlyList<(string Code, string Name)> SupportedCultures { get; } = new ReadOnlyCollection<(string, string)>(new (string, string)[]
-    {
+    public IReadOnlyList<(string Code, string Name)> SupportedCultures { get; } = new ReadOnlyCollection<(string, string)>(
+    [
         ("en", "English"),
         ("zh", "中文"),
-    });
+    ]);
 
     private LocalizationService()
     {

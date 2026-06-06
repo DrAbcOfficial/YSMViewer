@@ -29,10 +29,6 @@ public partial class MainView : UserControl
     private float _cameraPitch = -15f;
     private bool _sceneInitialized;
 
-    private DirectionalLight? _ambientLight;
-    private DirectionalLight? _keyLight;
-    private DirectionalLight? _fillLight;
-
     private static readonly string[] ThemeTooltips = ["Switch to Dark mode", "Switch to System theme", "Switch to Light mode"];
     private static readonly string[] ThemeSvgPaths =
     [
@@ -119,7 +115,6 @@ public partial class MainView : UserControl
     private void UpdateSceneAppearance()
     {
         UpdateSceneBackgrounds();
-        UpdateSceneLights();
     }
 
     private void UpdateSceneBackgrounds()
@@ -129,16 +124,6 @@ public partial class MainView : UserControl
 
         AuraView.Scene?.Background = Texture.CreateFromColor(color);
         GizmoView.Scene?.Background = Texture.CreateFromColor(color);
-    }
-
-    private void UpdateSceneLights()
-    {
-        if (!_sceneInitialized) return;
-
-
-        _ambientLight?.LightColor = System.Drawing.Color.FromArgb(ThemeService.Instance.GetAmbientLightColor().A, ThemeService.Instance.GetAmbientLightColor().R, ThemeService.Instance.GetAmbientLightColor().G, ThemeService.Instance.GetAmbientLightColor().B);
-        _keyLight?.LightColor = System.Drawing.Color.FromArgb(ThemeService.Instance.GetKeyLightColor().A, ThemeService.Instance.GetKeyLightColor().R, ThemeService.Instance.GetKeyLightColor().G, ThemeService.Instance.GetKeyLightColor().B);
-        _fillLight?.LightColor = System.Drawing.Color.FromArgb(ThemeService.Instance.GetFillLightColor().A, ThemeService.Instance.GetFillLightColor().R, ThemeService.Instance.GetFillLightColor().G, ThemeService.Instance.GetFillLightColor().B);
     }
 
     private void OnThemeToggleClick(object? sender, RoutedEventArgs e)
@@ -313,6 +298,8 @@ public partial class MainView : UserControl
         {
             var rgba = ThemeService.Instance.GetViewportBackgroundColor();
             scene.Background = Texture.CreateFromColor(System.Drawing.Color.FromArgb(rgba[0], rgba[1], rgba[2], rgba[3]));
+            scene.RenderPipeline.EnableFrustumCulling = true;
+
 
             var camera = view.MainCamera;
             camera.FieldOfView = 50f;
@@ -320,30 +307,6 @@ public partial class MainView : UserControl
             camera.FarPlane = 5000f;
             UpdateCameraPosition(camera);
             SyncGizmoCamera();
-
-            _ambientLight = new DirectionalLight
-            {
-                LightColor = System.Drawing.Color.FromArgb(ThemeService.Instance.GetAmbientLightColor().A, ThemeService.Instance.GetAmbientLightColor().R, 
-                ThemeService.Instance.GetAmbientLightColor().G, ThemeService.Instance.GetAmbientLightColor().B),
-                RotationDegrees = new Vector3(-30, 45, 0),
-            };
-            view.AddNode(_ambientLight);
-
-            _keyLight = new DirectionalLight
-            {
-                LightColor = System.Drawing.Color.FromArgb(ThemeService.Instance.GetKeyLightColor().A, ThemeService.Instance.GetKeyLightColor().R, 
-                ThemeService.Instance.GetKeyLightColor().G, ThemeService.Instance.GetKeyLightColor().B),
-                RotationDegrees = new Vector3(-45, -30, 0),
-            };
-            view.AddNode(_keyLight);
-
-            _fillLight = new DirectionalLight
-            {
-                LightColor = System.Drawing.Color.FromArgb(ThemeService.Instance.GetFillLightColor().A, ThemeService.Instance.GetFillLightColor().R, 
-                ThemeService.Instance.GetFillLightColor().G, ThemeService.Instance.GetFillLightColor().B),
-                RotationDegrees = new Vector3(-10, 150, 0),
-            };
-            view.AddNode(_fillLight);
 
             if (_pendingModel is not null)
             {
@@ -388,6 +351,17 @@ public partial class MainView : UserControl
         {
             var rgba = ThemeService.Instance.GetViewportBackgroundColor();
             scene.Background = Texture.CreateFromColor(System.Drawing.Color.FromArgb(rgba[0], rgba[1], rgba[2], rgba[3]));
+            scene.RenderPipeline.EnableFrustumCulling = true;
+
+            var pl = new PointLight()
+            {
+                LightColor = System.Drawing.Color.White,
+                LuminousIntensity = 9999.0f,
+                Position = new Vector3(0, 0, 0),
+                AttenuationRadius = 9999.0f,
+                CastShadow = false
+            };
+            scene.AddNode(pl);
 
             var camera = view.MainCamera;
             camera.FieldOfView = 40f;
@@ -563,6 +537,15 @@ public partial class MainView : UserControl
 
             if (AuraView.Scene is not null)
             {
+                var dl = new DirectionalLight
+                {
+                    RotationDegrees = new Vector3(-45, 45, 0),
+                    LightColor = System.Drawing.Color.White,
+                    CastShadow = false
+                };
+
+                AuraView.AddNode(dl);
+
                 AuraView.AddNode(modelNode);
                 FitCameraToModel(AuraView.MainCamera, modelNode);
                 _loadedModel = modelNode;

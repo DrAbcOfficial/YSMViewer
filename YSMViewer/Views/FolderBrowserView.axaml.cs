@@ -1,6 +1,5 @@
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Interactivity;
 using YSMViewer.ViewModels;
 
 namespace YSMViewer.Views;
