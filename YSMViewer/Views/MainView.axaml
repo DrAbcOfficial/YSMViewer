@@ -106,9 +106,8 @@ ToolTip.Tip="{Binding LocSwitchLang}"
             <!-- Folder Browser -->
             <Border Grid.Column="0" Background="{DynamicResource ThemeBgSurface}"
                     BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,0,1,0"
-                    IsVisible="{Binding IsDesktop}"
-                    MinWidth="200" MaxWidth="300">
-                <v:FolderBrowserView DataContext="{Binding FolderBrowser}" Margin="8" />
+                    IsVisible="{Binding IsDesktop}">
+                <v:FolderBrowserView DataContext="{Binding FolderBrowser}" />
             </Border>
 
             <!-- Viewport -->
@@ -200,7 +199,7 @@ ToolTip.Tip="{Binding LocSwitchLang}"
             <Border Grid.Column="2" IsVisible="{Binding HasModel}"
                     Background="{DynamicResource ThemeBgSurface}"
                     BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1,0,0,0"
-                    MinWidth="240" MaxWidth="500">
+                    MinWidth="240">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Spacing="2" Margin="0,4">
 
