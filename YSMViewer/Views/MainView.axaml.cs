@@ -695,16 +695,16 @@ public partial class MainView : UserControl
 
     private void OnCameraFrontClick(object? sender, RoutedEventArgs e)
     {
-        SetCameraView(0f, 0f);
+        SetCameraView(180f, 0f);
     }
 
     private void OnCameraLeftClick(object? sender, RoutedEventArgs e)
     {
-        SetCameraView(90f, 0f);
+        SetCameraView(-90f, 0f);
     }
 
     private void OnCameraTopClick(object? sender, RoutedEventArgs e)
     {
-        SetCameraView(0f, -89f);
+        SetCameraView(180f, -89f);
     }
 }
