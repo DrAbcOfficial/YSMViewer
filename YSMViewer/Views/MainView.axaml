@@ -5,6 +5,7 @@
              xmlns:vm="clr-namespace:YSMViewer.ViewModels"
              xmlns:a="https://sunce.tech/aura3d"
              xmlns:v="clr-namespace:YSMViewer.Views"
+             xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Svg.Controls.Skia.Avalonia"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
              x:Class="YSMViewer.Views.MainView"
              x:DataType="vm:MainViewModel"
@@ -80,10 +81,9 @@
                         Width="36" Height="36" Padding="0" CornerRadius="6"
                         VerticalAlignment="Center"
                         ToolTip.Tip="Toggle theme">
-                    <PathIcon x:Name="ThemeIcon"
-                              Data="M4 2 L20 2 Q22 2 22 4 L22 14 Q22 16 20 16 L4 16 Q2 16 2 14 L2 4 Q2 2 4 2 Z M3 9 L21 9 L21 11 L3 11 Z M9 16 L15 16 L15 19 L9 19 Z M7 20 L17 20 L17 22 L7 22 Z"
-                              Foreground="{DynamicResource ThemeTextSecondary}"
-                              Width="20" Height="20" />
+                    <svg:Svg x:Name="ThemeSvg"
+                             Path="avares://YSMViewer/Assets/svg/mode-dark.svg"
+                             Stretch="Uniform" Width="20" Height="20" />
                 </Button>
             </Grid>
         </Border>
@@ -508,20 +508,20 @@
                     <Button Click="OnCameraFrontClick" CornerRadius="4"
                             Width="32" Height="32" Padding="0"
                             ToolTip.Tip="Front view">
-                        <PathIcon Data="M4 4 L4 28 L12 28 L12 18 L20 18 L20 28 L28 28 L28 4 Z"
-                                  Foreground="{DynamicResource ThemeTextSecondary}" />
+                        <svg:Svg Path="avares://YSMViewer/Assets/svg/up-junction.svg"
+                                 Stretch="Uniform" Width="20" Height="20" />
                     </Button>
                     <Button Click="OnCameraLeftClick" CornerRadius="4"
                             Width="32" Height="32" Padding="0"
                             ToolTip.Tip="Left view">
-                        <PathIcon Data="M4 4 L4 28 L12 28 L20 4 Z"
-                                  Foreground="{DynamicResource ThemeTextSecondary}" />
+                        <svg:Svg Path="avares://YSMViewer/Assets/svg/left-junction.svg"
+                                 Stretch="Uniform" Width="20" Height="20" />
                     </Button>
                     <Button Click="OnCameraTopClick" CornerRadius="4"
                             Width="32" Height="32" Padding="0"
                             ToolTip.Tip="Top view">
-                        <PathIcon Data="M4 28 L28 28 L16 4 Z M4 4 L4 8 M28 4 L28 8 M16 4 L16 7"
-                                  Foreground="{DynamicResource ThemeTextSecondary}" />
+                        <svg:Svg Path="avares://YSMViewer/Assets/svg/down-junction.svg"
+                                 Stretch="Uniform" Width="20" Height="20" />
                     </Button>
                 </StackPanel>
             </Grid>

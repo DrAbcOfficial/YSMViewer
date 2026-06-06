@@ -31,16 +31,13 @@ public partial class MainView : UserControl
     private DirectionalLight? _keyLight;
     private DirectionalLight? _fillLight;
 
-    private static readonly StreamGeometry MoonIconData =
-        StreamGeometry.Parse("M20.996 11.712 L22.245 11.672 A1.25 1.25 0 0 0 20.64 10.513 L12.289 3.005 L13.487 3.36 A1.25 1.25 0 0 0 12.327 1.755 L21.639 12.712 A5.8 5.8 0 0 1 19 10.75 L19 13.25 A8.3 8.3 0 0 0 21.351 12.91 L19 10.75 A5.75 5.75 0 0 1 13.25 5 L10.75 5 A8.25 8.25 0 0 0 19 13.25 L13.25 5 C13.25 4.428 13.333 3.878 13.487 3.36 L11.09 2.65 A8.3 8.3 0 0 0 10.75 5 L12 4.25 Q12.124 4.25 12.25 4.254 L12.328 1.755 A10 10 0 0 0 12 1.75 L4.25 12 A7.75 7.75 0 0 1 12 4.25 L12 1.75 C6.34 1.75 1.75 6.34 1.75 12 L12 19.75 A7.75 7.75 0 0 1 4.25 12 L1.75 12 C1.75 17.66 6.34 22.25 12 22.25 L19.75 12 A7.75 7.75 0 0 1 12 19.75 L12 22.25 C17.66 22.25 22.25 17.66 22.25 12 L19.746 11.75 Q19.75 11.876 19.75 12 L22.25 12 Q22.25 11.835 22.245 11.672 Z");
-
-    private static readonly StreamGeometry SunIconData =
-        StreamGeometry.Parse("M11 2 L13 2 L13 7 L11 7 Z M11 17 L13 17 L13 22 L11 22 Z M2 11 L7 11 L7 13 L2 13 Z M17 11 L22 11 L22 13 L17 13 Z M5.64 4.22 L7.76 6.34 L6.34 7.76 L4.22 5.64 Z M16.24 16.24 L18.36 18.36 L16.95 19.78 L14.83 17.66 Z M4.22 19.78 L6.34 17.66 L7.76 16.24 L5.64 18.36 Z M17.66 7.76 L16.24 6.34 L18.36 4.22 L19.78 5.64 Z M12 8 A4 4 0 0 1 12 16 A4 4 0 0 1 12 8 Z");
-
-    private static readonly StreamGeometry SystemIconData =
-        StreamGeometry.Parse("M4 2 L20 2 Q22 2 22 4 L22 14 Q22 16 20 16 L4 16 Q2 16 2 14 L2 4 Q2 2 4 2 Z M3 9 L21 9 L21 11 L3 11 Z M9 16 L15 16 L15 19 L9 19 Z M7 20 L17 20 L17 22 L7 22 Z");
-
     private static readonly string[] ThemeTooltips = ["Switch to Light mode", "Switch to System theme", "Switch to Dark mode"];
+    private static readonly string[] ThemeSvgPaths =
+    [
+        "avares://YSMViewer/Assets/svg/mode-dark.svg",
+        "avares://YSMViewer/Assets/svg/mode-light.svg",
+        "avares://YSMViewer/Assets/svg/mode-system.svg",
+    ];
 
     public MainView()
     {
@@ -69,16 +66,11 @@ public partial class MainView : UserControl
 
     private void UpdateThemeIcon()
     {
-        var icon = this.FindControl<PathIcon>("ThemeIcon");
-        if (icon is null) return;
+        var svg = this.FindControl<Avalonia.Svg.Skia.Svg>("ThemeSvg");
+        if (svg is null) return;
 
         var mode = ThemeService.Instance.CurrentMode;
-        icon.Data = mode switch
-        {
-            AppThemeMode.Light => SunIconData,
-            AppThemeMode.System => SystemIconData,
-            _ => MoonIconData,
-        };
+        svg.Path = ThemeSvgPaths[(int)mode];
 
         var btn = this.FindControl<Button>("ThemeToggleButton");
         if (btn is not null)
