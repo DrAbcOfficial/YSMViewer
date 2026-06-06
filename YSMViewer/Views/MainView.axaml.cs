@@ -42,11 +42,6 @@ public partial class MainView : UserControl
         if (DataContext is MainViewModel vm)
         {
             vm.SetSceneCallback(AddModelToScene);
-            vm.SetAnimationCallback(dt =>
-            {
-                if (_sceneInitialized)
-                    vm.UpdateAnimation(dt);
-            });
             _ = vm.LoadStartupFileIfNeeded();
         }
 
