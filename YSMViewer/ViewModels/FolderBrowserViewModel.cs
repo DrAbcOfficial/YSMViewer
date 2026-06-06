@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
-using System.Text;
 using System.Text.Json;
 
 namespace YSMViewer.ViewModels;
@@ -242,35 +241,25 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         try
         {
             var data = await File.ReadAllBytesAsync(filePath);
-            var parser = YSMParser.Core.Parsers.YSMParserFactory.CreateFromBytes(data);
-            parser.Parse();
-            var resources = parser.GetResources();
+            using var parser = YSMParser.Core.Parsers.YSMParserFactory.CreateFromBytes(data);
 
-            displayName = ParseMetaName(resources.YsmJson)
-                         ?? ParseMetaName(resources.InfoJson)
+            var peekResult = parser.Peek();
+
+            displayName = ParseMetaName(peekResult.YsmJson)
+                         ?? ParseMetaName(peekResult.InfoJson)
+                         ?? peekResult.HeaderName
                          ?? displayName;
 
-            if (resources.Models.Count > 0)
+            if (peekResult.Models is { Count: > 0 })
             {
-                var jsonStr = Encoding.UTF8.GetString(resources.Models[0].Data);
-                using var doc = JsonDocument.Parse(jsonStr);
-                var root = doc.RootElement;
-
-                if (root.TryGetProperty("minecraft:geometry", out var geoms) && geoms.GetArrayLength() > 0)
+                if (displayName == Path.GetFileName(filePath))
                 {
-                    var geom = geoms[0];
-
-                    if (displayName == Path.GetFileName(filePath)
-                        && geom.TryGetProperty("description", out var desc)
-                        && desc.TryGetProperty("identifier", out var id))
-                    {
-                        var ident = id.GetString();
-                        if (!string.IsNullOrEmpty(ident) && ident != "geometry.unknown")
-                            displayName = ident;
-                    }
-
-                    complexity = CountGeometryStats(geom);
+                    var ident = peekResult.Models[0].Identifier;
+                    if (!string.IsNullOrEmpty(ident) && ident != "geometry.unknown")
+                        displayName = ident;
                 }
+
+                complexity = peekResult.Models.Sum(m => m.BoneCount + m.TotalCubeCount);
             }
         }
         catch
@@ -295,21 +284,6 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         }
         catch { }
         return null;
-    }
-
-    private static int CountGeometryStats(JsonElement geom)
-    {
-        int total = 0;
-        if (geom.TryGetProperty("bones", out var bones))
-        {
-            total += bones.GetArrayLength();
-            foreach (var bone in bones.EnumerateArray())
-            {
-                if (bone.TryGetProperty("cubes", out var cubes))
-                    total += cubes.GetArrayLength();
-            }
-        }
-        return total;
     }
 
     private void CollectYsmFiles(string dir, int depth, int maxDepth, List<string> results)

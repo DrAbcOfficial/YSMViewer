@@ -60,14 +60,14 @@ public sealed class YsmLoaderService
 
     public static LoadedModel Load(string filePath)
     {
-        var parser = YSMParserFactory.Create(filePath);
+        using var parser = YSMParserFactory.Create(filePath);
         parser.Parse();
         return LoadFromParser(parser);
     }
 
     public static LoadedModel LoadFromBytes(byte[] data)
     {
-        var parser = YSMParserFactory.CreateFromBytes(data);
+        using var parser = YSMParserFactory.CreateFromBytes(data);
         parser.Parse();
         return LoadFromParser(parser);
     }
