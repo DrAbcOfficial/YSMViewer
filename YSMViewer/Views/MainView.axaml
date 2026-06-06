@@ -54,7 +54,7 @@
         <!-- ===== Top Bar ===== -->
         <Border Grid.Row="0" Background="{DynamicResource ThemeBgSurface}"
                 BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,0,0,1">
-            <Grid ColumnDefinitions="Auto,Auto,*" MinHeight="48" Margin="16,0">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto" MinHeight="48" Margin="16,0">
                 <Button x:Name="OpenButton" Content="Open File"
                         Click="OnOpenButtonClick"
                         IsEnabled="{Binding !IsLoading}"
@@ -68,6 +68,16 @@
                            Foreground="{DynamicResource ThemeTextSecondary}" FontSize="12"
                            VerticalAlignment="Center" Margin="16,0,0,0"
                            TextTrimming="CharacterEllipsis" />
+                <Button x:Name="ThemeToggleButton" Grid.Column="3"
+                        Click="OnThemeToggleClick"
+                        Width="36" Height="36" Padding="0" CornerRadius="6"
+                        VerticalAlignment="Center"
+                        ToolTip.Tip="Toggle theme">
+                    <PathIcon x:Name="ThemeIcon"
+                              Data="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1Z"
+                              Foreground="{DynamicResource ThemeTextSecondary}"
+                              Width="20" Height="20" />
+                </Button>
             </Grid>
         </Border>
 

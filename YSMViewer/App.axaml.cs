@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Styling;
 using System.Diagnostics.CodeAnalysis;
+using YSMViewer.Services;
 using YSMViewer.ViewModels;
 using YSMViewer.Views;
 
@@ -28,6 +29,8 @@ public partial class App : Application
         var fontStyle = new Style(x => x.OfType<TextBlock>());
         fontStyle.Setters.Add(new Setter(TextBlock.FontFamilyProperty, interFont));
         Application.Current!.Styles.Add(fontStyle);
+
+        ThemeService.Instance.ApplyTheme();
 
         var vm = new MainViewModel();
 

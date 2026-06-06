@@ -10,7 +10,7 @@
         Title="YSMViewer"
         MinWidth="900" MinHeight="600"
         ExtendClientAreaToDecorationsHint="False"
-        Background="#0d1117">
+        Background="{DynamicResource ThemeBgViewport}">
 
     <Design.DataContext>
         <vm:MainViewModel />

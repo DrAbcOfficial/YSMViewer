@@ -8,58 +8,6 @@
         <local:ViewLocator/>
     </Application.DataTemplates>
 
-    <Application.Resources>
-        <ResourceDictionary>
-            <!-- Backgrounds -->
-            <Color x:Key="ThemeBgViewport">#0d1117</Color>
-            <Color x:Key="ThemeBgSurface">#161b22</Color>
-            <Color x:Key="ThemeBgElevated">#1c2333</Color>
-            <Color x:Key="ThemeBgHover">#222d3d</Color>
-            <Color x:Key="ThemeBgActive">#2a3a55</Color>
-            <Color x:Key="ThemeBgButton">#222d3d</Color>
-            <Color x:Key="ThemeBgItemRow">#1c2333</Color>
-            <Color x:Key="ThemeBgCard">#1c2333</Color>
-
-            <!-- Text -->
-            <Color x:Key="ThemeTextPrimary">#e6edf3</Color>
-            <Color x:Key="ThemeTextSecondary">#8b949e</Color>
-            <Color x:Key="ThemeTextMuted">#484f58</Color>
-            <Color x:Key="ThemeTextLabel">#6e7681</Color>
-
-            <!-- Accents -->
-            <Color x:Key="ThemeAccent">#58a6ff</Color>
-            <Color x:Key="ThemeAccentGreen">#3fb950</Color>
-            <Color x:Key="ThemeAccentRed">#f85149</Color>
-            <Color x:Key="ThemeAccentYellow">#e3b341</Color>
-
-            <!-- Borders & Splitters -->
-            <Color x:Key="ThemeBorder">#30363d</Color>
-
-            <!-- Eye Toggle States -->
-            <Color x:Key="ThemeToggleChecked">#1a3a2a</Color>
-            <Color x:Key="ThemeToggleUnchecked">#3d1a1a</Color>
-            <Color x:Key="ThemeToggleDefault">Transparent</Color>
-
-            <!-- Error Bar -->
-            <Color x:Key="ThemeErrorBg">#2d1520</Color>
-            <Color x:Key="ThemeErrorText">#f85149</Color>
-
-            <!-- Tab -->
-            <Color x:Key="ThemeTabActiveBg">#1c2333</Color>
-            <Color x:Key="ThemeTabHoverBg">#222d3d</Color>
-
-            <!-- Tree Arrow -->
-            <Color x:Key="ThemeTreeArrow">#58a6ff</Color>
-
-            <!-- Animation -->
-            <Color x:Key="ThemeAnimSelected">#1a3050</Color>
-            <Color x:Key="ThemeAnimTransport">#161b22</Color>
-
-            <!-- Info Tab -->
-            <Color x:Key="ThemeDivider">#21262d</Color>
-        </ResourceDictionary>
-    </Application.Resources>
-
     <Application.Styles>
         <FluentTheme />
     </Application.Styles>

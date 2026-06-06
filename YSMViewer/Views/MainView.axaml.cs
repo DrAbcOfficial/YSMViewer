@@ -7,6 +7,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using System.Numerics;
+using YSMViewer.Services;
 using YSMViewer.ViewModels;
 
 namespace YSMViewer.Views;
@@ -26,6 +27,15 @@ public partial class MainView : UserControl
     private float _cameraPitch = -15f;
     private bool _sceneInitialized;
 
+    private static readonly StreamGeometry DarkIconData =
+        StreamGeometry.Parse("M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1Z");
+    private static readonly StreamGeometry LightIconData =
+        StreamGeometry.Parse("M12 7a5 5 0 1 0 0 10a5 5 0 0 0 0-10Zm0-4a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1Zm0 17a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1Zm9-8a1 1 0 0 1 1 1h1a1 1 0 1 1 0 2h-1a1 1 0 0 1 0-2ZM4 12a1 1 0 0 1-1 1H2a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1ZM18.36 5.64a1 1 0 0 1 1.41 0l.71.7a1 1 0 0 1-1.42 1.42l-.7-.71a1 1 0 0 1 0-1.41ZM5.64 18.36a1 1 0 0 1 0 1.41l-.7.71a1 1 0 0 1-1.42-1.42l.71-.7a1 1 0 0 1 1.41 0Zm12.72 0a1 1 0 0 1 1.41 0l.71.7a1 1 0 1 1-1.42 1.42l-.7-.71a1 1 0 0 1 0-1.41ZM5.64 5.64a1 1 0 0 1-1.41 0l-.71-.7a1 1 0 0 1 1.42-1.42l.7.71a1 1 0 0 1 0 1.41Z");
+    private static readonly StreamGeometry SystemIconData =
+        StreamGeometry.Parse("M12 2a1 1 0 0 1 1 1v3a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm6.5 3.5a1 1 0 0 1 1.41 0l.71.71a1 1 0 0 1-1.42 1.41l-.7-.7a1 1 0 0 1 0-1.42ZM6.5 5.5a1 1 0 0 1 0 1.42l-.7.7a1 1 0 0 1-1.42-1.41l.71-.71a1 1 0 0 1 1.41 0ZM12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8Zm7 3a1 1 0 1 1 0 2h-3a1 1 0 1 1 0-2ZM8 12a1 1 0 0 1 0 2H5a1 1 0 1 1 0-2Zm3.5 6.5a1 1 0 0 1 1 0v3a1 1 0 1 1-2 0v-3a1 1 0 0 1 1 0Z");
+
+    private static readonly string[] ThemeTooltips = ["Dark mode", "Light mode", "System theme"];
+
     public MainView()
     {
         InitializeComponent();
@@ -35,6 +45,51 @@ public partial class MainView : UserControl
         PointerMoved += OnPointerMoved;
         PointerWheelChanged += OnPointerWheelChanged;
         KeyDown += OnKeyDown;
+
+        ThemeService.Instance.ModeChanged += OnThemeChanged;
+        UpdateThemeIcon();
+    }
+
+    private void OnThemeChanged(AppThemeMode mode)
+    {
+        UpdateThemeIcon();
+        UpdateSceneBackgrounds();
+    }
+
+    private void UpdateThemeIcon()
+    {
+        var icon = this.FindControl<PathIcon>("ThemeIcon");
+        if (icon is null) return;
+
+        var mode = ThemeService.Instance.CurrentMode;
+        icon.Data = mode switch
+        {
+            AppThemeMode.Light => LightIconData,
+            AppThemeMode.System => SystemIconData,
+            _ => DarkIconData,
+        };
+
+        var btn = this.FindControl<Button>("ThemeToggleButton");
+        if (btn is not null)
+        {
+            ToolTip.SetTip(btn, ThemeTooltips[(int)mode]);
+        }
+    }
+
+    private void UpdateSceneBackgrounds()
+    {
+        var rgba = ThemeService.Instance.GetViewportBackgroundColor();
+        var color = System.Drawing.Color.FromArgb(rgba[0], rgba[1], rgba[2], rgba[3]);
+
+        if (AuraView.Scene is not null)
+            AuraView.Scene.Background = Texture.CreateFromColor(color);
+        if (GizmoView.Scene is not null)
+            GizmoView.Scene.Background = Texture.CreateFromColor(color);
+    }
+
+    private void OnThemeToggleClick(object? sender, RoutedEventArgs e)
+    {
+        ThemeService.Instance.CycleTheme();
     }
 
     private void OnLoaded(object? sender, RoutedEventArgs e)
@@ -98,7 +153,8 @@ public partial class MainView : UserControl
 
         try
         {
-            scene.Background = Texture.CreateFromColor(System.Drawing.Color.FromArgb(255, 13, 17, 23));
+            var rgba = ThemeService.Instance.GetViewportBackgroundColor();
+            scene.Background = Texture.CreateFromColor(System.Drawing.Color.FromArgb(rgba[0], rgba[1], rgba[2], rgba[3]));
 
             var camera = view.MainCamera;
             camera.FieldOfView = 50f;
@@ -170,7 +226,8 @@ public partial class MainView : UserControl
 
         try
         {
-            scene.Background = Texture.CreateFromColor(System.Drawing.Color.FromArgb(255, 13, 17, 23));
+            var rgba = ThemeService.Instance.GetViewportBackgroundColor();
+            scene.Background = Texture.CreateFromColor(System.Drawing.Color.FromArgb(rgba[0], rgba[1], rgba[2], rgba[3]));
 
             var camera = view.MainCamera;
             camera.FieldOfView = 40f;
@@ -373,10 +430,6 @@ public partial class MainView : UserControl
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape)
-        {
-            // Could be used for closing overlays in the future
-        }
     }
 
     private void OnDismissErrorClick(object? sender, RoutedEventArgs e)
@@ -394,7 +447,7 @@ public partial class MainView : UserControl
             vm.IsAnimating = !vm.IsAnimating;
             if (sender is Button btn)
             {
-                var icon = btn.FindControl<PathIcon>("PlayPauseIcon") ?? this.FindControl<PathIcon>("PlayPauseIcon");
+                var icon = btn.FindControl<PathIcon>("PlayPauseIcon");
                 if (icon is not null)
                 {
                     icon.Data = vm.IsAnimating
