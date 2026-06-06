@@ -7,6 +7,8 @@ using System.Text.Json;
 
 namespace YSMViewer.ViewModels;
 
+public enum FileSortColumn { None, Name, Complexity }
+
 public sealed partial class FolderBrowserViewModel : ViewModelBase
 {
     [ObservableProperty]
@@ -24,10 +26,83 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
     [ObservableProperty]
     private YsmFileItemViewModel? _selectedFile;
 
-    public ObservableCollection<YsmFileItemViewModel> Files { get; } = [];
+    [ObservableProperty]
+    private string _searchText = string.Empty;
+
+    [ObservableProperty]
+    private FileSortColumn _sortColumn = FileSortColumn.None;
+
+    [ObservableProperty]
+    private bool _sortAscending = true;
+
+    private readonly List<YsmFileItemViewModel> _allFiles = [];
+
+    public ObservableCollection<YsmFileItemViewModel> FilteredFiles { get; } = [];
 
     public event Func<string, Task>? FileSelected;
     public event Action<string>? ScanError;
+
+    partial void OnSearchTextChanged(string value)
+    {
+        RefreshFiltered();
+    }
+
+    partial void OnSortColumnChanged(FileSortColumn value)
+    {
+        RefreshFiltered();
+    }
+
+    partial void OnSortAscendingChanged(bool value)
+    {
+        RefreshFiltered();
+    }
+
+    [RelayCommand]
+    private void ToggleSort(string columnName)
+    {
+        var col = columnName switch
+        {
+            "Name" => FileSortColumn.Name,
+            "Complexity" => FileSortColumn.Complexity,
+            _ => FileSortColumn.None,
+        };
+
+        if (SortColumn == col)
+            SortAscending = !SortAscending;
+        else
+        {
+            SortColumn = col;
+            SortAscending = true;
+        }
+    }
+
+    private void RefreshFiltered()
+    {
+        var query = _allFiles.AsEnumerable();
+        var search = SearchText?.Trim() ?? "";
+
+        if (search.Length > 0)
+        {
+            query = query.Where(f =>
+                f.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                f.RelativePath.Contains(search, StringComparison.OrdinalIgnoreCase));
+        }
+
+        query = SortColumn switch
+        {
+            FileSortColumn.Name => SortAscending
+                ? query.OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
+                : query.OrderByDescending(f => f.Name, StringComparer.OrdinalIgnoreCase),
+            FileSortColumn.Complexity => SortAscending
+                ? query.OrderBy(f => f.Complexity)
+                : query.OrderByDescending(f => f.Complexity),
+            _ => query,
+        };
+
+        FilteredFiles.Clear();
+        foreach (var f in query)
+            FilteredFiles.Add(f);
+    }
 
     [RelayCommand]
     private async Task BrowseFolderAsync()
@@ -58,13 +133,14 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         FolderName = Path.GetFileName(path) ?? path;
         HasFolder = true;
         IsScanning = true;
-        Files.Clear();
+        SearchText = "";
+        SortColumn = FileSortColumn.None;
+        _allFiles.Clear();
+        FilteredFiles.Clear();
 
         var ysmFiles = new List<string>();
         CollectYsmFiles(path, depth: 0, maxDepth: 2, ysmFiles);
         ysmFiles.Sort(StringComparer.OrdinalIgnoreCase);
-
-        var items = new List<YsmFileItemViewModel>(ysmFiles.Count);
 
         await Task.Run(async () =>
         {
@@ -80,8 +156,8 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
                 {
                     var vm = new YsmFileItemViewModel(file, relPath, displayName, complexity);
                     vm.UpdateComplexityColor(0, 0);
-                    items.Add(vm);
-                    Files.Add(vm);
+                    _allFiles.Add(vm);
+                    FilteredFiles.Add(vm);
                 });
             }
         });
@@ -104,7 +180,6 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
             parser.Parse();
             var resources = parser.GetResources();
 
-            // Parse metadata from ysm.json / info.json (same as MainViewModel info panel)
             displayName = ParseMetaName(resources.YsmJson)
                          ?? ParseMetaName(resources.InfoJson)
                          ?? displayName;
@@ -119,14 +194,13 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
                 {
                     var geom = geoms[0];
 
-                    // Fallback: use description identifier if metadata didn't provide name
                     if (displayName == Path.GetFileName(filePath)
                         && geom.TryGetProperty("description", out var desc)
                         && desc.TryGetProperty("identifier", out var id))
                     {
-                        var identifier = id.GetString();
-                        if (!string.IsNullOrEmpty(identifier) && identifier != "geometry.unknown")
-                            displayName = identifier;
+                        var ident = id.GetString();
+                        if (!string.IsNullOrEmpty(ident) && ident != "geometry.unknown")
+                            displayName = ident;
                     }
 
                     complexity = CountGeometryStats(geom);
