@@ -17,6 +17,9 @@ public sealed partial class MainViewModel : ViewModelBase
 
     public NotificationService Notifications { get; } = new();
 
+    public bool IsDesktop { get; } = Avalonia.Application.Current?.ApplicationLifetime
+        is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime;
+
     public MainViewModel()
     {
         FolderBrowser = new FolderBrowserViewModel();

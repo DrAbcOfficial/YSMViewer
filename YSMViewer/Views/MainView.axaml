@@ -95,15 +95,18 @@
         </Border>
 
         <!-- ===== Main Content ===== -->
-        <Grid Grid.Row="1" ColumnDefinitions="240,4,*,4,310">
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*,4,310">
 
             <!-- Folder Browser -->
             <Border Grid.Column="0" Background="{DynamicResource ThemeBgSurface}"
-                    BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,0,1,0">
-                <v:FolderBrowserView DataContext="{Binding FolderBrowser}" Margin="8" />
+                    BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,0,1,0"
+                    IsVisible="{Binding IsDesktop}"
+                    MinWidth="200" MaxWidth="320">
+                <v:FolderBrowserView DataContext="{Binding FolderBrowser}" Margin="8" Width="240" />
             </Border>
 
             <GridSplitter Grid.Column="1" Width="4"
+                          IsVisible="{Binding IsDesktop}"
                           Background="{DynamicResource ThemeBorder}"
                           ResizeDirection="Columns" />
 
