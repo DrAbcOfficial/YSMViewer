@@ -64,7 +64,7 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         CollectYsmFiles(path, depth: 0, maxDepth: 2, ysmFiles);
         ysmFiles.Sort(StringComparer.OrdinalIgnoreCase);
 
-        var results = new List<YsmFileItemViewModel>(ysmFiles.Count);
+        var items = new List<YsmFileItemViewModel>(ysmFiles.Count);
         var complexityValues = new List<int>();
 
         await Task.Run(async () =>
@@ -75,11 +75,15 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
                     ? file[path.Length..].TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
                     : file;
 
-                var item = await ParseYsmFileAsync(file, relPath);
-                results.Add(item);
-                complexityValues.Add(item.Complexity);
+                var (displayName, complexity) = await ParseYsmFileAsync(file);
+                complexityValues.Add(complexity);
 
-                Avalonia.Threading.Dispatcher.UIThread.Post(() => Files.Add(item));
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    var vm = new YsmFileItemViewModel(file, relPath, displayName, complexity);
+                    items.Add(vm);
+                    Files.Add(vm);
+                });
             }
         });
 
@@ -90,15 +94,14 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
                 int min = complexityValues.Min();
                 int max = complexityValues.Max();
                 if (min == max) max = min + 1;
-
-                foreach (var item in results)
+                foreach (var item in items)
                     item.UpdateComplexityColor(min, max);
             }
             IsScanning = false;
         });
     }
 
-    private static async Task<YsmFileItemViewModel> ParseYsmFileAsync(string filePath, string relativePath)
+    private static async Task<(string displayName, int complexity)> ParseYsmFileAsync(string filePath)
     {
         string displayName = Path.GetFileName(filePath);
         int complexity = 0;
@@ -112,9 +115,7 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
 
             if (resources.Models.Count > 0)
             {
-                var jsonData = resources.Models[0].Data;
-                var jsonStr = Encoding.UTF8.GetString(jsonData);
-
+                var jsonStr = Encoding.UTF8.GetString(resources.Models[0].Data);
                 using var doc = JsonDocument.Parse(jsonStr);
                 var root = doc.RootElement;
 
@@ -125,25 +126,19 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
                     {
                         if (desc.TryGetProperty("ysm_extra_info", out var extra)
                             && extra.TryGetProperty("name", out var metaName))
-                        {
                             displayName = metaName.GetString() ?? displayName;
-                        }
                         else if (desc.TryGetProperty("identifier", out var id))
-                        {
                             displayName = id.GetString() ?? displayName;
-                        }
                     }
-
                     complexity = CountGeometryStats(geom);
                 }
             }
         }
         catch
         {
-            // keep default displayName (filename) and complexity 0
         }
 
-        return new YsmFileItemViewModel(filePath, relativePath, displayName, complexity);
+        return (displayName, complexity);
     }
 
     private static int CountGeometryStats(JsonElement geom)
