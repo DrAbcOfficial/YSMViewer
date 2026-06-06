@@ -13,6 +13,19 @@ public sealed partial class MainViewModel : ViewModelBase
     private readonly YsmLoaderService _loaderService = new();
     private readonly AnimationService _animationService = new();
 
+    public FolderBrowserViewModel FolderBrowser { get; }
+
+    public MainViewModel()
+    {
+        FolderBrowser = new FolderBrowserViewModel();
+        FolderBrowser.FileSelected += OnFileSelectedFromBrowser;
+    }
+
+    private async Task OnFileSelectedFromBrowser(string filePath)
+    {
+        await LoadFileAsync(filePath);
+    }
+
     [ObservableProperty]
     private bool _isLoading;
 

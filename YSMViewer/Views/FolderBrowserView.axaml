@@ -1,0 +1,79 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:YSMViewer.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="260" d:DesignHeight="400"
+             x:Class="YSMViewer.Views.FolderBrowserView"
+             x:DataType="vm:FolderBrowserViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="ListBoxItem">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="4,3" />
+        </Style>
+        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource ThemeBgHover}" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource ThemeAnimSelected}" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <Button Grid.Row="0" Content="Open Folder"
+                Command="{Binding BrowseFolderCommand}"
+                IsEnabled="{Binding !IsScanning}"
+                HorizontalAlignment="Stretch"
+                Background="{DynamicResource ThemeAccentRed}" Foreground="White"
+                FontSize="13" Padding="12,7" CornerRadius="6" FontWeight="SemiBold" />
+
+        <Border Grid.Row="1" IsVisible="{Binding HasFolder}" Margin="0,8,0,0"
+                Background="{DynamicResource ThemeBgElevated}" CornerRadius="4" Padding="8,4">
+            <StackPanel Spacing="2">
+                <TextBlock Text="{Binding FolderName}"
+                           Foreground="{DynamicResource ThemeTextPrimary}" FontSize="12"
+                           FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding FolderPath}"
+                           Foreground="{DynamicResource ThemeTextMuted}" FontSize="10"
+                           TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+        </Border>
+
+        <ProgressBar Grid.Row="2" IsVisible="{Binding IsScanning}"
+                     IsIndeterminate="True" Height="3" VerticalAlignment="Top" />
+
+        <ListBox Grid.Row="2" Margin="0,4,0,0"
+                 IsVisible="{Binding HasFolder}"
+                 ItemsSource="{Binding Files}"
+                 SelectedItem="{Binding SelectedFile}"
+                 Background="Transparent" BorderThickness="0"
+                 Foreground="{DynamicResource ThemeTextPrimary}"
+                 DoubleTapped="OnFileDoubleTapped">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:YsmFileItemViewModel">
+                    <Border CornerRadius="4" Padding="6,4"
+                            Background="{DynamicResource ThemeBgElevated}">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource ThemeTextPrimary}"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding RelativePath}" FontSize="10"
+                                       Foreground="{DynamicResource ThemeTextMuted}"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <TextBlock Grid.Row="3" IsVisible="{Binding !HasFolder}"
+                   Text="Open a folder to browse YSM models"
+                   Foreground="{DynamicResource ThemeTextMuted}" FontSize="11"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,24"
+                   TextWrapping="Wrap" />
+    </Grid>
+</UserControl>
