@@ -14,6 +14,10 @@
         <vm:MainViewModel />
     </Design.DataContext>
 
+    <UserControl.Resources>
+        <vm:NotificationIconConverter x:Key="NotificationIconConverter" />
+    </UserControl.Resources>
+
     <UserControl.Styles>
         <Style Selector="Button">
             <Setter Property="Background" Value="{DynamicResource ThemeBgButton}" />
@@ -51,6 +55,7 @@
         </Style>
     </UserControl.Styles>
 
+    <Panel>
     <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource ThemeBgViewport}">
 
         <!-- ===== Top Bar ===== -->
@@ -160,19 +165,23 @@
                 <Border IsVisible="{Binding HasError}"
                         HorizontalAlignment="Center" VerticalAlignment="Bottom"
                         Margin="16" CornerRadius="10" Padding="20,16"
-                        MaxWidth="500"
+                        MaxWidth="560"
                         Background="{DynamicResource ThemeErrorBg}" Opacity="0.95">
                     <StackPanel Spacing="10">
                         <TextBlock Text="Error" FontWeight="Bold" FontSize="15"
                                    Foreground="{DynamicResource ThemeErrorText}" />
                         <ScrollViewer MaxHeight="140">
-                            <TextBlock Text="{Binding ErrorDetail}" FontSize="11"
-                                       Foreground="{DynamicResource ThemeErrorText}" Opacity="0.8" TextWrapping="Wrap" />
+                            <SelectableTextBlock Text="{Binding ErrorDetail}" FontSize="11"
+                                                  Foreground="{DynamicResource ThemeErrorText}" Opacity="0.8" TextWrapping="Wrap" />
                         </ScrollViewer>
-                        <Button Content="Dismiss" Click="OnDismissErrorClick"
-                                HorizontalAlignment="Right"
-                                Background="{DynamicResource ThemeAccentRed}" Foreground="White"
-                                Padding="14,4" CornerRadius="4" FontSize="11" FontWeight="SemiBold" />
+                        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                            <Button Content="Copy" Click="OnCopyErrorClick"
+                                    Background="{DynamicResource ThemeBgButton}" Foreground="{DynamicResource ThemeTextSecondary}"
+                                    Padding="12,4" CornerRadius="4" FontSize="11" />
+                            <Button Content="Dismiss" Click="OnDismissErrorClick"
+                                    Background="{DynamicResource ThemeAccentRed}" Foreground="White"
+                                    Padding="14,4" CornerRadius="4" FontSize="11" FontWeight="SemiBold" />
+                        </StackPanel>
                     </StackPanel>
                 </Border>
             </Panel>
@@ -478,6 +487,27 @@
                            VerticalAlignment="Center" HorizontalAlignment="Right" />
             </Grid>
         </Border>
+</Grid>
 
-    </Grid>
+    <!-- Toast overlay -->
+    <ItemsControl ItemsSource="{Binding Notifications.Notifications}"
+                  HorizontalAlignment="Right" VerticalAlignment="Top"
+                  Margin="16,56,16,0" MaxWidth="380">
+        <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:NotificationViewModel">
+                <Border CornerRadius="8" Padding="12,8" Margin="0,0,0,8"
+                        Background="{DynamicResource ThemeBgElevated}"
+                        BorderBrush="{DynamicResource ThemeAccent}" BorderThickness="1">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <TextBlock Grid.Column="0" Text="{Binding Type, Converter={StaticResource NotificationIconConverter}}"
+                                   FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Text="{Binding Message}" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource ThemeTextPrimary}" FontSize="12"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+</Panel>
 </UserControl>

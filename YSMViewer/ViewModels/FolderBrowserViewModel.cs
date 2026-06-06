@@ -25,6 +25,7 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
     public ObservableCollection<YsmFileItemViewModel> Files { get; } = [];
 
     public event Func<string, Task>? FileSelected;
+    public event Action<string>? ScanError;
 
     [RelayCommand]
     private async Task BrowseFolderAsync()
@@ -74,7 +75,7 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         IsScanning = false;
     }
 
-    private static void CollectYsmFiles(string dir, int depth, int maxDepth, List<string> results)
+    private void CollectYsmFiles(string dir, int depth, int maxDepth, List<string> results)
     {
         try
         {
@@ -87,8 +88,16 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
                     CollectYsmFiles(sub, depth + 1, maxDepth, results);
             }
         }
-        catch (UnauthorizedAccessException) { }
-        catch (DirectoryNotFoundException) { }
+        catch (UnauthorizedAccessException)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                ScanError?.Invoke($"Access denied: {dir}"));
+        }
+        catch (DirectoryNotFoundException)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                ScanError?.Invoke($"Directory not found: {dir}"));
+        }
     }
 
     public async Task SelectFileAsync(YsmFileItemViewModel item)

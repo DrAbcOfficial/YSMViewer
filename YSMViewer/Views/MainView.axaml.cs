@@ -559,6 +559,21 @@ public partial class MainView : UserControl
         }
     }
 
+    private async void OnCopyErrorClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            var topLevel = TopLevel.GetTopLevel(this);
+            if (topLevel?.Clipboard is not null)
+            {
+                var data = new Avalonia.Input.DataTransfer();
+                data.Add(Avalonia.Input.DataTransferItem.CreateText(vm.ErrorDetail));
+                await topLevel.Clipboard.SetDataAsync(data);
+                vm.Notifications.Show("Copied to clipboard", NotificationType.Info, 2000);
+            }
+        }
+    }
+
     private void OnPlayPauseClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainViewModel vm)

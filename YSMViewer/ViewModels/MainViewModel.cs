@@ -15,15 +15,23 @@ public sealed partial class MainViewModel : ViewModelBase
 
     public FolderBrowserViewModel FolderBrowser { get; }
 
+    public NotificationService Notifications { get; } = new();
+
     public MainViewModel()
     {
         FolderBrowser = new FolderBrowserViewModel();
         FolderBrowser.FileSelected += OnFileSelectedFromBrowser;
+        FolderBrowser.ScanError += OnScanError;
     }
 
     private async Task OnFileSelectedFromBrowser(string filePath)
     {
         await LoadFileAsync(filePath);
+    }
+
+    private void OnScanError(string message)
+    {
+        Notifications.Show(message, NotificationType.Warning);
     }
 
     [ObservableProperty]
@@ -342,6 +350,7 @@ public sealed partial class MainViewModel : ViewModelBase
         _onSceneReady?.Invoke(loadedModel.ContainerNode);
 
         StatusText = $"Loaded: {ModelName} (V{ModelVersion})";
+        Notifications.Show($"Loaded {ModelDisplayName}", NotificationType.Success);
     }
 
     partial void OnIsAnimatingChanged(bool value)

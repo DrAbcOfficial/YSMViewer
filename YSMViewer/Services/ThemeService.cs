@@ -158,6 +158,14 @@ public (byte A, byte R, byte G, byte B) GetAmbientLightColor()
         ["ThemeAnimSelected"] = Avalonia.Media.Color.FromRgb(0x1a, 0x30, 0x50),
         ["ThemeAnimTransport"] = Avalonia.Media.Color.FromRgb(0x16, 0x1b, 0x22),
         ["ThemeDivider"] = Avalonia.Media.Color.FromRgb(0x21, 0x26, 0x2d),
+        ["ThemeToastSuccess"] = Avalonia.Media.Color.FromRgb(0x1a, 0x3a, 0x2a),
+        ["ThemeToastSuccessText"] = Avalonia.Media.Color.FromRgb(0x3f, 0xb9, 0x50),
+        ["ThemeToastWarning"] = Avalonia.Media.Color.FromRgb(0x3a, 0x30, 0x1a),
+        ["ThemeToastWarningText"] = Avalonia.Media.Color.FromRgb(0xe3, 0xb3, 0x41),
+        ["ThemeToastInfo"] = Avalonia.Media.Color.FromRgb(0x1a, 0x2a, 0x46),
+        ["ThemeToastInfoText"] = Avalonia.Media.Color.FromRgb(0x58, 0xa6, 0xff),
+        ["ThemeToastError"] = Avalonia.Media.Color.FromRgb(0x2d, 0x15, 0x20),
+        ["ThemeToastErrorText"] = Avalonia.Media.Color.FromRgb(0xf8, 0x51, 0x49),
     };
 
     private static ResourceDictionary CreateLightPalette() => new ResourceDictionary
@@ -190,5 +198,13 @@ public (byte A, byte R, byte G, byte B) GetAmbientLightColor()
         ["ThemeAnimSelected"] = Avalonia.Media.Color.FromRgb(0xdc, 0xe8, 0xf9),
         ["ThemeAnimTransport"] = Avalonia.Media.Color.FromRgb(0xff, 0xff, 0xff),
         ["ThemeDivider"] = Avalonia.Media.Color.FromRgb(0xd0, 0xd7, 0xde),
+        ["ThemeToastSuccess"] = Avalonia.Media.Color.FromRgb(0xda, 0xef, 0xdd),
+        ["ThemeToastSuccessText"] = Avalonia.Media.Color.FromRgb(0x1a, 0x7f, 0x37),
+        ["ThemeToastWarning"] = Avalonia.Media.Color.FromRgb(0xfc, 0xf3, 0xcf),
+        ["ThemeToastWarningText"] = Avalonia.Media.Color.FromRgb(0x9a, 0x67, 0x04),
+        ["ThemeToastInfo"] = Avalonia.Media.Color.FromRgb(0xdc, 0xe8, 0xf9),
+        ["ThemeToastInfoText"] = Avalonia.Media.Color.FromRgb(0x09, 0x69, 0xd6),
+        ["ThemeToastError"] = Avalonia.Media.Color.FromRgb(0xff, 0xee, 0xf0),
+        ["ThemeToastErrorText"] = Avalonia.Media.Color.FromRgb(0xcf, 0x22, 0x2e),
     };
 }
