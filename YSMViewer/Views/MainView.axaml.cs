@@ -52,6 +52,11 @@ public partial class MainView : UserControl
         PointerWheelChanged += OnPointerWheelChanged;
         KeyDown += OnKeyDown;
 
+        DragDrop.AddDropHandler(this, OnDrop);
+        DragDrop.AddDragOverHandler(this, OnDragOverHandler);
+        DragDrop.AddDragEnterHandler(this, OnDragEnterHandler);
+        DragDrop.AddDragLeaveHandler(this, OnDragLeaveHandler);
+
         ThemeService.Instance.ModeChanged += OnThemeChanged;
         UpdateThemeIcon();
     }
@@ -118,6 +123,89 @@ public partial class MainView : UserControl
     private void OnThemeToggleClick(object? sender, RoutedEventArgs e)
     {
         ThemeService.Instance.CycleTheme();
+    }
+
+    private async void OnDrop(object? sender, DragEventArgs e)
+    {
+        var overlay = this.FindControl<Border>("DragOverlay");
+        if (overlay is not null) overlay.IsVisible = false;
+        e.Handled = true;
+
+        if (DataContext is not MainViewModel vm) return;
+
+        if (!e.DataTransfer.Formats.Contains(DataFormat.File)) return;
+
+        var files = e.DataTransfer.TryGetFiles();
+        if (files is null) return;
+
+        foreach (var file in files)
+        {
+            var path = file.TryGetLocalPath();
+            if (path is null) continue;
+
+            if (!path.EndsWith(".ysm", StringComparison.OrdinalIgnoreCase)) continue;
+
+            try
+            {
+                await vm.LoadFileAsync(path);
+            }
+            catch (Exception ex)
+            {
+                vm.SetError(ex);
+            }
+            return;
+        }
+
+        foreach (var file in files)
+        {
+            if (file is not IStorageFile storageFile) continue;
+            try
+            {
+                await using var stream = await storageFile.OpenReadAsync();
+                using var ms = new System.IO.MemoryStream();
+                await stream.CopyToAsync(ms);
+                await vm.LoadFromBytesAsync(ms.ToArray());
+                return;
+            }
+            catch (Exception ex)
+            {
+                vm.SetError(ex);
+            }
+        }
+    }
+
+    private void OnDragOverHandler(object? sender, DragEventArgs e)
+    {
+        if (DataContext is MainViewModel vm && vm.IsLoading)
+        {
+            e.DragEffects = DragDropEffects.None;
+            e.Handled = true;
+            return;
+        }
+
+        if (e.DataTransfer.Formats.Contains(DataFormat.File))
+            e.DragEffects = DragDropEffects.Copy;
+        else
+            e.DragEffects = DragDropEffects.None;
+
+        e.Handled = true;
+    }
+
+    private void OnDragEnterHandler(object? sender, DragEventArgs e)
+    {
+        if (DataContext is MainViewModel vm && vm.IsLoading) return;
+
+        if (e.DataTransfer.Formats.Contains(DataFormat.File))
+        {
+            var overlay = this.FindControl<Border>("DragOverlay");
+            if (overlay is not null) overlay.IsVisible = true;
+        }
+    }
+
+    private void OnDragLeaveHandler(object? sender, DragEventArgs e)
+    {
+        var overlay = this.FindControl<Border>("DragOverlay");
+        if (overlay is not null) overlay.IsVisible = false;
     }
 
     private void OnLoaded(object? sender, RoutedEventArgs e)

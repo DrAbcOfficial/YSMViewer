@@ -6,7 +6,8 @@
              xmlns:a="https://sunce.tech/aura3d"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
              x:Class="YSMViewer.Views.MainView"
-             x:DataType="vm:MainViewModel">
+             x:DataType="vm:MainViewModel"
+             DragDrop.AllowDrop="True">
 
     <Design.DataContext>
         <vm:MainViewModel />
@@ -111,12 +112,12 @@
                 <Border IsVisible="{Binding !HasModel}"
                         HorizontalAlignment="Center" VerticalAlignment="Center"
                         CornerRadius="16" Padding="48,40"
-                        Background="#0d1117e8">
+                        Background="{DynamicResource ThemeBgSurface}">
                     <StackPanel HorizontalAlignment="Center" Spacing="16">
                         <TextBlock Text="YSMViewer" FontSize="36" FontWeight="Bold"
                                    Foreground="{DynamicResource ThemeTextPrimary}"
                                    HorizontalAlignment="Center" />
-                        <TextBlock Text="Open a .ysm file to view 3D models"
+                        <TextBlock Text="Open a .ysm file or drag and drop here"
                                    FontSize="15" Foreground="{DynamicResource ThemeTextSecondary}"
                                    HorizontalAlignment="Center" />
                         <Button Content="Open File" Click="OnOpenButtonClick"
@@ -126,18 +127,36 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Drag-and-drop overlay -->
+                <Border x:Name="DragOverlay"
+                        IsVisible="False"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                        Background="{DynamicResource ThemeBgSurface}"
+                        Opacity="0.92"
+                        CornerRadius="12" Margin="8"
+                        BorderBrush="{DynamicResource ThemeAccent}" BorderThickness="2">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                        <TextBlock Text="Drop to open" FontSize="22" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource ThemeAccent}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text=".ysm file" FontSize="14"
+                                   Foreground="{DynamicResource ThemeTextSecondary}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+
                 <!-- Error overlay -->
                 <Border IsVisible="{Binding HasError}"
                         HorizontalAlignment="Center" VerticalAlignment="Bottom"
                         Margin="16" CornerRadius="10" Padding="20,16"
                         MaxWidth="500"
-                        Background="#2d1520e8">
+                        Background="{DynamicResource ThemeErrorBg}" Opacity="0.95">
                     <StackPanel Spacing="10">
                         <TextBlock Text="Error" FontWeight="Bold" FontSize="15"
                                    Foreground="{DynamicResource ThemeErrorText}" />
                         <ScrollViewer MaxHeight="140">
                             <TextBlock Text="{Binding ErrorDetail}" FontSize="11"
-                                       Foreground="#f85149cc" TextWrapping="Wrap" />
+                                       Foreground="{DynamicResource ThemeErrorText}" Opacity="0.8" TextWrapping="Wrap" />
                         </ScrollViewer>
                         <Button Content="Dismiss" Click="OnDismissErrorClick"
                                 HorizontalAlignment="Right"
