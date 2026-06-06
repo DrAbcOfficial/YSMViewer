@@ -114,7 +114,10 @@ ToolTip.Tip="{Binding LocSwitchLang}"
             <GridSplitter Grid.Column="1" Width="4"
                           IsVisible="{Binding IsDesktop}"
                           Background="{DynamicResource ThemeBorder}"
-                          ResizeDirection="Columns" />
+                          ResizeDirection="Columns"
+                          ResizeBehavior="PreviousAndNext"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch" />
 
             <!-- Viewport -->
             <Panel Grid.Column="2" x:Name="ViewportPanel">
@@ -204,7 +207,10 @@ ToolTip.Tip="{Binding LocSwitchLang}"
             <!-- Splitter -->
             <GridSplitter Grid.Column="3" Width="4"
                           Background="{DynamicResource ThemeBorder}"
-                          ResizeDirection="Columns" />
+                          ResizeDirection="Columns"
+                          ResizeBehavior="PreviousAndNext"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch" />
 
             <!-- Side Panel -->
             <Border Grid.Column="4" IsVisible="{Binding HasModel}"
