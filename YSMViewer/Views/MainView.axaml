@@ -83,14 +83,15 @@
                         ToolTip.Tip="Toggle theme">
                     <Image x:Name="ThemeSvgImage" Width="20" Height="20" />
                 </Button>
-                <Button x:Name="GitHubButton" Grid.Column="4"
-                        Click="OnGitHubClick"
-                        Width="36" Height="36" Padding="0" CornerRadius="6"
-                        VerticalAlignment="Center"
-                        ToolTip.Tip="View on GitHub">
-                    <svg:Svg Path="avares://YSMViewer/Assets/svg/github.svg"
-                             Stretch="Uniform" Width="20" Height="20" />
-                </Button>
+                <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4"
+                            VerticalAlignment="Center">
+                    <Button x:Name="GitHubButton"
+                            Click="OnGitHubClick"
+                            Width="36" Height="36" Padding="0" CornerRadius="6"
+                            ToolTip.Tip="View on GitHub">
+                        <Image x:Name="GitHubSvgImage" Width="20" Height="20" />
+                    </Button>
+                </StackPanel>
             </Grid>
         </Border>
 

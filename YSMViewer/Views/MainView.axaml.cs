@@ -87,6 +87,7 @@ public partial class MainView : UserControl
         var paths = new (string Name, string Path)[]
         {
             ("ThemeSvgImage", ThemeSvgPaths[(int)ThemeService.Instance.CurrentMode]),
+            ("GitHubSvgImage", "avares://YSMViewer/Assets/svg/github.svg"),
             ("CameraFrontImg", "avares://YSMViewer/Assets/svg/up-junction.svg"),
             ("CameraLeftImg", "avares://YSMViewer/Assets/svg/left-junction.svg"),
             ("CameraTopImg", "avares://YSMViewer/Assets/svg/down-junction.svg"),
