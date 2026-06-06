@@ -31,7 +31,7 @@
             <Setter Property="Background" Value="{DynamicResource ThemeBgHover}" />
         </Style>
         <Style Selector="Button.close-btn">
-            <Setter Property="Background" Value="#4d1a1a" />
+            <Setter Property="Background" Value="#FFB6C1" />
         </Style>
         <Style Selector="Button.close-btn:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="#e81123" />

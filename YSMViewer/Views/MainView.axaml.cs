@@ -125,26 +125,18 @@ public partial class MainView : UserControl
         var rgba = ThemeService.Instance.GetViewportBackgroundColor();
         var color = System.Drawing.Color.FromArgb(rgba[0], rgba[1], rgba[2], rgba[3]);
 
-        if (AuraView.Scene is not null)
-            AuraView.Scene.Background = Texture.CreateFromColor(color);
-        if (GizmoView.Scene is not null)
-            GizmoView.Scene.Background = Texture.CreateFromColor(color);
+        AuraView.Scene?.Background = Texture.CreateFromColor(color);
+        GizmoView.Scene?.Background = Texture.CreateFromColor(color);
     }
 
     private void UpdateSceneLights()
     {
         if (!_sceneInitialized) return;
 
-        var ambient = ThemeService.Instance.GetAmbientLightColor();
-        var key = ThemeService.Instance.GetKeyLightColor();
-        var fill = ThemeService.Instance.GetFillLightColor();
 
-        if (_ambientLight is not null)
-            _ambientLight.LightColor = System.Drawing.Color.FromArgb(ambient.A, ambient.R, ambient.G, ambient.B);
-        if (_keyLight is not null)
-            _keyLight.LightColor = System.Drawing.Color.FromArgb(key.A, key.R, key.G, key.B);
-        if (_fillLight is not null)
-            _fillLight.LightColor = System.Drawing.Color.FromArgb(fill.A, fill.R, fill.G, fill.B);
+        _ambientLight?.LightColor = System.Drawing.Color.FromArgb(ThemeService.Instance.GetAmbientLightColor().A, ThemeService.Instance.GetAmbientLightColor().R, ThemeService.Instance.GetAmbientLightColor().G, ThemeService.Instance.GetAmbientLightColor().B);
+        _keyLight?.LightColor = System.Drawing.Color.FromArgb(ThemeService.Instance.GetKeyLightColor().A, ThemeService.Instance.GetKeyLightColor().R, ThemeService.Instance.GetKeyLightColor().G, ThemeService.Instance.GetKeyLightColor().B);
+        _fillLight?.LightColor = System.Drawing.Color.FromArgb(ThemeService.Instance.GetFillLightColor().A, ThemeService.Instance.GetFillLightColor().R, ThemeService.Instance.GetFillLightColor().G, ThemeService.Instance.GetFillLightColor().B);
     }
 
     private void OnThemeToggleClick(object? sender, RoutedEventArgs e)
@@ -155,7 +147,7 @@ public partial class MainView : UserControl
     private async void OnDrop(object? sender, DragEventArgs e)
     {
         var overlay = this.FindControl<Border>("DragOverlay");
-        if (overlay is not null) overlay.IsVisible = false;
+        overlay?.IsVisible = false;
         e.Handled = true;
 
         if (DataContext is not MainViewModel vm) return;
@@ -225,14 +217,14 @@ public partial class MainView : UserControl
         if (e.DataTransfer.Formats.Contains(DataFormat.File))
         {
             var overlay = this.FindControl<Border>("DragOverlay");
-            if (overlay is not null) overlay.IsVisible = true;
+            overlay?.IsVisible = true;
         }
     }
 
     private void OnDragLeaveHandler(object? sender, DragEventArgs e)
     {
         var overlay = this.FindControl<Border>("DragOverlay");
-        if (overlay is not null) overlay.IsVisible = false;
+        overlay?.IsVisible = false;
     }
 
     private void OnLoaded(object? sender, RoutedEventArgs e)
@@ -243,21 +235,6 @@ public partial class MainView : UserControl
         {
             vm.SetSceneCallback(AddModelToScene);
             _ = vm.LoadStartupFileIfNeeded();
-        }
-
-        _ = DetectRenderingFailureAsync();
-    }
-
-    private async Task DetectRenderingFailureAsync()
-    {
-        await Task.Delay(5000);
-
-        if (!_sceneInitialized && DataContext is MainViewModel vm)
-        {
-            vm.SetError(new InvalidOperationException(
-                "3D rendering failed to initialize. " +
-                "This may be caused by a WebGL2-incompatible browser or a rendering pipeline error. " +
-                "Please try using a modern browser with WebGL2 support (Chrome, Edge, Firefox)."));
         }
     }
 
@@ -308,26 +285,26 @@ public partial class MainView : UserControl
             UpdateCameraPosition(camera);
             SyncGizmoCamera();
 
-            var ambient = ThemeService.Instance.GetAmbientLightColor();
             _ambientLight = new DirectionalLight
             {
-                LightColor = System.Drawing.Color.FromArgb(ambient.A, ambient.R, ambient.G, ambient.B),
+                LightColor = System.Drawing.Color.FromArgb(ThemeService.Instance.GetAmbientLightColor().A, ThemeService.Instance.GetAmbientLightColor().R, 
+                ThemeService.Instance.GetAmbientLightColor().G, ThemeService.Instance.GetAmbientLightColor().B),
                 RotationDegrees = new Vector3(-30, 45, 0),
             };
             view.AddNode(_ambientLight);
 
-            var key = ThemeService.Instance.GetKeyLightColor();
             _keyLight = new DirectionalLight
             {
-                LightColor = System.Drawing.Color.FromArgb(key.A, key.R, key.G, key.B),
+                LightColor = System.Drawing.Color.FromArgb(ThemeService.Instance.GetKeyLightColor().A, ThemeService.Instance.GetKeyLightColor().R, 
+                ThemeService.Instance.GetKeyLightColor().G, ThemeService.Instance.GetKeyLightColor().B),
                 RotationDegrees = new Vector3(-45, -30, 0),
             };
             view.AddNode(_keyLight);
 
-            var fill = ThemeService.Instance.GetFillLightColor();
             _fillLight = new DirectionalLight
             {
-                LightColor = System.Drawing.Color.FromArgb(fill.A, fill.R, fill.G, fill.B),
+                LightColor = System.Drawing.Color.FromArgb(ThemeService.Instance.GetFillLightColor().A, ThemeService.Instance.GetFillLightColor().R, 
+                ThemeService.Instance.GetFillLightColor().G, ThemeService.Instance.GetFillLightColor().B),
                 RotationDegrees = new Vector3(-10, 150, 0),
             };
             view.AddNode(_fillLight);
@@ -344,8 +321,7 @@ public partial class MainView : UserControl
                     {
                         foreach (var comp in vm.Components)
                         {
-                            if (comp.ModelNode is not null)
-                                comp.ModelNode.Enable = comp.IsVisible;
+                            comp.ModelNode?.Enable = comp.IsVisible;
                         }
                     }
                 }
@@ -559,8 +535,7 @@ public partial class MainView : UserControl
                 {
                     foreach (var comp in vm.Components)
                     {
-                        if (comp.ModelNode is not null)
-                            comp.ModelNode.Enable = comp.IsVisible;
+                        comp.ModelNode?.Enable = comp.IsVisible;
                     }
                 }
             }
@@ -611,12 +586,9 @@ public partial class MainView : UserControl
             if (sender is Button btn)
             {
                 var icon = btn.FindControl<PathIcon>("PlayPauseIcon");
-                if (icon is not null)
-                {
-                    icon.Data = vm.IsAnimating
+                icon?.Data = vm.IsAnimating
                         ? Avalonia.Media.Geometry.Parse("M6 4 L6 28 L12 28 L12 4 Z M18 4 L18 28 L24 28 L24 4 Z")
                         : Avalonia.Media.Geometry.Parse("M8 4 L8 28 L24 16 Z");
-                }
             }
         }
     }

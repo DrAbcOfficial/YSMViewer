@@ -32,10 +32,7 @@ public sealed class ThemeService
 
     private ThemeService()
     {
-        if (Application.Current is not null)
-        {
-            Application.Current.ActualThemeVariantChanged += OnActualThemeVariantChanged;
-        }
+        Application.Current?.ActualThemeVariantChanged += OnActualThemeVariantChanged;
     }
 
     private void OnActualThemeVariantChanged(object? sender, EventArgs e)
@@ -107,28 +104,31 @@ public sealed class ThemeService
     {
         return IsDarkTheme()
             ? (byte[])[255, 13, 17, 23]
-            : (byte[])[255, 240, 242, 245];
+            : (byte[])[245, 180, 180, 180];
     }
 
-public (byte A, byte R, byte G, byte B) GetAmbientLightColor()
+    public (byte A, byte R, byte G, byte B) GetAmbientLightColor()
     {
-        if (IsDarkTheme()) return (255, 80, 80, 100);
-        return (255, 160, 160, 180);
+        if (IsDarkTheme()) 
+            return (255, 80, 80, 100);
+        return (255, 255, 255, 255);
     }
 
     public (byte A, byte R, byte G, byte B) GetKeyLightColor()
     {
-        if (IsDarkTheme()) return (255, 220, 210, 190);
-        return (255, 255, 250, 245);
+        if (IsDarkTheme()) 
+            return (255, 220, 210, 190);
+        return (255, 255, 255, 255);
     }
 
     public (byte A, byte R, byte G, byte B) GetFillLightColor()
     {
-        if (IsDarkTheme()) return (255, 100, 120, 150);
-        return (255, 200, 215, 240);
+        if (IsDarkTheme()) 
+            return (255, 100, 120, 150);
+        return (255, 255, 255, 255);
     }
 
-    private static ResourceDictionary CreateDarkPalette() => new ResourceDictionary
+    private static ResourceDictionary CreateDarkPalette() => new()
     {
         ["ThemeBgViewport"] = Avalonia.Media.Color.FromRgb(0x0d, 0x11, 0x17),
         ["ThemeBgSurface"] = Avalonia.Media.Color.FromRgb(0x16, 0x1b, 0x22),
@@ -168,7 +168,7 @@ public (byte A, byte R, byte G, byte B) GetAmbientLightColor()
         ["ThemeToastErrorText"] = Avalonia.Media.Color.FromRgb(0xf8, 0x51, 0x49),
     };
 
-    private static ResourceDictionary CreateLightPalette() => new ResourceDictionary
+    private static ResourceDictionary CreateLightPalette() => new()
     {
         ["ThemeBgViewport"] = Avalonia.Media.Color.FromRgb(0xf0, 0xf2, 0xf5),
         ["ThemeBgSurface"] = Avalonia.Media.Color.FromRgb(0xff, 0xff, 0xff),
