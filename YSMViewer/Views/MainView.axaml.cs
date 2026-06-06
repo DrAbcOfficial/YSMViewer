@@ -86,6 +86,7 @@ public partial class MainView : UserControl
     {
         var paths = new (string Name, string Path)[]
         {
+            ("LangSvgImage", "avares://YSMViewer/Assets/svg/lang.svg"),
             ("ThemeSvgImage", ThemeSvgPaths[(int)ThemeService.Instance.CurrentMode]),
             ("GitHubSvgImage", "avares://YSMViewer/Assets/svg/github.svg"),
             ("CameraFrontImg", "avares://YSMViewer/Assets/svg/up-junction.svg"),
@@ -150,6 +151,28 @@ public partial class MainView : UserControl
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel is null) return;
         await topLevel.Launcher.LaunchUriAsync(new Uri("https://github.com/DrAbcOfficial/YSMViewer"));
+    }
+
+    private void OnLanguageButtonClick(object? sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu();
+        var enItem = new MenuItem { Header = "English" };
+        enItem.Click += (_, _) =>
+        {
+            LocalizationService.Instance.SetLanguage("en");
+            menu.Close();
+        };
+        menu.Items.Add(enItem);
+
+        var zhItem = new MenuItem { Header = "中文" };
+        zhItem.Click += (_, _) =>
+        {
+            LocalizationService.Instance.SetLanguage("zh");
+            menu.Close();
+        };
+        menu.Items.Add(zhItem);
+
+        menu.Open(sender as Control ?? this);
     }
 
     private async void OnDrop(object? sender, DragEventArgs e)

@@ -1,0 +1,62 @@
+using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Resources;
+
+namespace YSMViewer.Services;
+
+public sealed class LocalizationService
+{
+    private static LocalizationService? _instance;
+    public static LocalizationService Instance => _instance ??= new();
+
+    private readonly ResourceManager _resourceManager;
+    private CultureInfo _currentCulture = CultureInfo.GetCultureInfo("en");
+
+    public CultureInfo CurrentCulture
+    {
+        get => _currentCulture;
+        private set
+        {
+            if (_currentCulture.Name == value.Name) return;
+            _currentCulture = value;
+            CultureInfo.CurrentUICulture = value;
+            CultureChanged?.Invoke();
+        }
+    }
+
+    public event Action? CultureChanged;
+
+    public IReadOnlyList<(string Code, string Name)> SupportedCultures { get; } = new ReadOnlyCollection<(string, string)>(new (string, string)[]
+    {
+        ("en", "English"),
+        ("zh", "中文"),
+    });
+
+    private LocalizationService()
+    {
+        _resourceManager = new ResourceManager("YSMViewer.Resources.Strings", typeof(LocalizationService).Assembly);
+    }
+
+    public string GetString(string key)
+    {
+        try { return _resourceManager.GetString(key, _currentCulture) ?? key; }
+        catch { return key; }
+    }
+
+    public void SetLanguage(string code)
+    {
+        try
+        {
+            var culture = code switch
+            {
+                "zh" => CultureInfo.GetCultureInfo("zh-CN"),
+                _ => CultureInfo.GetCultureInfo("en"),
+            };
+            CurrentCulture = culture;
+        }
+        catch
+        {
+            // keep current
+        }
+    }
+}

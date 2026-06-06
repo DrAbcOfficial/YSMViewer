@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="OpenFile" xml:space="preserve"><value>Open File</value></data>
+  <data name="ReadyStatus" xml:space="preserve"><value>Ready. Open a .ysm file to begin.</value></data>
+  <data name="Loading" xml:space="preserve"><value>Loading...</value></data>
+  <data name="ToggleTheme" xml:space="preserve"><value>Toggle theme</value></data>
+  <data name="Info" xml:space="preserve"><value>Info</value></data>
+  <data name="Components" xml:space="preserve"><value>Components</value></data>
+  <data name="Bones" xml:space="preserve"><value>Bones</value></data>
+  <data name="Textures" xml:space="preserve"><value>Textures</value></data>
+  <data name="Animations" xml:space="preserve"><value>Animations</value></data>
+  <data name="ShowAll" xml:space="preserve"><value>Show All</value></data>
+  <data name="HideAll" xml:space="preserve"><value>Hide All</value></data>
+  <data name="ExpandAll" xml:space="preserve"><value>Expand All</value></data>
+  <data name="CollapseAll" xml:space="preserve"><value>Collapse All</value></data>
+  <data name="OpenFolder" xml:space="preserve"><value>Open Folder</value></data>
+  <data name="SearchPrompt" xml:space="preserve"><value>Search...</value></data>
+  <data name="Name" xml:space="preserve"><value>Name</value></data>
+  <data name="ComplexityCol" xml:space="preserve"><value>Complexity</value></data>
+  <data name="Error" xml:space="preserve"><value>Error</value></data>
+  <data name="Dismiss" xml:space="preserve"><value>Dismiss</value></data>
+  <data name="Copy" xml:space="preserve"><value>Copy</value></data>
+  <data name="EmptyState" xml:space="preserve"><value>Open a .ysm file or drag and drop here</value></data>
+  <data name="EmptyFolder" xml:space="preserve"><value>Open a folder to browse YSM models</value></data>
+  <data name="DropHint" xml:space="preserve"><value>Drop to open</value></data>
+  <data name="DropHintExt" xml:space="preserve"><value>.ysm file</value></data>
+  <data name="FrontView" xml:space="preserve"><value>Front view</value></data>
+  <data name="LeftView" xml:space="preserve"><value>Left view</value></data>
+  <data name="TopView" xml:space="preserve"><value>Top view</value></data>
+  <data name="StopAnim" xml:space="preserve"><value>Stop and reset animation</value></data>
+  <data name="SelectFolder" xml:space="preserve"><value>Select folder with YSM models</value></data>
+  <data name="OpenYSMTitle" xml:space="preserve"><value>Open YSM Model</value></data>
+  <data name="ViewOnGitHub" xml:space="preserve"><value>View on GitHub</value></data>
+  <data name="SwitchLanguage" xml:space="preserve"><value>Switch language</value></data>
+</root>
