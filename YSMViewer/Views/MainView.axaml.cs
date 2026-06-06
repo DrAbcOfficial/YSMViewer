@@ -6,6 +6,8 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using Avalonia.Svg.Skia;
+using Svg.Model;
 using System.Numerics;
 using YSMViewer.Services;
 using YSMViewer.ViewModels;
@@ -61,21 +63,54 @@ public partial class MainView : UserControl
     private void OnThemeChanged(AppThemeMode mode)
     {
         UpdateThemeIcon();
+        ApplyAllSvgColors();
         UpdateSceneAppearance();
     }
 
     private void UpdateThemeIcon()
     {
-        var svg = this.FindControl<Avalonia.Svg.Skia.Svg>("ThemeSvg");
-        if (svg is null) return;
+        var img = this.FindControl<Image>("ThemeSvgImage");
+        if (img is null) return;
 
         var mode = ThemeService.Instance.CurrentMode;
-        svg.Path = ThemeSvgPaths[(int)mode];
+        LoadSvgWithColor(img, ThemeSvgPaths[(int)mode]);
 
         var btn = this.FindControl<Button>("ThemeToggleButton");
         if (btn is not null)
         {
             ToolTip.SetTip(btn, ThemeTooltips[(int)mode]);
+        }
+    }
+
+    private void ApplyAllSvgColors()
+    {
+        var paths = new (string Name, string Path)[]
+        {
+            ("ThemeSvgImage", ThemeSvgPaths[(int)ThemeService.Instance.CurrentMode]),
+            ("CameraFrontImg", "avares://YSMViewer/Assets/svg/up-junction.svg"),
+            ("CameraLeftImg", "avares://YSMViewer/Assets/svg/left-junction.svg"),
+            ("CameraTopImg", "avares://YSMViewer/Assets/svg/down-junction.svg"),
+        };
+
+        foreach (var (name, path) in paths)
+        {
+            var img = this.FindControl<Image>(name);
+            if (img is not null)
+                LoadSvgWithColor(img, path);
+        }
+    }
+
+    private static void LoadSvgWithColor(Image image, string svgPath)
+    {
+        var color = ThemeService.Instance.IsDarkTheme() ? "#8b949e" : "#656d76";
+        try
+        {
+            var source = SvgSource.Load(svgPath, new Uri("avares://YSMViewer/"));
+            source.ReLoad(new SvgParameters(null, $":root {{ color: {color}; }}"));
+            image.Source = new SvgImage { Source = source };
+        }
+        catch
+        {
         }
     }
 
@@ -202,6 +237,8 @@ public partial class MainView : UserControl
 
     private void OnLoaded(object? sender, RoutedEventArgs e)
     {
+        ApplyAllSvgColors();
+
         if (DataContext is MainViewModel vm)
         {
             vm.SetSceneCallback(AddModelToScene);

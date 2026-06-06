@@ -81,9 +81,7 @@
                         Width="36" Height="36" Padding="0" CornerRadius="6"
                         VerticalAlignment="Center"
                         ToolTip.Tip="Toggle theme">
-                    <svg:Svg x:Name="ThemeSvg"
-                             Path="avares://YSMViewer/Assets/svg/mode-dark.svg"
-                             Stretch="Uniform" Width="20" Height="20" />
+                    <Image x:Name="ThemeSvgImage" Width="20" Height="20" />
                 </Button>
             </Grid>
         </Border>
@@ -508,20 +506,17 @@
                     <Button Click="OnCameraFrontClick" CornerRadius="4"
                             Width="32" Height="32" Padding="0"
                             ToolTip.Tip="Front view">
-                        <svg:Svg Path="avares://YSMViewer/Assets/svg/up-junction.svg"
-                                 Stretch="Uniform" Width="20" Height="20" />
+                        <Image x:Name="CameraFrontImg" Width="20" Height="20" />
                     </Button>
                     <Button Click="OnCameraLeftClick" CornerRadius="4"
                             Width="32" Height="32" Padding="0"
                             ToolTip.Tip="Left view">
-                        <svg:Svg Path="avares://YSMViewer/Assets/svg/left-junction.svg"
-                                 Stretch="Uniform" Width="20" Height="20" />
+                        <Image x:Name="CameraLeftImg" Width="20" Height="20" />
                     </Button>
                     <Button Click="OnCameraTopClick" CornerRadius="4"
                             Width="32" Height="32" Padding="0"
                             ToolTip.Tip="Top view">
-                        <svg:Svg Path="avares://YSMViewer/Assets/svg/down-junction.svg"
-                                 Stretch="Uniform" Width="20" Height="20" />
+                        <Image x:Name="CameraTopImg" Width="20" Height="20" />
                     </Button>
                 </StackPanel>
             </Grid>
