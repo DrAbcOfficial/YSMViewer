@@ -83,19 +83,19 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
             }
         });
 
-        if (complexityValues.Count > 0)
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            int min = complexityValues.Min();
-            int max = complexityValues.Max();
-            if (min == max) max = min + 1;
-
-            foreach (var item in results)
+            if (complexityValues.Count > 0)
             {
-                item.UpdateComplexityColor(min, max);
-            }
-        }
+                int min = complexityValues.Min();
+                int max = complexityValues.Max();
+                if (min == max) max = min + 1;
 
-        IsScanning = false;
+                foreach (var item in results)
+                    item.UpdateComplexityColor(min, max);
+            }
+            IsScanning = false;
+        });
     }
 
     private static async Task<YsmFileItemViewModel> ParseYsmFileAsync(string filePath, string relativePath)
@@ -134,7 +134,7 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
                         }
                     }
 
-                    complexity = CountJsonProperties(geom);
+                    complexity = CountGeometryStats(geom);
                 }
             }
         }
@@ -146,24 +146,19 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         return new YsmFileItemViewModel(filePath, relativePath, displayName, complexity);
     }
 
-    private static int CountJsonProperties(JsonElement element)
+    private static int CountGeometryStats(JsonElement geom)
     {
-        int count = 0;
-        switch (element.ValueKind)
+        int total = 0;
+        if (geom.TryGetProperty("bones", out var bones))
         {
-            case JsonValueKind.Object:
-                foreach (var prop in element.EnumerateObject())
-                {
-                    count++;
-                    count += CountJsonProperties(prop.Value);
-                }
-                break;
-            case JsonValueKind.Array:
-                foreach (var item in element.EnumerateArray())
-                    count += CountJsonProperties(item);
-                break;
+            total += bones.GetArrayLength();
+            foreach (var bone in bones.EnumerateArray())
+            {
+                if (bone.TryGetProperty("cubes", out var cubes))
+                    total += cubes.GetArrayLength();
+            }
         }
-        return count;
+        return total;
     }
 
     private void CollectYsmFiles(string dir, int depth, int maxDepth, List<string> results)
