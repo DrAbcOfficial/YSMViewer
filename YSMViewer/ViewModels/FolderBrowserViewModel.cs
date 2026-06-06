@@ -2,6 +2,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Text;
+using System.Text.Json;
 
 namespace YSMViewer.ViewModels;
 
@@ -58,21 +60,110 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         IsScanning = true;
         Files.Clear();
 
-        await Task.Run(() =>
+        var ysmFiles = new List<string>();
+        CollectYsmFiles(path, depth: 0, maxDepth: 2, ysmFiles);
+        ysmFiles.Sort(StringComparer.OrdinalIgnoreCase);
+
+        var results = new List<YsmFileItemViewModel>(ysmFiles.Count);
+        var complexityValues = new List<int>();
+
+        await Task.Run(async () =>
         {
-            var ysmFiles = new List<string>();
-            CollectYsmFiles(path, depth: 0, maxDepth: 2, ysmFiles);
-            foreach (var file in ysmFiles.OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
+            foreach (var file in ysmFiles)
             {
-                var relPath = file.StartsWith(path) ? file[path.Length..].TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) : file;
-                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                {
-                    Files.Add(new YsmFileItemViewModel(file, relPath));
-                });
+                var relPath = file.StartsWith(path)
+                    ? file[path.Length..].TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                    : file;
+
+                var item = await ParseYsmFileAsync(file, relPath);
+                results.Add(item);
+                complexityValues.Add(item.Complexity);
+
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => Files.Add(item));
             }
         });
 
+        if (complexityValues.Count > 0)
+        {
+            int min = complexityValues.Min();
+            int max = complexityValues.Max();
+            if (min == max) max = min + 1;
+
+            foreach (var item in results)
+            {
+                item.UpdateComplexityColor(min, max);
+            }
+        }
+
         IsScanning = false;
+    }
+
+    private static async Task<YsmFileItemViewModel> ParseYsmFileAsync(string filePath, string relativePath)
+    {
+        string displayName = Path.GetFileName(filePath);
+        int complexity = 0;
+
+        try
+        {
+            var data = await File.ReadAllBytesAsync(filePath);
+            var parser = YSMParser.Core.Parsers.YSMParserFactory.CreateFromBytes(data);
+            parser.Parse();
+            var resources = parser.GetResources();
+
+            if (resources.Models.Count > 0)
+            {
+                var jsonData = resources.Models[0].Data;
+                var jsonStr = Encoding.UTF8.GetString(jsonData);
+
+                using var doc = JsonDocument.Parse(jsonStr);
+                var root = doc.RootElement;
+
+                if (root.TryGetProperty("minecraft:geometry", out var geoms) && geoms.GetArrayLength() > 0)
+                {
+                    var geom = geoms[0];
+                    if (geom.TryGetProperty("description", out var desc))
+                    {
+                        if (desc.TryGetProperty("ysm_extra_info", out var extra)
+                            && extra.TryGetProperty("name", out var metaName))
+                        {
+                            displayName = metaName.GetString() ?? displayName;
+                        }
+                        else if (desc.TryGetProperty("identifier", out var id))
+                        {
+                            displayName = id.GetString() ?? displayName;
+                        }
+                    }
+
+                    complexity = CountJsonProperties(geom);
+                }
+            }
+        }
+        catch
+        {
+            // keep default displayName (filename) and complexity 0
+        }
+
+        return new YsmFileItemViewModel(filePath, relativePath, displayName, complexity);
+    }
+
+    private static int CountJsonProperties(JsonElement element)
+    {
+        int count = 0;
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                foreach (var prop in element.EnumerateObject())
+                {
+                    count++;
+                    count += CountJsonProperties(prop.Value);
+                }
+                break;
+            case JsonValueKind.Array:
+                foreach (var item in element.EnumerateArray())
+                    count += CountJsonProperties(item);
+                break;
+        }
+        return count;
     }
 
     private void CollectYsmFiles(string dir, int depth, int maxDepth, List<string> results)
@@ -120,25 +211,56 @@ public sealed partial class YsmFileItemViewModel : ViewModelBase
     private string _fullPath;
 
     [ObservableProperty]
-    private long _fileSize;
+    private int _complexity;
 
-    public YsmFileItemViewModel(string fullPath, string relativePath)
+    [ObservableProperty]
+    private string _complexityText = "";
+
+    [ObservableProperty]
+    private Avalonia.Media.IBrush _complexityColor =
+        new Avalonia.Media.SolidColorBrush(Avalonia.Media.Colors.Gray);
+
+    public YsmFileItemViewModel(string fullPath, string relativePath, string displayName, int complexity)
     {
         FullPath = fullPath;
         RelativePath = relativePath;
-        Name = Path.GetFileName(fullPath);
-
-        try
-        {
-            FileSize = new FileInfo(fullPath).Length;
-        }
-        catch
-        {
-            FileSize = 0;
-        }
+        Name = displayName;
+        Complexity = complexity;
+        ComplexityText = complexity > 0 ? $"{complexity:N0} elems" : "";
     }
 
-    public string SizeDisplay => FileSize < 1024
-        ? $"{FileSize} B"
-        : $"{FileSize / 1024.0:F1} KB";
+    public void UpdateComplexityColor(int min, int max)
+    {
+        if (Complexity <= 0 || max <= min)
+        {
+            ComplexityColor = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Colors.Gray);
+            return;
+        }
+
+        double t = (double)(Complexity - min) / (max - min);
+        double hue = 120.0 * (1.0 - t);
+        double sat = 0.85;
+        double val = 0.65;
+
+        var (r, g, b) = HsvToRgb(hue, sat, val);
+        ComplexityColor = new Avalonia.Media.SolidColorBrush(
+            Avalonia.Media.Color.FromRgb((byte)(r * 255), (byte)(g * 255), (byte)(b * 255)));
+    }
+
+    private static (double r, double g, double b) HsvToRgb(double h, double s, double v)
+    {
+        double c = v * s;
+        double x = c * (1 - Math.Abs((h / 60.0) % 2 - 1));
+        double m = v - c;
+        double r, g, b;
+
+        if (h < 60) { r = c; g = x; b = 0; }
+        else if (h < 120) { r = x; g = c; b = 0; }
+        else if (h < 180) { r = 0; g = c; b = x; }
+        else if (h < 240) { r = 0; g = x; b = c; }
+        else if (h < 300) { r = x; g = 0; b = c; }
+        else { r = c; g = 0; b = x; }
+
+        return (r + m, g + m, b + m);
+    }
 }

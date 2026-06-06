@@ -57,14 +57,22 @@
                 <DataTemplate x:DataType="vm:YsmFileItemViewModel">
                     <Border CornerRadius="4" Padding="6,4"
                             Background="{DynamicResource ThemeBgElevated}">
-                        <StackPanel Spacing="2">
-                            <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource ThemeTextPrimary}"
-                                       TextTrimming="CharacterEllipsis" />
-                            <TextBlock Text="{Binding RelativePath}" FontSize="10"
-                                       Foreground="{DynamicResource ThemeTextMuted}"
-                                       TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource ThemeTextPrimary}"
+                                           TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding RelativePath}" FontSize="10"
+                                           Foreground="{DynamicResource ThemeTextMuted}"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <Border Grid.Column="1" CornerRadius="3" Padding="5,2"
+                                    VerticalAlignment="Center"
+                                    Background="{Binding ComplexityColor}">
+                                <TextBlock Text="{Binding ComplexityText}" FontSize="10"
+                                           Foreground="White" FontWeight="SemiBold" />
+                            </Border>
+                        </Grid>
                     </Border>
                 </DataTemplate>
             </ListBox.ItemTemplate>
