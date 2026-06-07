@@ -92,6 +92,9 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
         foreach (var kv in _boneNodes)
             _animBones[kv.Key] = new Aura3DBoneNode(kv.Value);
         _animService.SetBoneNodes(_animBones, _baseBoneEulers);
+
+        foreach (var anim in document.Animations)
+            _animService.LoadAnimations(anim.Data);
     }
 
     public void Clear()

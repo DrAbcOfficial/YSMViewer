@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YSMViewer.ViewModels"
+             x:Class="YSMViewer.Views.Shared.ModelBottomBar"
+             x:DataType="vm:MainViewModel"
+             Background="{DynamicResource ThemeBgSurface}"
+             BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,1,0,0"
+             Padding="16,0" Height="48">
+    <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" VerticalAlignment="Center">
+
+        <!-- Animation controls -->
+        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center"
+                    IsVisible="{Binding HasAnimations}">
+            <Button IsEnabled="{Binding CanPreviousAnimation}"
+                    Click="OnPreviousAnimationClick" CornerRadius="4"
+                    Width="32" Height="32" Padding="0">
+                <PathIcon Data="M2 16 L14 8 L14 24 Z M14 16 L26 8 L26 24 Z"
+                          Foreground="{DynamicResource ThemeTextSecondary}" />
+            </Button>
+            <Button x:Name="PlayPauseBtn"
+                    Click="OnPlayPauseClick" CornerRadius="4"
+                    Background="{DynamicResource ThemeAccentRed}" Foreground="White"
+                    Width="36" Height="36" Padding="0">
+                <PathIcon x:Name="PlayPauseIcon"
+                          Data="M8 4 L8 28 L24 16 Z"
+                          Foreground="White" />
+            </Button>
+            <Button IsEnabled="{Binding CanNextAnimation}"
+                    Click="OnNextAnimationClick" CornerRadius="4"
+                    Width="32" Height="32" Padding="0">
+                <PathIcon Data="M2 8 L14 16 L2 24 Z M14 8 L26 16 L14 24 Z"
+                          Foreground="{DynamicResource ThemeTextSecondary}" />
+            </Button>
+            <Button Click="OnStopAnimationClick" CornerRadius="4"
+                    Width="32" Height="32" Padding="0"
+                    ToolTip.Tip="{Binding LocStopAnim}">
+                <PathIcon Data="M6 6 L6 26 L26 26 L26 6 Z"
+                          Foreground="{DynamicResource ThemeAccentRed}" />
+            </Button>
+
+            <!-- Animation name -->
+            <Border Background="{DynamicResource ThemeAnimTransport}"
+                    CornerRadius="4" Padding="10,4" Margin="12,0,0,0"
+                    VerticalAlignment="Center">
+                <TextBlock Text="{Binding CurrentAnimationName, FallbackValue=''}"
+                           Foreground="{DynamicResource ThemeTextPrimary}" FontSize="13"
+                           FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+            </Border>
+
+            <!-- Progress + time -->
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"
+                        Margin="8,0,0,0">
+                <ProgressBar Value="{Binding AnimationProgress}" Maximum="1.0"
+                             Height="4" Width="120" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding AnimationTimeText, FallbackValue=''}"
+                           Foreground="{DynamicResource ThemeTextMuted}" FontSize="11"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Spacer -->
+
+        <!-- Camera view buttons -->
+        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+            <Button Click="OnCameraResetClick" CornerRadius="4"
+                    Width="32" Height="32" Padding="0"
+                    ToolTip.Tip="Reset view">
+                <Image x:Name="CameraResetImg" Width="20" Height="20" />
+            </Button>
+            <Button Click="OnCameraFrontClick" CornerRadius="4"
+                    Width="32" Height="32" Padding="0"
+                    ToolTip.Tip="{Binding LocFrontView}">
+                <Image x:Name="CameraFrontImg" Width="20" Height="20" />
+            </Button>
+            <Button Click="OnCameraSideClick" CornerRadius="4"
+                    Width="32" Height="32" Padding="0"
+                    ToolTip.Tip="{Binding LocLeftView}">
+                <Image x:Name="CameraSideImg" Width="20" Height="20" />
+            </Button>
+            <Button Click="OnCameraTopClick" CornerRadius="4"
+                    Width="32" Height="32" Padding="0"
+                    ToolTip.Tip="{Binding LocTopView}">
+                <Image x:Name="CameraTopImg" Width="20" Height="20" />
+            </Button>
+        </StackPanel>
+    </Grid>
+</UserControl>

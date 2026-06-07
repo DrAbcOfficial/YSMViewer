@@ -6,6 +6,7 @@
              xmlns:a="https://sunce.tech/aura3d"
              xmlns:v="clr-namespace:YSMViewer.Views"
              xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Svg.Controls.Skia.Avalonia"
+             xmlns:shared="clr-namespace:YSMViewer.Views.Shared"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
              x:Class="YSMViewer.Views.MainView"
              x:DataType="vm:MainViewModel"
@@ -59,46 +60,7 @@
     <Panel>
     <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource ThemeBgViewport}">
 
-        <!-- ===== Top Bar ===== -->
-        <Border Grid.Row="0" Background="{DynamicResource ThemeBgSurface}"
-                BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,0,0,1">
-            <Grid ColumnDefinitions="Auto,Auto,*,Auto" MinHeight="48" Margin="16,0">
-                <Button x:Name="OpenButton" Content="{Binding LocOpenFile}"
-                        Click="OnOpenButtonClick"
-                        IsEnabled="{Binding !IsLoading}"
-                        Background="{DynamicResource ThemeAccentRed}" Foreground="White"
-                        FontSize="13" Padding="16,7" CornerRadius="6" FontWeight="SemiBold" />
-                <Border Grid.Column="1" IsVisible="{Binding IsLoading}" Margin="12,0,0,0"
-                        VerticalAlignment="Center">
-                    <ProgressBar Width="80" Height="3" IsIndeterminate="True" />
-                </Border>
-                <TextBlock Grid.Column="2" Text="{Binding StatusText}"
-                           Foreground="{DynamicResource ThemeTextSecondary}" FontSize="12"
-                           VerticalAlignment="Center" Margin="16,0,0,0"
-                           TextTrimming="CharacterEllipsis" />
-                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8"
-                            VerticalAlignment="Center">
-                    <Button x:Name="LanguageButton"
-                            Width="36" Height="36" Padding="0" CornerRadius="6"
-ToolTip.Tip="{Binding LocSwitchLang}"
-                             Click="OnLanguageButtonClick">
-                        <Image x:Name="LangSvgImage" Width="20" Height="20" />
-                    </Button>
-                    <Button x:Name="ThemeToggleButton"
-                            Click="OnThemeToggleClick"
-                            Width="36" Height="36" Padding="0" CornerRadius="6"
-                            ToolTip.Tip="{Binding LocToggleTheme}">
-                        <Image x:Name="ThemeSvgImage" Width="20" Height="20" />
-                    </Button>
-                    <Button x:Name="GitHubButton"
-                            Click="OnGitHubClick"
-                            Width="36" Height="36" Padding="0" CornerRadius="6"
-                            ToolTip.Tip="{Binding LocViewGitHub}">
-                        <Image x:Name="GitHubSvgImage" Width="20" Height="20" />
-                    </Button>
-                </StackPanel>
-            </Grid>
-        </Border>
+        <shared:ModelToolBar Grid.Row="0" DataContext="{Binding}" />
 
         <!-- ===== Main Content ===== -->
         <Grid Grid.Row="1" ColumnDefinitions="*,3*,*">
@@ -445,92 +407,7 @@ ToolTip.Tip="{Binding LocSwitchLang}"
             </Border>
         </Grid>
 
-        <!-- ===== Bottom Bar ===== -->
-        <Border Grid.Row="2" Background="{DynamicResource ThemeBgSurface}"
-                BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,1,0,0"
-                Padding="16,0" Height="48">
-            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto"
-                  VerticalAlignment="Center">
-                <!-- Animation controls (visible when animations exist) -->
-                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center"
-                            IsVisible="{Binding HasAnimations}">
-                    <Button x:Name="PrevAnimBtn"
-                            IsEnabled="{Binding CanPreviousAnimation}"
-                            Click="OnPreviousAnimationClick" CornerRadius="4"
-                            Width="32" Height="32" Padding="0">
-                        <PathIcon Data="M2 16 L14 8 L14 24 Z M14 16 L26 8 L26 24 Z"
-                                  Foreground="{DynamicResource ThemeTextSecondary}" />
-                    </Button>
-                    <Button x:Name="PlayPauseBtn"
-                            Click="OnPlayPauseClick" CornerRadius="4"
-                            Background="{DynamicResource ThemeAccentRed}" Foreground="White"
-                            Width="36" Height="36" Padding="0">
-                        <PathIcon x:Name="PlayPauseIcon"
-                                  Data="M8 4 L8 28 L24 16 Z"
-                                  Foreground="White" />
-                    </Button>
-                    <Button x:Name="NextAnimBtn"
-                            IsEnabled="{Binding CanNextAnimation}"
-                            Click="OnNextAnimationClick" CornerRadius="4"
-                            Width="32" Height="32" Padding="0">
-                        <PathIcon Data="M2 8 L14 16 L2 24 Z M14 8 L26 16 L14 24 Z"
-                                  Foreground="{DynamicResource ThemeTextSecondary}" />
-                    </Button>
-                    <Button Click="OnStopAnimationClick" CornerRadius="4"
-                            Width="32" Height="32" Padding="0"
-                            ToolTip.Tip="{Binding LocStopAnim}">
-                        <PathIcon Data="M6 6 L6 26 L26 26 L26 6 Z"
-                                  Foreground="{DynamicResource ThemeAccentRed}" />
-                    </Button>
-                </StackPanel>
-
-                <!-- Animation name + progress (visible when animations exist) -->
-                <Border Grid.Column="1" Background="{DynamicResource ThemeAnimTransport}"
-                        CornerRadius="4" Padding="10,4" Margin="12,0,0,0"
-                        VerticalAlignment="Center"
-                        IsVisible="{Binding HasAnimations}">
-                    <TextBlock Text="{Binding CurrentAnimationName, FallbackValue=''}"
-                               Foreground="{DynamicResource ThemeTextPrimary}" FontSize="13"
-                               FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                </Border>
-
-                <!-- Progress + time (column 3, visible when animations exist) -->
-                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8"
-                            IsVisible="{Binding HasAnimations}" VerticalAlignment="Center">
-                    <ProgressBar Value="{Binding AnimationProgress}" Maximum="1.0"
-                                 Height="4" Width="120" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding AnimationTimeText, FallbackValue=''}"
-                               Foreground="{DynamicResource ThemeTextMuted}" FontSize="11"
-                               VerticalAlignment="Center" />
-                </StackPanel>
-
-                <!-- Spacer (column 4) -->
-
-                <!-- Camera view buttons -->
-                <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                    <Button Click="OnCameraResetClick" CornerRadius="4"
-                            Width="32" Height="32" Padding="0"
-                            ToolTip.Tip="Reset view">
-                        <Image x:Name="CameraResetImg" Width="20" Height="20" />
-                    </Button>
-                    <Button Click="OnCameraFrontClick" CornerRadius="4"
-                            Width="32" Height="32" Padding="0"
-                            ToolTip.Tip="{Binding LocFrontView}">
-                        <Image x:Name="CameraFrontImg" Width="20" Height="20" />
-                    </Button>
-                    <Button Click="OnCameraLeftClick" CornerRadius="4"
-                            Width="32" Height="32" Padding="0"
-                            ToolTip.Tip="{Binding LocLeftView}">
-                        <Image x:Name="CameraLeftImg" Width="20" Height="20" />
-                    </Button>
-                    <Button Click="OnCameraTopClick" CornerRadius="4"
-                            Width="32" Height="32" Padding="0"
-                            ToolTip.Tip="{Binding LocTopView}">
-                        <Image x:Name="CameraTopImg" Width="20" Height="20" />
-                    </Button>
-                </StackPanel>
-            </Grid>
-        </Border>
+        <shared:ModelBottomBar Grid.Row="2" DataContext="{Binding}" />
 </Grid>
 
     <!-- Toast overlay -->

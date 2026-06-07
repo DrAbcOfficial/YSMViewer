@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using Avalonia.Media.Imaging;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 using YSMViewer.Models.Document;
 using YSMViewer.Rendering;
@@ -22,6 +23,16 @@ public sealed partial class MainViewModel : ViewModelBase
     public bool SupportsBoneVisibility => Renderer.Capabilities.SupportsBoneVisibility;
     public bool SupportsAutoRotation => Renderer.Capabilities.SupportsAutoRotation;
     public bool IsBrowserReadOnly => !SupportsComponentVisibility && !SupportsBoneVisibility;
+
+    public ObservableCollection<string> AnimationNames { get; } = [];
+    public ObservableCollection<ComponentViewModel> Components { get; } = [];
+    public ObservableCollection<BoneTreeItemViewModel> BoneTreeRoots { get; } = [];
+    public ObservableCollection<TextureItemViewModel> TextureItems { get; } = [];
+
+    private YsmModelDocument? _currentDocument;
+
+    public string? StartupFilePath { get; set; }
+    public string? StartupFileUrl { get; set; }
 
     public MainViewModel(IRenderer renderer)
     {
@@ -148,18 +159,6 @@ public sealed partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     public partial string LocEmptyFolder { get; set; } = "";
 
-
-
-    private async Task OnFileSelectedFromBrowser(string filePath)
-    {
-        await LoadFileAsync(filePath);
-    }
-
-    private void OnScanError(string message)
-    {
-        Notifications.Show(message, NotificationType.Warning);
-    }
-
     [ObservableProperty]
     public partial bool IsLoading { get; set; }
 
@@ -232,16 +231,15 @@ public sealed partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     public partial TextureItemViewModel? SelectedTexture { get; set; }
 
-    public ObservableCollection<ComponentViewModel> Components { get; } = [];
-    public ObservableCollection<string> AnimationNames { get; } = [];
-    public ObservableCollection<BoneTreeItemViewModel> BoneTreeRoots { get; } = [];
-    public ObservableCollection<TextureItemViewModel> TextureItems { get; } = [];
+    private async Task OnFileSelectedFromBrowser(string filePath)
+    {
+        await LoadFileAsync(filePath);
+    }
 
-    private YsmModelDocument? _currentDocument;
-
-    public string? StartupFilePath { get; set; }
-
-    public string? StartupFileUrl { get; set; }
+    private void OnScanError(string message)
+    {
+        Notifications.Show(message, NotificationType.Warning);
+    }
 
     public async Task LoadStartupFileIfNeeded()
     {
@@ -283,10 +281,7 @@ public sealed partial class MainViewModel : ViewModelBase
     {
         HasError = false;
         ErrorDetail = string.Empty;
-        HasAnimations = false;
-        AnimationNames.Clear();
-        CurrentAnimationName = string.Empty;
-        IsAnimating = false;
+        ResetAnimationState();
 
         try
         {
@@ -294,7 +289,6 @@ public sealed partial class MainViewModel : ViewModelBase
             StatusText = "Parsing YSM...";
 
             var document = await Task.Run(() => YsmLoaderService.LoadDocumentFromFile(filePath));
-
             PopulateModelData(document);
         }
         catch (Exception ex)
@@ -312,10 +306,7 @@ public sealed partial class MainViewModel : ViewModelBase
     {
         HasError = false;
         ErrorDetail = string.Empty;
-        HasAnimations = false;
-        AnimationNames.Clear();
-        CurrentAnimationName = string.Empty;
-        IsAnimating = false;
+        ResetAnimationState();
 
         try
         {
@@ -323,11 +314,7 @@ public sealed partial class MainViewModel : ViewModelBase
             StatusText = "Parsing YSM...";
 
             YsmModelDocument? document = null;
-            await Task.Run(() =>
-            {
-                document = YsmLoaderService.LoadDocumentFromBytes(data);
-            });
-
+            await Task.Run(() => { document = YsmLoaderService.LoadDocumentFromBytes(data); });
             PopulateModelData(document!);
         }
         catch (Exception ex)
@@ -413,23 +400,11 @@ public sealed partial class MainViewModel : ViewModelBase
             });
         }
 
-        if (SupportsAnimation && Renderer is IAnimationRenderer animRenderer)
-        {
-            if (document.Animations.Count > 0)
-            {
-                HasAnimations = animRenderer.AnimationNames.Count > 0;
-
-                foreach (var name in animRenderer.AnimationNames)
-                    AnimationNames.Add(name);
-
-                CanPreviousAnimation = animRenderer.AnimationNames.Count > 0;
-                CanNextAnimation = animRenderer.AnimationNames.Count > 0;
-            }
-        }
-
         BuildBoneTree();
 
         Renderer.LoadModel(document);
+
+        PopulateAnimationData(document);
 
         StatusText = $"Loaded: {ModelName} (V{ModelVersion})";
         Notifications.Show($"Loaded {ModelDisplayName}", NotificationType.Success);
@@ -438,80 +413,6 @@ public sealed partial class MainViewModel : ViewModelBase
     public ComponentViewModel? GetComponent(string id)
     {
         return Components.FirstOrDefault(c => c.ComponentId == id);
-    }
-
-    partial void OnIsAnimatingChanged(bool value)
-    {
-        if (Renderer is IAnimationRenderer animRenderer)
-        {
-            if (value && CurrentAnimationName is { Length: > 0 })
-                animRenderer.PlayAnimation(CurrentAnimationName);
-        }
-    }
-
-    public void SelectAnimation(string name)
-    {
-        if (Renderer is not IAnimationRenderer animRenderer) return;
-        if (!animRenderer.AnimationNames.Contains(name)) return;
-
-        CurrentAnimationName = name;
-        animRenderer.PlayAnimation(name);
-        AnimationProgress = 0f;
-        IsAnimating = true;
-        UpdateAnimationNavigationState();
-    }
-
-    public void NextAnimation()
-    {
-        if (Renderer is not IAnimationRenderer animRenderer) return;
-        if (animRenderer.AnimationNames.Count == 0) return;
-
-        var names = AnimationNames;
-        int currentIndex = names.IndexOf(CurrentAnimationName);
-        if (currentIndex < 0) currentIndex = 0;
-        var nextIndex = (currentIndex + 1) % names.Count;
-        SelectAnimation(names[nextIndex]);
-    }
-
-    public void StopAnimation()
-    {
-        IsAnimating = false;
-        CurrentAnimationName = string.Empty;
-        AnimationProgress = 0f;
-        AnimationTimeText = string.Empty;
-
-        if (Renderer is IAnimationRenderer animRenderer)
-            animRenderer.StopAnimation();
-    }
-
-    public void PreviousAnimation()
-    {
-        if (Renderer is not IAnimationRenderer animRenderer) return;
-        if (animRenderer.AnimationNames.Count == 0) return;
-
-        var names = AnimationNames;
-        int currentIndex = names.IndexOf(CurrentAnimationName);
-        if (currentIndex < 0) currentIndex = 0;
-        var prevIndex = (currentIndex - 1 + names.Count) % names.Count;
-        SelectAnimation(names[prevIndex]);
-    }
-
-    private void UpdateAnimationNavigationState()
-    {
-        if (Renderer is IAnimationRenderer animRenderer)
-        {
-            var names = animRenderer.AnimationNames;
-            CanPreviousAnimation = names.Count > 0;
-            CanNextAnimation = names.Count > 0;
-        }
-    }
-
-    public void UpdateAnimation(float deltaTime)
-    {
-        if (!IsAnimating || Renderer is not IAnimationRenderer animRenderer) return;
-
-        animRenderer.Update(deltaTime);
-        AnimationProgress = 0f;
     }
 
     public void SetComponentVisible(string componentId, bool visible)
@@ -526,87 +427,15 @@ public sealed partial class MainViewModel : ViewModelBase
             interactive.SetBoneVisible(boneId, visible);
     }
 
-    private void BuildBoneTree()
-    {
-        BoneTreeRoots.Clear();
-        if (_currentDocument is null) return;
-
-        var boneParentMap = new Dictionary<string, string?>();
-        foreach (var model in _currentDocument.Models)
-        {
-            foreach (var bone in model.Bones)
-                boneParentMap[bone.Id] = bone.ParentId;
-        }
-
-        var rootBones = new List<YsmBoneInfo>();
-        foreach (var model in _currentDocument.Models)
-        {
-            foreach (var bone in model.Bones)
-            {
-                if (bone.ParentId is null || !boneParentMap.ContainsKey(bone.ParentId))
-                    rootBones.Add(bone);
-            }
-        }
-
-        foreach (var bone in rootBones)
-        {
-            var item = BuildBoneTreeItem(bone, _currentDocument, []);
-            if (item is not null)
-                BoneTreeRoots.Add(item);
-        }
-    }
-
-    private BoneTreeItemViewModel? BuildBoneTreeItem(YsmBoneInfo bone, YsmModelDocument document, HashSet<string> visited)
-    {
-        if (!visited.Add(bone.Id))
-            return null;
-
-        var item = new BoneTreeItemViewModel
-        {
-            Name = bone.Name,
-            BoneId = bone.Id,
-            IsVisible = true,
-            OnVisibilityToggled = (id, vis) => SetBoneVisible(id, vis),
-        };
-
-        var childBones = new List<YsmBoneInfo>();
-        foreach (var model in document.Models)
-        {
-            foreach (var child in model.Bones)
-            {
-                if (child.ParentId == bone.Id)
-                    childBones.Add(child);
-            }
-        }
-
-        foreach (var child in childBones)
-        {
-            if (visited.Contains(child.Id))
-                continue;
-            var childItem = BuildBoneTreeItem(child, document, visited);
-            if (childItem is not null)
-                item.Children.Add(childItem);
-        }
-
-        item.HasChildren = item.Children.Count > 0;
-        item.Icon = item.HasChildren ? "📁" : "🧊";
-        return item;
-    }
-
-    public void ExpandAllBones()
-    {
-        foreach (var root in BoneTreeRoots)
-            root.SetExpandedRecursive(true);
-    }
-
-    public void CollapseAllBones()
-    {
-        foreach (var root in BoneTreeRoots)
-            root.SetExpandedRecursive(false);
-    }
-
     private void AddTextureEntry(string name, byte[] data, int width, int height, string category)
     {
+        Bitmap? thumbnail = null;
+        if (data is { Length: > 0 })
+        {
+            try { thumbnail = new Bitmap(new MemoryStream(data)); }
+            catch { }
+        }
+
         TextureItems.Add(new TextureItemViewModel
         {
             Name = name,
@@ -614,99 +443,7 @@ public sealed partial class MainViewModel : ViewModelBase
             DataSize = data.Length,
             Width = width,
             Height = height,
-            Thumbnail = null,
+            Thumbnail = thumbnail,
         });
     }
-}
-
-public sealed partial class ComponentViewModel : ObservableObject
-{
-    [ObservableProperty]
-    public partial string Name { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial bool IsVisible { get; set; } = false;
-
-    public string ComponentId { get; set; } = string.Empty;
-
-    public Action<string, bool>? OnVisibilityToggled { get; set; }
-
-    partial void OnIsVisibleChanged(bool value)
-    {
-        OnVisibilityToggled?.Invoke(ComponentId, value);
-    }
-}
-
-public sealed partial class BoneTreeItemViewModel : ObservableObject
-{
-    [ObservableProperty]
-    public partial string Name { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial bool IsVisible { get; set; } = true;
-
-    [ObservableProperty]
-    public partial bool IsExpanded { get; set; } = true;
-
-    [ObservableProperty]
-    public partial bool HasChildren { get; set; }
-
-    [ObservableProperty]
-    public partial string Icon { get; set; } = "🧊";
-
-    public string BoneId { get; set; } = string.Empty;
-    public ObservableCollection<BoneTreeItemViewModel> Children { get; } = [];
-
-    public Action<string, bool>? OnVisibilityToggled { get; set; }
-
-    partial void OnIsVisibleChanged(bool value)
-    {
-        OnVisibilityToggled?.Invoke(BoneId, value);
-        foreach (var child in Children)
-            child.IsVisible = value;
-    }
-
-    public void SetExpandedRecursive(bool expanded)
-    {
-        IsExpanded = expanded;
-        foreach (var child in Children)
-            child.SetExpandedRecursive(expanded);
-    }
-}
-
-public sealed partial class TextureItemViewModel : ObservableObject
-{
-    [ObservableProperty]
-    public partial string Name { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial string Category { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial Avalonia.Media.Imaging.Bitmap? Thumbnail { get; set; }
-
-    [ObservableProperty]
-    public partial int Width { get; set; }
-
-    [ObservableProperty]
-    public partial int Height { get; set; }
-
-    [ObservableProperty]
-    public partial long DataSize { get; set; }
-
-    public string SizeDisplay => DataSize < 1024
-        ? $"{DataSize} B"
-        : $"{DataSize / 1024.0:F1} KB";
-
-    public string DimensionsDisplay => Width > 0 && Height > 0
-        ? $"{Width} x {Height}"
-        : "Unknown";
-
-    public Avalonia.Media.IBrush BadgeBrush => Category switch
-    {
-        "Avatar" => new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 158, 206, 106)),
-        "Background" => new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 224, 175, 104)),
-        "Special" => new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 247, 118, 142)),
-        _ => new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 122, 162, 247)),
-    };
 }

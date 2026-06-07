@@ -241,15 +241,6 @@ namespace YSMViewer.Resources {
         }
         
         /// <summary>
-        ///   查找类似 Open YSM Model 的本地化字符串。
-        /// </summary>
-        public static string OpenYSMTitle {
-            get {
-                return ResourceManager.GetString("OpenYSMTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Ready. Open a .ysm file to begin. 的本地化字符串。
         /// </summary>
         public static string ReadyStatus {
@@ -309,6 +300,15 @@ namespace YSMViewer.Resources {
         public static string ToggleTheme {
             get {
                 return ResourceManager.GetString("ToggleTheme", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   查找类似 Top view 的本地化字符串。
+        /// </summary>
+        public static string TopView {
+            get {
+                return ResourceManager.GetString("TopView", resourceCulture);
             }
         }
         

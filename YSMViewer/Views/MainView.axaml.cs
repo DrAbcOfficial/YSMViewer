@@ -1,16 +1,15 @@
 using Aura3D.Avalonia;
-using Aura3D.Core.Nodes;
 using Aura3D.Core.Renderers;
 using Aura3D.Core.Resources;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
-using Avalonia.Svg.Skia;
-using Svg.Model;
 using System.Numerics;
 using YSMViewer.Rendering;
+using YSMViewer.Rendering.Aura3D;
 using YSMViewer.Services;
 using YSMViewer.ViewModels;
 
@@ -22,15 +21,8 @@ public partial class MainView : UserControl
     private bool _isDragging;
     private bool _isPanning;
     private bool _gizmoIsDragging;
-    private Avalonia.Point _lastMousePos;
-    private Avalonia.Point _gizmoLastPos;
-
-    private static readonly string[] ThemeSvgPaths =
-    [
-        "avares://YSMViewer/Assets/svg/mode-system.svg",
-        "avares://YSMViewer/Assets/svg/mode-light.svg",
-        "avares://YSMViewer/Assets/svg/mode-dark.svg",
-    ];
+    private Point _lastMousePos;
+    private Point _gizmoLastPos;
 
     public MainView()
     {
@@ -40,73 +32,37 @@ public partial class MainView : UserControl
         PointerReleased += OnPointerReleased;
         PointerMoved += OnPointerMoved;
         PointerWheelChanged += OnPointerWheelChanged;
-        KeyDown += OnKeyDown;
 
         DragDrop.AddDropHandler(this, OnDrop);
         DragDrop.AddDragOverHandler(this, OnDragOverHandler);
         DragDrop.AddDragEnterHandler(this, OnDragEnterHandler);
         DragDrop.AddDragLeaveHandler(this, OnDragLeaveHandler);
-
-        ThemeService.Instance.ModeChanged += OnThemeChanged;
-        UpdateThemeIcon();
     }
 
-    private void OnThemeChanged(AppThemeMode mode)
+    private async void OnOpenButtonClick(object? sender, RoutedEventArgs e)
     {
-        UpdateThemeIcon();
-        ApplyAllSvgColors();
+        if (DataContext is not MainViewModel vm) return;
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel?.StorageProvider is not { } storage) return;
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Open YSM Model",
+            AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType("YSM Models") { Patterns = ["*.ysm"] }],
+        });
+        if (files is not { Count: > 0 }) return;
+        await using var stream = await files[0].OpenReadAsync();
+        using var ms = new System.IO.MemoryStream();
+        await stream.CopyToAsync(ms);
+        await vm.LoadFromBytesAsync(ms.ToArray());
+    }
+
+    private void OnLoaded(object? sender, RoutedEventArgs e)
+    {
         UpdateSceneAppearance();
-    }
 
-    private void UpdateThemeIcon()
-    {
-        var img = this.FindControl<Image>("ThemeSvgImage");
-        if (img is null) return;
-
-        var mode = ThemeService.Instance.CurrentMode;
-        LoadSvgWithColor(img, ThemeSvgPaths[(int)mode]);
-
-        var btn = this.FindControl<Button>("ThemeToggleButton");
-        if (btn is not null)
-            ToolTip.SetTip(btn, mode switch
-            {
-                AppThemeMode.Dark => "Switch to System theme",
-                AppThemeMode.System => "Switch to Light mode",
-                _ => "Switch to Dark mode",
-            });
-    }
-
-    private void ApplyAllSvgColors()
-    {
-        var paths = new (string Name, string Path)[]
-        {
-            ("LangSvgImage", "avares://YSMViewer/Assets/svg/lang.svg"),
-            ("ThemeSvgImage", ThemeSvgPaths[(int)ThemeService.Instance.CurrentMode]),
-            ("GitHubSvgImage", "avares://YSMViewer/Assets/svg/github.svg"),
-            ("CameraResetImg", "avares://YSMViewer/Assets/svg/origin.svg"),
-            ("CameraFrontImg", "avares://YSMViewer/Assets/svg/up-junction.svg"),
-            ("CameraLeftImg", "avares://YSMViewer/Assets/svg/left-junction.svg"),
-            ("CameraTopImg", "avares://YSMViewer/Assets/svg/down-junction.svg"),
-        };
-
-        foreach (var (name, path) in paths)
-        {
-            var img = this.FindControl<Image>(name);
-            if (img is not null)
-                LoadSvgWithColor(img, path);
-        }
-    }
-
-    private static void LoadSvgWithColor(Image image, string svgPath)
-    {
-        var color = ThemeService.Instance.IsDarkTheme() ? "#8b949e" : "#656d76";
-        try
-        {
-            var source = SvgSource.Load(svgPath, new Uri("avares://YSMViewer/"));
-            source.ReLoad(new SvgParameters(null, $":root {{ color: {color}; }}"));
-            image.Source = new SvgImage { Source = source };
-        }
-        catch { }
+        if (DataContext is MainViewModel vm)
+            _ = vm.LoadStartupFileIfNeeded();
     }
 
     private void UpdateSceneAppearance()
@@ -115,45 +71,6 @@ public partial class MainView : UserControl
         if (DataContext is MainViewModel vm)
             vm.Renderer.SetTheme(new RenderTheme(rgba[1], rgba[2], rgba[3], rgba[0],
                 ThemeService.Instance.IsDarkTheme()));
-    }
-
-    private void OnThemeToggleClick(object? sender, RoutedEventArgs e)
-    {
-        ThemeService.Instance.CycleTheme();
-    }
-
-    private async void OnGitHubClick(object? sender, RoutedEventArgs e)
-    {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is null) return;
-        await topLevel.Launcher.LaunchUriAsync(new Uri("https://github.com/DrAbcOfficial/YSMViewer"));
-    }
-
-    private void OnLanguageButtonClick(object? sender, RoutedEventArgs e)
-    {
-        var menu = new ContextMenu();
-
-        var enIcon = new Image { Width = 18, Height = 18 };
-        LoadSvgWithColor(enIcon, "avares://YSMViewer/Assets/svg/lang-en.svg");
-        var enItem = new MenuItem { Header = "English", Icon = enIcon };
-        enItem.Click += (_, _) =>
-        {
-            LocalizationService.Instance.SetLanguage("en");
-            menu.Close();
-        };
-        menu.Items.Add(enItem);
-
-        var zhIcon = new Image { Width = 18, Height = 18 };
-        LoadSvgWithColor(zhIcon, "avares://YSMViewer/Assets/svg/lang-cn.svg");
-        var zhItem = new MenuItem { Header = "中文", Icon = zhIcon };
-        zhItem.Click += (_, _) =>
-        {
-            LocalizationService.Instance.SetLanguage("zh");
-            menu.Close();
-        };
-        menu.Items.Add(zhItem);
-
-        menu.Open(sender as Control ?? this);
     }
 
     private async void OnDrop(object? sender, DragEventArgs e)
@@ -225,44 +142,6 @@ public partial class MainView : UserControl
     {
         var overlay = this.FindControl<Border>("DragOverlay");
         overlay?.IsVisible = false;
-    }
-
-    private void OnLoaded(object? sender, RoutedEventArgs e)
-    {
-        ApplyAllSvgColors();
-        UpdateSceneAppearance();
-
-        if (DataContext is MainViewModel vm)
-            _ = vm.LoadStartupFileIfNeeded();
-    }
-
-    private async void OnOpenButtonClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainViewModel vm) return;
-
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel?.StorageProvider is not { } storage) return;
-
-        var files = await storage.OpenFilePickerAsync(
-            new FilePickerOpenOptions
-            {
-                Title = "Open YSM Model",
-                AllowMultiple = false,
-                FileTypeFilter =
-                [
-                    new FilePickerFileType("YSM Models")
-                    {
-                        Patterns = ["*.ysm"],
-                    },
-                ],
-            });
-
-        if (files is not { Count: > 0 }) return;
-
-        await using var stream = await files[0].OpenReadAsync();
-        using var ms = new System.IO.MemoryStream();
-        await stream.CopyToAsync(ms);
-        await vm.LoadFromBytesAsync(ms.ToArray());
     }
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -338,8 +217,6 @@ public partial class MainView : UserControl
             interactive.ZoomCamera((float)e.Delta.Y);
     }
 
-    private void OnKeyDown(object? sender, KeyEventArgs e) { }
-
     private void OnDismissErrorClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainViewModel vm)
@@ -353,45 +230,12 @@ public partial class MainView : UserControl
             var topLevel = TopLevel.GetTopLevel(this);
             if (topLevel?.Clipboard is not null)
             {
-                var data = new Avalonia.Input.DataTransfer();
-                data.Add(Avalonia.Input.DataTransferItem.CreateText(vm.ErrorDetail));
+                var data = new DataTransfer();
+                data.Add(DataTransferItem.CreateText(vm.ErrorDetail));
                 await topLevel.Clipboard.SetDataAsync(data);
                 vm.Notifications.Show("Copied to clipboard", NotificationType.Info, 2000);
             }
         }
-    }
-
-    private void OnPlayPauseClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-        {
-            vm.IsAnimating = !vm.IsAnimating;
-            if (sender is Button btn)
-            {
-                var icon = btn.FindControl<PathIcon>("PlayPauseIcon");
-                icon?.Data = vm.IsAnimating
-                    ? Avalonia.Media.Geometry.Parse("M6 4 L6 28 L12 28 L12 4 Z M18 4 L18 28 L24 28 L24 4 Z")
-                    : Avalonia.Media.Geometry.Parse("M8 4 L8 28 L24 16 Z");
-            }
-        }
-    }
-
-    private void OnPreviousAnimationClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-            vm.PreviousAnimation();
-    }
-
-    private void OnNextAnimationClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-            vm.NextAnimation();
-    }
-
-    private void OnAnimationSelectionChanged(object? sender, SelectionChangedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm && e.AddedItems.Count > 0 && e.AddedItems[0] is string name)
-            vm.SelectAnimation(name);
     }
 
     private void OnShowAllComponentsClick(object? sender, RoutedEventArgs e)
@@ -424,41 +268,10 @@ public partial class MainView : UserControl
             vm.CollapseAllBones();
     }
 
-    private void OnStopAnimationClick(object? sender, RoutedEventArgs e)
+    private void OnAnimationSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (DataContext is MainViewModel vm)
-        {
-            vm.StopAnimation();
-            PlayPauseBtn.Content = new PathIcon
-            {
-                Data = StreamGeometry.Parse("M8 4 L8 28 L24 16 Z"),
-                Foreground = Brushes.White,
-            };
-        }
-    }
-
-    private void OnCameraResetClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm && vm.Renderer is IInteractiveRenderer interactive)
-            interactive.ResetCamera();
-    }
-
-    private void OnCameraFrontClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-            vm.Renderer.SetCameraView(RenderCameraView.Front);
-    }
-
-    private void OnCameraLeftClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-            vm.Renderer.SetCameraView(RenderCameraView.Side);
-    }
-
-    private void OnCameraTopClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-            vm.Renderer.SetCameraView(RenderCameraView.Top);
+        if (DataContext is MainViewModel vm && e.AddedItems.Count > 0 && e.AddedItems[0] is string name)
+            vm.SelectAnimation(name);
     }
 
     private void OnGizmoSetupPipeline(object? sender, RoutedEventArgs args)
@@ -514,7 +327,7 @@ public partial class MainView : UserControl
 
     private void OnGizmoPointerEntered(object? sender, PointerEventArgs e)
     {
-        GizmoBorder.Background = new SolidColorBrush(Avalonia.Media.Color.FromArgb(128, 0, 0, 0));
+        GizmoBorder.Background = new SolidColorBrush(Color.FromArgb(128, 0, 0, 0));
     }
 
     private void OnGizmoPointerExited(object? sender, PointerEventArgs e)

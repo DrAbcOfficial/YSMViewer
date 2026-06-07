@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:YSMViewer.ViewModels"
+             x:Class="YSMViewer.Views.Shared.ModelToolBar"
+             x:DataType="vm:MainViewModel"
+             Background="{DynamicResource ThemeBgSurface}"
+             BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,0,0,1">
+    <Grid ColumnDefinitions="Auto,Auto,*,Auto" MinHeight="48" Margin="16,0">
+        <Button Content="{Binding LocOpenFile}"
+                Click="OnOpenButtonClick"
+                IsEnabled="{Binding !IsLoading}"
+                Background="{DynamicResource ThemeAccentRed}" Foreground="White"
+                FontSize="13" Padding="16,7" CornerRadius="6" FontWeight="SemiBold" />
+        <Border Grid.Column="1" IsVisible="{Binding IsLoading}" Margin="12,0,0,0"
+                VerticalAlignment="Center">
+            <ProgressBar Width="80" Height="3" IsIndeterminate="True" />
+        </Border>
+        <TextBlock Grid.Column="2" Text="{Binding StatusText}"
+                   Foreground="{DynamicResource ThemeTextSecondary}" FontSize="12"
+                   VerticalAlignment="Center" Margin="16,0,0,0"
+                   TextTrimming="CharacterEllipsis" />
+        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8"
+                    VerticalAlignment="Center">
+            <Button Width="36" Height="36" Padding="0" CornerRadius="6"
+                    IsVisible="{Binding IsDesktop}"
+                    ToolTip.Tip="{Binding LocSwitchLang}"
+                    Click="OnLanguageButtonClick">
+                <Image x:Name="LangSvgImage" Width="20" Height="20" />
+            </Button>
+            <Button Width="36" Height="36" Padding="0" CornerRadius="6"
+                    IsVisible="{Binding IsDesktop}"
+                    ToolTip.Tip="{Binding LocToggleTheme}"
+                    Click="OnThemeToggleClick">
+                <Image x:Name="ThemeSvgImage" Width="20" Height="20" />
+            </Button>
+            <Button Width="36" Height="36" Padding="0" CornerRadius="6"
+                    ToolTip.Tip="{Binding LocViewGitHub}"
+                    Click="OnGitHubClick">
+                <Image x:Name="GitHubSvgImage" Width="20" Height="20" />
+            </Button>
+        </StackPanel>
+    </Grid>
+</UserControl>

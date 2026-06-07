@@ -12,6 +12,7 @@ public sealed class AnimationService(
     private readonly Dictionary<string, IAnimatableBone> _boneNodes = boneNodes;
     private readonly Dictionary<string, Vector3> _basePositions = [];
     private readonly Dictionary<string, Vector3> _baseEulers = baseEulers;
+    private readonly List<string> _animationNames = [];
     private MinecraftAnimationFile? _currentFile;
     private MinecraftAnimation? _currentAnimation;
     private float _currentTime;
@@ -20,7 +21,7 @@ public sealed class AnimationService(
     public string? CurrentAnimationName => _currentFile?.Animations
         .FirstOrDefault(kv => kv.Value == _currentAnimation).Key;
 
-    public IReadOnlyList<string> AnimationNames { get; private set; } = [];
+    public IReadOnlyList<string> AnimationNames => _animationNames;
 
     public float AnimationLength => _currentAnimation?.AnimationLength ?? 0f;
     public float CurrentTime => _currentTime;
@@ -40,6 +41,7 @@ public sealed class AnimationService(
         _boneNodes.Clear();
         _basePositions.Clear();
         _baseEulers.Clear();
+        _animationNames.Clear();
 
         foreach (var kv in boneNodes)
         {
@@ -58,16 +60,15 @@ public sealed class AnimationService(
         _currentFile = JsonSerializer.Deserialize(animationJsonData, YsmJsonContext.Default.MinecraftAnimationFile);
         if (_currentFile is null) return;
 
-        var names = new List<string>();
         foreach (var (name, anim) in _currentFile.Animations)
         {
-            names.Add(name);
+            if (!_animationNames.Contains(name))
+                _animationNames.Add(name);
             if (anim.BonesRaw is { ValueKind: JsonValueKind.Object } raw)
             {
                 anim.Bones = ParseBones(raw);
             }
         }
-        AnimationNames = names;
     }
 
     private static Dictionary<string, MinecraftBoneAnimation> ParseBones(JsonElement bonesElement)

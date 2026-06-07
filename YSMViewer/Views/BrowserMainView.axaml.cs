@@ -2,7 +2,6 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using YSMViewer.Rendering;
 using YSMViewer.ViewModels;
 
 namespace YSMViewer.Views;
@@ -20,17 +19,28 @@ public partial class BrowserMainView : UserControl
         DragDrop.AddDragLeaveHandler(this, OnDragLeaveHandler);
     }
 
+    private async void OnOpenButtonClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel?.StorageProvider is not { } storage) return;
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Open YSM Model",
+            AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType("YSM Models") { Patterns = ["*.ysm"] }],
+        });
+        if (files is not { Count: > 0 }) return;
+        await using var stream = await files[0].OpenReadAsync();
+        using var ms = new System.IO.MemoryStream();
+        await stream.CopyToAsync(ms);
+        await vm.LoadFromBytesAsync(ms.ToArray());
+    }
+
     private void OnLoaded(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainViewModel vm)
             _ = vm.LoadStartupFileIfNeeded();
-    }
-
-    private async void OnGitHubClick(object? sender, RoutedEventArgs e)
-    {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is null) return;
-        await topLevel.Launcher.LaunchUriAsync(new Uri("https://github.com/DrAbcOfficial/YSMViewer"));
     }
 
     private async void OnDrop(object? sender, DragEventArgs e)
@@ -88,35 +98,6 @@ public partial class BrowserMainView : UserControl
         overlay?.IsVisible = false;
     }
 
-    private async void OnOpenButtonClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainViewModel vm) return;
-
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel?.StorageProvider is not { } storage) return;
-
-        var files = await storage.OpenFilePickerAsync(
-            new FilePickerOpenOptions
-            {
-                Title = "Open YSM Model",
-                AllowMultiple = false,
-                FileTypeFilter =
-                [
-                    new FilePickerFileType("YSM Models")
-                    {
-                        Patterns = ["*.ysm"],
-                    },
-                ],
-            });
-
-        if (files is not { Count: > 0 }) return;
-
-        await using var stream = await files[0].OpenReadAsync();
-        using var ms = new System.IO.MemoryStream();
-        await stream.CopyToAsync(ms);
-        await vm.LoadFromBytesAsync(ms.ToArray());
-    }
-
     private void OnDismissErrorClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainViewModel vm)
@@ -130,8 +111,8 @@ public partial class BrowserMainView : UserControl
             var topLevel = TopLevel.GetTopLevel(this);
             if (topLevel?.Clipboard is not null)
             {
-                var data = new Avalonia.Input.DataTransfer();
-                data.Add(Avalonia.Input.DataTransferItem.CreateText(vm.ErrorDetail));
+                var data = new DataTransfer();
+                data.Add(DataTransferItem.CreateText(vm.ErrorDetail));
                 await topLevel.Clipboard.SetDataAsync(data);
                 vm.Notifications.Show("Copied to clipboard", NotificationType.Info, 2000);
             }
@@ -144,23 +125,4 @@ public partial class BrowserMainView : UserControl
         if (banner is not null)
             banner.IsVisible = false;
     }
-
-    private void OnCameraFrontClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-            vm.Renderer.SetCameraView(RenderCameraView.Front);
-    }
-
-    private void OnCameraSideClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-            vm.Renderer.SetCameraView(RenderCameraView.Side);
-    }
-
-    private void OnCameraTopClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-            vm.Renderer.SetCameraView(RenderCameraView.Top);
-    }
-
 }
