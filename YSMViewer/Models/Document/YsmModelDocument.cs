@@ -11,13 +11,13 @@ public enum YsmModelCategory
 }
 
 public sealed record YsmModelDocument(
-    YsmModelInfo Info,
+    YsmDocumentModelInfo Info,
     IReadOnlyList<YsmGeometryModel> Models,
     IReadOnlyList<YsmTextureResource> Textures,
     IReadOnlyList<YsmAnimationResource> Animations,
     IReadOnlyList<YsmImageResource> Images);
 
-public sealed record YsmModelInfo(
+public sealed record YsmDocumentModelInfo(
     string Name,
     string DisplayName,
     int Version,
