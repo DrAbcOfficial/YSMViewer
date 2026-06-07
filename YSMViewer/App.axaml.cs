@@ -6,6 +6,7 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using System.Diagnostics.CodeAnalysis;
 using YSMViewer.Rendering.Aura3D;
+using YSMViewer.Rendering.Skia;
 using YSMViewer.Services;
 using YSMViewer.ViewModels;
 using YSMViewer.Views;
@@ -51,7 +52,7 @@ public partial class App : Application
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime single)
         {
-            var renderer = new Aura3DRenderer();
+            var renderer = new SkiaProjectionRenderer();
             var vm = new MainViewModel(renderer);
 
             if (StartupFilePath is not null)
@@ -60,7 +61,7 @@ public partial class App : Application
             if (StartupFileUrl is not null)
                 vm.StartupFileUrl = StartupFileUrl;
 
-            single.MainView = new MainView
+            single.MainView = new BrowserMainView
             {
                 DataContext = vm,
             };

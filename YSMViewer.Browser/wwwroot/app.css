@@ -1,4 +1,30 @@
-﻿/* HTML styles for the splash screen */
+﻿/* Browser banner */
+.browser-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10000;
+    background: #1b2a4e;
+    color: #ffcc00;
+    padding: 8px 16px;
+    text-align: center;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.browser-banner .banner-link {
+    color: #58a6ff;
+    text-decoration: underline;
+    white-space: nowrap;
+}
+
+/* HTML styles for the splash screen */
 .avalonia-splash {
     position: absolute;
     height: 100%;
@@ -9,6 +35,8 @@
     align-items: center;
     display: flex;
     pointer-events: none;
+    top: 0;
+    left: 0;
 }
 
 /* Light theme styles */

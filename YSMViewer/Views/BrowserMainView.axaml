@@ -1,0 +1,409 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:YSMViewer.ViewModels"
+             xmlns:v="clr-namespace:YSMViewer.Views"
+             xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Svg.Controls.Skia.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+             x:Class="YSMViewer.Views.BrowserMainView"
+             x:DataType="vm:MainViewModel"
+             DragDrop.AllowDrop="True">
+
+    <Design.DataContext>
+        <vm:MainViewModel />
+    </Design.DataContext>
+
+    <UserControl.Resources>
+        <vm:NotificationIconConverter x:Key="NotificationIconConverter" />
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="Button">
+            <Setter Property="Background" Value="{DynamicResource ThemeBgButton}" />
+            <Setter Property="Foreground" Value="{DynamicResource ThemeTextSecondary}" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Button:pointerover">
+            <Setter Property="Background" Value="{DynamicResource ThemeBgHover}" />
+        </Style>
+        <Style Selector="Button:pressed">
+            <Setter Property="Background" Value="{DynamicResource ThemeBgActive}" />
+        </Style>
+        <Style Selector="Button:disabled">
+            <Setter Property="Opacity" Value="0.4" />
+        </Style>
+        <Style Selector="Button.view-btn">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorder}" />
+        </Style>
+        <Style Selector="Button.view-btn:pointerover">
+            <Setter Property="Background" Value="{DynamicResource ThemeBgHover}" />
+        </Style>
+        <Style Selector="Expander">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style Selector="Expander /template/ ToggleButton#ExpanderHeader">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="12,10" />
+        </Style>
+        <Style Selector="Expander /template/ ToggleButton#ExpanderHeader:pointerover">
+            <Setter Property="Background" Value="{DynamicResource ThemeBgHover}" />
+        </Style>
+    </UserControl.Styles>
+
+    <Panel>
+    <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource ThemeBgViewport}">
+
+        <!-- Top Bar -->
+        <Border Grid.Row="0" Background="{DynamicResource ThemeBgSurface}"
+                BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto" MinHeight="48" Margin="16,0">
+                <Button x:Name="OpenButton" Content="{Binding LocOpenFile}"
+                        Click="OnOpenButtonClick"
+                        IsEnabled="{Binding !IsLoading}"
+                        Background="{DynamicResource ThemeAccentRed}" Foreground="White"
+                        FontSize="13" Padding="16,7" CornerRadius="6" FontWeight="SemiBold" />
+                <Border Grid.Column="1" IsVisible="{Binding IsLoading}" Margin="12,0,0,0"
+                        VerticalAlignment="Center">
+                    <ProgressBar Width="80" Height="3" IsIndeterminate="True" />
+                </Border>
+                <TextBlock Grid.Column="2" Text="{Binding StatusText}"
+                           Foreground="{DynamicResource ThemeTextSecondary}" FontSize="12"
+                           VerticalAlignment="Center" Margin="16,0,0,0"
+                           TextTrimming="CharacterEllipsis" />
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8"
+                            VerticalAlignment="Center">
+                    <Button x:Name="LanguageButton"
+                            Width="36" Height="36" Padding="0" CornerRadius="6"
+                            ToolTip.Tip="{Binding LocSwitchLang}"
+                            Click="OnLanguageButtonClick">
+                        <Image x:Name="LangSvgImage" Width="20" Height="20" />
+                    </Button>
+                    <Button x:Name="ThemeToggleButton"
+                            Click="OnThemeToggleClick"
+                            Width="36" Height="36" Padding="0" CornerRadius="6"
+                            ToolTip.Tip="{Binding LocToggleTheme}">
+                        <Image x:Name="ThemeSvgImage" Width="20" Height="20" />
+                    </Button>
+                    <Button x:Name="GitHubButton"
+                            Click="OnGitHubClick"
+                            Width="36" Height="36" Padding="0" CornerRadius="6"
+                            ToolTip.Tip="{Binding LocViewGitHub}">
+                        <Image x:Name="GitHubSvgImage" Width="20" Height="20" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+
+            <!-- Viewport -->
+            <Panel Grid.Column="0" x:Name="ViewportPanel">
+                <ContentControl Content="{Binding Renderer.View}" />
+
+                <!-- Empty state overlay -->
+                <Border IsVisible="{Binding !HasModel}"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        CornerRadius="16" Padding="48,40"
+                        Background="{DynamicResource ThemeBgSurface}">
+                    <StackPanel HorizontalAlignment="Center" Spacing="16">
+                        <TextBlock Text="YSMViewer" FontSize="36" FontWeight="Bold"
+                                   Foreground="{DynamicResource ThemeTextPrimary}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding LocEmptyState}"
+                                   FontSize="15" Foreground="{DynamicResource ThemeTextSecondary}"
+                                   HorizontalAlignment="Center" />
+                        <Button Content="{Binding LocOpenFile}" Click="OnOpenButtonClick"
+                                HorizontalAlignment="Center"
+                                Background="{DynamicResource ThemeAccentRed}" Foreground="White"
+                                FontSize="14" Padding="24,10" CornerRadius="8" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Browser mode hint -->
+                <Border IsVisible="{Binding !HasModel}" CornerRadius="8" Padding="16,10"
+                        HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,20,0,0"
+                        Background="#CC000000">
+                    <TextBlock Text="&#x26A0; Web version has limited features. Download desktop client for full experience."
+                               FontSize="12" Foreground="#FFCC00"
+                               TextWrapping="Wrap" HorizontalAlignment="Center" />
+                </Border>
+
+                <!-- Error overlay -->
+                <Border IsVisible="{Binding HasError}"
+                        HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                        Margin="16" CornerRadius="10" Padding="20,16"
+                        MaxWidth="560"
+                        Background="{DynamicResource ThemeErrorBg}" Opacity="0.95">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="{Binding LocErrorTitle}" FontWeight="Bold" FontSize="15"
+                                   Foreground="{DynamicResource ThemeErrorText}" />
+                        <ScrollViewer MaxHeight="140">
+                            <SelectableTextBlock Text="{Binding ErrorDetail}" FontSize="11"
+                                                  Foreground="{DynamicResource ThemeErrorText}" Opacity="0.8"
+                                                  TextWrapping="Wrap" />
+                        </ScrollViewer>
+                        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                            <Button Content="{Binding LocCopy}" Click="OnCopyErrorClick"
+                                    Background="{DynamicResource ThemeBgButton}"
+                                    Foreground="{DynamicResource ThemeTextSecondary}"
+                                    Padding="12,4" CornerRadius="4" FontSize="11" />
+                            <Button Content="{Binding LocDismiss}" Click="OnDismissErrorClick"
+                                    Background="{DynamicResource ThemeAccentRed}" Foreground="White"
+                                    Padding="14,4" CornerRadius="4" FontSize="11" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Panel>
+
+            <!-- Side Panel -->
+            <Border Grid.Column="1" IsVisible="{Binding HasModel}"
+                    Background="{DynamicResource ThemeBgSurface}"
+                    BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1,0,0,0"
+                    MinWidth="240">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Spacing="2" Margin="0,4">
+
+                        <!-- Info Section -->
+                        <Expander IsExpanded="True" Padding="0">
+                            <Expander.Header>
+                                <TextBlock Text="{Binding LocInfo}" FontWeight="SemiBold" FontSize="13"
+                                           Foreground="{DynamicResource ThemeTextPrimary}" />
+                            </Expander.Header>
+                            <StackPanel Spacing="10" Margin="12,8">
+                                <TextBlock Text="{Binding ModelDisplayName}"
+                                           FontSize="18" FontWeight="Bold"
+                                           Foreground="{DynamicResource ThemeTextPrimary}"
+                                           TextWrapping="Wrap" />
+                                <Border Height="1" Background="{DynamicResource ThemeDivider}" />
+                                <StackPanel Spacing="6">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="Version" FontSize="11"
+                                                   Foreground="{DynamicResource ThemeTextMuted}" Width="60" />
+                                        <TextBlock Text="{Binding ModelVersion}"
+                                                   FontSize="12" Foreground="{DynamicResource ThemeTextSecondary}" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="8"
+                                                IsVisible="{Binding HasModelAuthors}">
+                                        <TextBlock Text="Authors" FontSize="11"
+                                                   Foreground="{DynamicResource ThemeTextMuted}" Width="60" />
+                                        <TextBlock Text="{Binding ModelAuthors}"
+                                                   FontSize="12" Foreground="{DynamicResource ThemeTextSecondary}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="8"
+                                                IsVisible="{Binding HasModelLicense}">
+                                        <TextBlock Text="License" FontSize="11"
+                                                   Foreground="{DynamicResource ThemeTextMuted}" Width="60" />
+                                        <TextBlock Text="{Binding ModelLicense}"
+                                                   FontSize="12" Foreground="{DynamicResource ThemeTextSecondary}" />
+                                        <Border Background="{DynamicResource ThemeAccentGreen}" CornerRadius="3"
+                                                Padding="5,1" VerticalAlignment="Center"
+                                                IsVisible="{Binding IsFreeModel}">
+                                            <TextBlock Text="FREE" FontSize="9" FontWeight="Bold"
+                                                       Foreground="{DynamicResource ThemeBgViewport}" />
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Text="{Binding ModelTips}"
+                                           FontSize="11" Foreground="{DynamicResource ThemeTextLabel}"
+                                           TextWrapping="Wrap"
+                                           IsVisible="{Binding HasModelTips}" />
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- Components Section (read-only) -->
+                        <Expander IsExpanded="False" Padding="0">
+                            <Expander.Header>
+                                <TextBlock Text="{Binding LocComponents}" FontWeight="SemiBold" FontSize="13"
+                                           Foreground="{DynamicResource ThemeTextPrimary}" />
+                            </Expander.Header>
+                            <StackPanel Spacing="4" Margin="12,8">
+                                <ItemsControl ItemsSource="{Binding Components}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ComponentViewModel">
+                                            <Border CornerRadius="4" Margin="0,2"
+                                                    Padding="8,4"
+                                                    Background="{DynamicResource ThemeBgElevated}">
+                                                <Grid ColumnDefinitions="Auto,*">
+                                                    <TextBlock Grid.Column="0" Text="&#x25CF;"
+                                                               FontSize="10" VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource ThemeTextMuted}"
+                                                               Margin="4,0,0,0" />
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Name}"
+                                                               Foreground="{DynamicResource ThemeTextPrimary}"
+                                                               FontSize="12" VerticalAlignment="Center"
+                                                               Margin="6,0,0,0"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- Bones Section (read-only) -->
+                        <Expander IsExpanded="False" Padding="0">
+                            <Expander.Header>
+                                <TextBlock Text="{Binding LocBones}" FontWeight="SemiBold" FontSize="13"
+                                           Foreground="{DynamicResource ThemeTextPrimary}" />
+                            </Expander.Header>
+                            <StackPanel Spacing="6" Margin="12,8">
+                                <TreeView ItemsSource="{Binding BoneTreeRoots}"
+                                          Background="Transparent" BorderThickness="0"
+                                          Foreground="{DynamicResource ThemeTextPrimary}" FontSize="12">
+                                    <TreeView.Styles>
+                                        <Style Selector="TreeViewItem">
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="Margin" Value="0" />
+                                        </Style>
+                                    </TreeView.Styles>
+                                    <TreeView.ItemTemplate>
+                                        <TreeDataTemplate ItemsSource="{Binding Children}"
+                                                          x:DataType="vm:BoneTreeItemViewModel">
+                                            <Grid ColumnDefinitions="Auto,*">
+                                                <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="12"
+                                                           VerticalAlignment="Center" Margin="0,0,4,0" />
+                                                <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                                           Foreground="{DynamicResource ThemeTextPrimary}"
+                                                           FontSize="12" VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </Grid>
+                                        </TreeDataTemplate>
+                                    </TreeView.ItemTemplate>
+                                </TreeView>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- Textures Section -->
+                        <Expander IsExpanded="False" Padding="0"
+                                  IsVisible="{Binding HasTextures}">
+                            <Expander.Header>
+                                <TextBlock Text="{Binding LocTextures}" FontWeight="SemiBold" FontSize="13"
+                                           Foreground="{DynamicResource ThemeTextPrimary}" />
+                            </Expander.Header>
+                            <StackPanel Spacing="6" Margin="12,8">
+                                <TextBlock Text="Image resources in this YSM file"
+                                           FontSize="11" Foreground="{DynamicResource ThemeTextMuted}" />
+                                <ItemsControl ItemsSource="{Binding TextureItems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:TextureItemViewModel">
+                                            <Border CornerRadius="6" Margin="0,0,0,6"
+                                                    Padding="8" Background="{DynamicResource ThemeBgElevated}">
+                                                <Grid ColumnDefinitions="56,*,Auto">
+                                                    <Border Grid.Column="0" Width="56" Height="56"
+                                                            CornerRadius="4"
+                                                            Background="{DynamicResource ThemeBgViewport}"
+                                                            ClipToBounds="True">
+                                                        <Image Source="{Binding Thumbnail}"
+                                                               Stretch="UniformToFill"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <StackPanel Grid.Column="1" Margin="8,0,0,0"
+                                                                VerticalAlignment="Center" Spacing="2">
+                                                        <TextBlock Text="{Binding Name}"
+                                                                   FontSize="12" FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource ThemeTextPrimary}"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                                            <TextBlock Text="{Binding DimensionsDisplay}"
+                                                                       FontSize="10" Foreground="{DynamicResource ThemeTextMuted}" />
+                                                            <TextBlock Text="{Binding SizeDisplay}"
+                                                                       FontSize="10" Foreground="{DynamicResource ThemeTextMuted}" />
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                    <Border Grid.Column="2" CornerRadius="3" Padding="5,2"
+                                                            VerticalAlignment="Center"
+                                                            Background="{Binding BadgeBrush}">
+                                                        <TextBlock Text="{Binding Category}" FontSize="10"
+                                                                   Foreground="White" FontWeight="SemiBold" />
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Expander>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- Bottom Bar -->
+        <Border Grid.Row="2" Background="{DynamicResource ThemeBgSurface}"
+                BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,1,0,0"
+                Padding="16,0" Height="48">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto"
+                  VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <Button Classes="view-btn" Click="OnCameraFrontClick"
+                            ToolTip.Tip="{Binding LocFrontView}">
+                        <Image x:Name="CameraFrontImg" Width="20" Height="20" />
+                    </Button>
+                    <Button Classes="view-btn" Click="OnCameraSideClick"
+                            ToolTip.Tip="{Binding LocSideView}">
+                        <Image x:Name="CameraSideImg" Width="20" Height="20" />
+                    </Button>
+                    <Button Classes="view-btn" Click="OnCameraTopClick"
+                            ToolTip.Tip="{Binding LocTopView}">
+                        <Image x:Name="CameraTopImg" Width="20" Height="20" />
+                    </Button>
+                </StackPanel>
+
+                <Button Grid.Column="1" x:Name="AutoRotateBtn"
+                        Click="OnAutoRotateClick" CornerRadius="4"
+                        Margin="12,0,0,0" Padding="10,6" FontSize="12">
+                    <TextBlock x:Name="AutoRotateText" Text="Auto Rotate: ON"
+                               VerticalAlignment="Center" />
+                </Button>
+
+                <!-- Spacer -->
+                <TextBlock Grid.Column="4" Text="{Binding StatusText}"
+                           Foreground="{DynamicResource ThemeTextMuted}" FontSize="11"
+                           VerticalAlignment="Center" HorizontalAlignment="Right"
+                           Margin="0,0,16,0" TextTrimming="CharacterEllipsis" />
+            </Grid>
+        </Border>
+    </Grid>
+
+    <!-- Toast overlay -->
+    <ItemsControl ItemsSource="{Binding Notifications.Notifications}"
+                  HorizontalAlignment="Right" VerticalAlignment="Top"
+                  Margin="16,56,16,0" MaxWidth="380">
+        <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:NotificationViewModel">
+                <Border CornerRadius="8" Padding="12,8" Margin="0,0,0,8"
+                        Background="{DynamicResource ThemeBgElevated}"
+                        BorderBrush="{DynamicResource ThemeAccent}" BorderThickness="1">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding Type, Converter={StaticResource NotificationIconConverter}}"
+                                   FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Text="{Binding Message}" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource ThemeTextPrimary}" FontSize="12"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    </Panel>
+</UserControl>
