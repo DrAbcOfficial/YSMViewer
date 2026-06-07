@@ -34,7 +34,7 @@ internal sealed partial class Program
             catch { }
         }
 
-        await JSHost.ImportAsync("YsmThreeRenderer", "../js/ysm-three-renderer.js");
+        await JSHost.ImportAsync("YsmThreeRenderer", "../ysm-three-renderer.js");
 
         await BuildAvaloniaApp()
             .StartBrowserAppAsync("out");

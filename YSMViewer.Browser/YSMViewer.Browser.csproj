@@ -14,4 +14,8 @@
   <ItemGroup>
     <ProjectReference Include="..\YSMViewer\YSMViewer.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <WasmContent Include="wwwroot\lib\**" />
+  </ItemGroup>
 </Project>
