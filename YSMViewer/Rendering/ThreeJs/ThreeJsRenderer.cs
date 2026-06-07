@@ -4,11 +4,10 @@ using YSMViewer.Models.Document;
 
 namespace YSMViewer.Rendering.ThreeJs;
 
-public sealed class ThreeJsRenderer : IRenderer, IAutoRotateRenderer, IInteractiveRenderer, IDisposable
+public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IDisposable
 {
     private readonly ThreeJsViewHost _viewHost;
     private bool _isInitialized;
-    private bool _isAutoRotating = true;
     private YsmModelDocument? _currentDocument;
 
     private int _lastX, _lastY, _lastW, _lastH;
@@ -25,20 +24,9 @@ public sealed class ThreeJsRenderer : IRenderer, IAutoRotateRenderer, IInteracti
         SupportsComponentVisibility: true,
         SupportsBoneVisibility: true,
         SupportsTextureProjection: false,
-        SupportsAutoRotation: true,
+        SupportsAutoRotation: false,
         SupportsFreeCamera: true,
         SupportsGizmo: false);
-
-    public bool IsAutoRotating
-    {
-        get => _isAutoRotating;
-        set
-        {
-            _isAutoRotating = value;
-            if (_isInitialized)
-                ThreeJsInterop.SetAutoRotate(value);
-        }
-    }
 
     public void LoadModel(YsmModelDocument document)
     {
@@ -46,11 +34,14 @@ public sealed class ThreeJsRenderer : IRenderer, IAutoRotateRenderer, IInteracti
 
         if (!_isInitialized)
         {
+            ThreeJsInterop.ShowCanvas();
             ThreeJsInterop.Init("three-canvas");
             _isInitialized = true;
         }
-
-        ThreeJsInterop.ShowCanvas();
+        else
+        {
+            ThreeJsInterop.ShowCanvas();
+        }
 
         var specJson = ThreeJsPayloadBuilder.BuildSpecJson(document);
         ThreeJsInterop.LoadModelGeometry(specJson);
@@ -61,8 +52,6 @@ public sealed class ThreeJsRenderer : IRenderer, IAutoRotateRenderer, IInteracti
             if (requiredTexIds.Contains(tex.Id) && tex.Data is { Length: > 0 })
                 ThreeJsInterop.AddTextureData(tex.Id, tex.Data);
         }
-
-        ThreeJsInterop.SetAutoRotate(_isAutoRotating);
     }
 
     public void Clear()
@@ -104,11 +93,6 @@ public sealed class ThreeJsRenderer : IRenderer, IAutoRotateRenderer, IInteracti
     {
         if (_isInitialized)
             ThreeJsInterop.SetBoneVisible(boneId, visible);
-    }
-
-    public void Update(float deltaTime)
-    {
-        // JS handles auto-rotation independently via requestAnimationFrame loop
     }
 
     public void Dispose()

@@ -66,7 +66,6 @@ public sealed partial class MainViewModel : ViewModelBase
         LocEmptyFolder = L.GetString("EmptyFolder", culture)!;
         LocSelectFolder = L.GetString("SelectFolder", culture)!;
         LocOpenYSMTitle = L.GetString("OpenYSMTitle", culture)!;
-        LocAutoRotate = L.GetString("AutoRotate", culture)!;
         LocSideView = L.GetString("LeftView", culture)!;
         StatusText = LocStatusReady;
     }
@@ -160,9 +159,6 @@ public sealed partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial string LocOpenYSMTitle { get; set; } = "";
-
-    [ObservableProperty]
-    public partial string LocAutoRotate { get; set; } = "";
 
     private async Task OnFileSelectedFromBrowser(string filePath)
     {
@@ -526,12 +522,6 @@ public sealed partial class MainViewModel : ViewModelBase
 
         animRenderer.Update(deltaTime);
         AnimationProgress = 0f;
-    }
-
-    public void UpdateAutoRotation(float deltaTime)
-    {
-        if (Renderer is IAutoRotateRenderer rotRenderer)
-            rotRenderer.Update(deltaTime);
     }
 
     public void SetComponentVisible(string componentId, bool visible)

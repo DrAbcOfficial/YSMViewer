@@ -12,7 +12,6 @@ globalThis.ysmLoadModelGeometry = YsmRenderer.loadModelGeometry;
 globalThis.ysmAddTextureData = YsmRenderer.addTextureData;
 globalThis.ysmClearScene = YsmRenderer.clearScene;
 globalThis.ysmSetCameraView = YsmRenderer.setCameraView;
-globalThis.ysmSetAutoRotate = YsmRenderer.setAutoRotate;
 globalThis.ysmSetBackground = YsmRenderer.setBackground;
 globalThis.ysmSetComponentVisible = YsmRenderer.setComponentVisible;
 globalThis.ysmSetBoneVisible = YsmRenderer.setBoneVisible;

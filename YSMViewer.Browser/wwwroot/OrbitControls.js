@@ -9,7 +9,7 @@ import {
 	Plane,
 	Ray,
 	MathUtils
-} from 'three';
+} from './three.module.min.js';
 
 // OrbitControls performs orbiting, dollying (zooming), and panning.
 // Unlike TrackballControls, it maintains the "up" direction object.up (+Y by default).
@@ -99,11 +99,6 @@ class OrbitControls extends Controls {
 		this.screenSpacePanning = true; // if false, pan orthogonal to world-space direction camera.up
 		this.keyPanSpeed = 7.0;	// pixels moved per arrow key push
 		this.zoomToCursor = false;
-
-		// Set to true to automatically rotate around the target
-		// If auto-rotate is enabled, you must call controls.update() in your animation loop
-		this.autoRotate = false;
-		this.autoRotateSpeed = 2.0; // 30 seconds per orbit when fps is 60
 
 		// The four arrow keys
 		this.keys = { LEFT: 'ArrowLeft', UP: 'ArrowUp', RIGHT: 'ArrowRight', BOTTOM: 'ArrowDown' };
@@ -300,12 +295,6 @@ class OrbitControls extends Controls {
 
 		// angle from z-axis around y-axis
 		this._spherical.setFromVector3( _v );
-
-		if ( this.autoRotate && this.state === _STATE.NONE ) {
-
-			this._rotateLeft( this._getAutoRotationAngle( deltaTime ) );
-
-		}
 
 		if ( this.enableDamping ) {
 
@@ -521,20 +510,6 @@ class OrbitControls extends Controls {
 		}
 
 		return false;
-
-	}
-
-	_getAutoRotationAngle( deltaTime ) {
-
-		if ( deltaTime !== null ) {
-
-			return ( _twoPI / 60 * this.autoRotateSpeed ) * deltaTime;
-
-		} else {
-
-			return _twoPI / 60 / 60 * this.autoRotateSpeed;
-
-		}
 
 	}
 

@@ -34,7 +34,7 @@ public sealed record RendererCapabilities(
         SupportsComponentVisibility: true,
         SupportsBoneVisibility: true,
         SupportsTextureProjection: false,
-        SupportsAutoRotation: true,
+        SupportsAutoRotation: false,
         SupportsFreeCamera: true,
         SupportsGizmo: false);
 }

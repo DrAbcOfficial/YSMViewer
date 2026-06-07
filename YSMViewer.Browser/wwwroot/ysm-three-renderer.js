@@ -1,14 +1,12 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import * as THREE from './three.module.min.js';
+import { OrbitControls } from './OrbitControls.js';
 
 let scene, camera, renderer, controls;
 let canvasElement;
 let modelGroups = new Map();
 let textureCache = new Map();
-let isAutoRotating = true;
 let isSceneReady = false;
-let renderRequested = false;
-let animationId = null;
+let renderFramePending = false;
 
 export function init(canvasId) {
     canvasElement = document.getElementById(canvasId);
@@ -26,6 +24,13 @@ export function init(canvasId) {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1e1e1e);
 
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    directionalLight.position.set(1, 1.5, 0.5);
+    scene.add(directionalLight);
+
     camera = new THREE.PerspectiveCamera(50, canvasElement.width / canvasElement.height, 0.1, 5000);
     camera.position.set(0, 0, 30);
     camera.lookAt(0, 0, 0);
@@ -38,7 +43,6 @@ export function init(canvasId) {
     controls.addEventListener('change', requestRender);
 
     window.addEventListener('resize', onResize);
-    startRenderLoop();
 
     console.log('[YSM-Three] Initialized');
 }
@@ -58,10 +62,23 @@ export function setViewportRect(x, y, width, height) {
         camera.aspect = width / Math.max(height, 1);
         camera.updateProjectionMatrix();
     }
+    requestRender();
 }
 
 export function showCanvas() {
-    if (canvasElement) canvasElement.style.display = 'block';
+    if (!canvasElement) return;
+    canvasElement.style.display = 'block';
+    if (renderer) {
+        const w = canvasElement.clientWidth || window.innerWidth;
+        const h = canvasElement.clientHeight || window.innerHeight;
+        if (w > 0 && h > 0) {
+            renderer.setSize(w, h, false);
+            if (camera) {
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+            }
+        }
+    }
 }
 
 export function hideCanvas() {
@@ -87,6 +104,24 @@ export function loadModelGeometry(specJson) {
             modelGroup.visible = model.defaultVisible !== false;
 
             const material = getOrCreateMaterial(model.textureId);
+            const boneGroups = new Map();
+
+            for (const bone of model.bones || []) {
+                const boneGroup = new THREE.Group();
+                boneGroup.name = bone.name || bone.id;
+                boneGroup.userData = {
+                    boneId: bone.id,
+                    componentId: model.id
+                };
+                setObjectTransform(boneGroup, bone.localPosition, bone.localRotation);
+                boneGroups.set(bone.id, boneGroup);
+            }
+
+            for (const bone of model.bones || []) {
+                const boneGroup = boneGroups.get(bone.id);
+                const parentGroup = bone.parentId ? boneGroups.get(bone.parentId) : null;
+                (parentGroup || modelGroup).add(boneGroup);
+            }
 
             for (const meshData of model.meshGroups || []) {
                 const geometry = buildBufferGeometry(meshData);
@@ -96,7 +131,10 @@ export function loadModelGeometry(specJson) {
                     boneId: meshData.boneId,
                     componentId: model.id
                 };
-                modelGroup.add(mesh);
+                setObjectTransform(mesh, meshData.localPosition, meshData.localRotation);
+
+                const boneGroup = boneGroups.get(meshData.boneId);
+                (boneGroup || modelGroup).add(mesh);
             }
 
             scene.add(modelGroup);
@@ -114,9 +152,11 @@ export function loadModelGeometry(specJson) {
 
 export function addTextureData(textureId, uint8Array) {
     try {
-        const blob = new Blob([uint8Array], { type: 'image/png' });
+        const mimeType = detectImageMimeType(uint8Array);
+        const blob = new Blob([uint8Array], { type: mimeType });
         const url = URL.createObjectURL(blob);
-        const texture = new THREE.TextureLoader().load(url, (tex) => {
+
+        const onTextureLoaded = (tex) => {
             tex.magFilter = THREE.NearestFilter;
             tex.minFilter = THREE.NearestFilter;
             tex.colorSpace = THREE.SRGBColorSpace;
@@ -125,12 +165,36 @@ export function addTextureData(textureId, uint8Array) {
             applyTextureToMaterials(textureId, tex);
             requestRender();
             URL.revokeObjectURL(url);
-        }, undefined, (err) => {
-            console.error('[YSM-Three] Texture load error:', textureId, err);
+        };
+
+        const onTextureError = (err) => {
+            console.warn('[YSM-Three] TextureLoader error for', textureId, '- trying createImageBitmap fallback');
+            loadTextureViaImageBitmap(blob, textureId).then((tex) => {
+                if (tex) {
+                    onTextureLoaded(tex);
+                }
+            });
             URL.revokeObjectURL(url);
-        });
+        };
+
+        new THREE.TextureLoader().load(url, onTextureLoaded, undefined, onTextureError);
     } catch (err) {
         console.error('[YSM-Three] Failed to add texture:', textureId, err);
+    }
+}
+
+async function loadTextureViaImageBitmap(blob, textureId) {
+    try {
+        const imageBitmap = await createImageBitmap(blob);
+        const tex = new THREE.Texture(imageBitmap);
+        tex.magFilter = THREE.NearestFilter;
+        tex.minFilter = THREE.NearestFilter;
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.needsUpdate = true;
+        return tex;
+    } catch (err) {
+        console.error('[YSM-Three] createImageBitmap fallback also failed for', textureId, err);
+        return null;
     }
 }
 
@@ -182,11 +246,6 @@ export function setCameraView(viewName) {
     requestRender();
 }
 
-export function setAutoRotate(enabled) {
-    isAutoRotating = enabled;
-    if (enabled) requestRender();
-}
-
 export function setBackground(r, g, b) {
     const color = new THREE.Color(r / 255, g / 255, b / 255);
     if (scene) scene.background = color;
@@ -212,7 +271,6 @@ export function setBoneVisible(boneId, visible) {
 }
 
 export function dispose() {
-    stopRenderLoop();
     if (controls) controls.dispose();
     clearSceneInternal();
     textureCache.forEach(t => t.dispose());
@@ -242,21 +300,26 @@ function buildBufferGeometry(meshData) {
     return geom;
 }
 
+function setObjectTransform(obj, position, rotation) {
+    if (position?.length >= 3) {
+        obj.position.set(position[0], position[1], position[2]);
+    }
+    if (rotation?.length >= 4) {
+        obj.quaternion.set(rotation[0], rotation[1], rotation[2], rotation[3]);
+    }
+}
+
 function getOrCreateMaterial(textureId) {
     const cachedTex = textureCache.get(textureId);
     if (cachedTex) {
-        return new THREE.MeshStandardMaterial({
+        return new THREE.MeshBasicMaterial({
             map: cachedTex,
-            roughness: 0.9,
-            metalness: 0.0,
             side: THREE.FrontSide,
             alphaTest: 0.5,
             transparent: false,
         });
     }
-    return new THREE.MeshStandardMaterial({
-        roughness: 0.9,
-        metalness: 0.0,
+    return new THREE.MeshBasicMaterial({
         color: 0xcccccc,
         side: THREE.FrontSide,
     });
@@ -270,9 +333,14 @@ function applyTextureToMaterials(textureId, texture) {
             const modelGroup = findComponentGroup(child);
             if (modelGroup && modelGroup.userData.textureId === textureId) {
                 if (Array.isArray(mat)) {
-                    mat.forEach(m => m.map = texture);
+                    mat.forEach((m) => {
+                        m.map = texture;
+                        m.color?.set(0xffffff);
+                        m.needsUpdate = true;
+                    });
                 } else {
                     mat.map = texture;
+                    mat.color?.set(0xffffff);
                     mat.needsUpdate = true;
                 }
             }
@@ -283,7 +351,7 @@ function applyTextureToMaterials(textureId, texture) {
 function findComponentGroup(child) {
     let obj = child;
     while (obj) {
-        if (obj.userData?.componentId && modelGroups.has(obj.userData.componentId)) {
+        if (obj.userData?.textureId !== undefined && obj.userData?.componentId && modelGroups.has(obj.userData.componentId)) {
             return obj;
         }
         obj = obj.parent;
@@ -291,11 +359,19 @@ function findComponentGroup(child) {
     return null;
 }
 
+function detectImageMimeType(data) {
+    if (!data || data.length < 4) return 'image/png';
+    if (data[0] === 0x89 && data[1] === 0x50 && data[2] === 0x4E && data[3] === 0x47) return 'image/png';
+    if (data[0] === 0xFF && data[1] === 0xD8 && data[2] === 0xFF) return 'image/jpeg';
+    if (data[0] === 0x52 && data[1] === 0x49 && data[2] === 0x46 && data[3] === 0x46) return 'image/webp';
+    if (data[0] === 0x47 && data[1] === 0x49 && data[2] === 0x46) return 'image/gif';
+    if (data[0] === 0x42 && data[1] === 0x4D) return 'image/bmp';
+    return 'image/png';
+}
+
 function clearSceneInternal() {
     if (!scene) return;
-    while (scene.children.length > 0) {
-        disposeObject(scene.children[0]);
-    }
+    modelGroups.forEach(group => disposeObject(group));
 }
 
 function disposeObject(obj) {
@@ -337,31 +413,11 @@ function onResize() {
     requestRender();
 }
 
-function startRenderLoop() {
-    function animate() {
-        animationId = requestAnimationFrame(animate);
-        if (isAutoRotating && isSceneReady) {
-            if (controls) controls.update();
-            if (renderer && scene && camera) {
-                renderer.render(scene, camera);
-            }
-        }
-    }
-    animate();
-}
-
-function stopRenderLoop() {
-    if (animationId) {
-        cancelAnimationFrame(animationId);
-        animationId = null;
-    }
-}
-
 function requestRender() {
-    if (!renderRequested) {
-        renderRequested = true;
+    if (!renderFramePending) {
+        renderFramePending = true;
         requestAnimationFrame(() => {
-            renderRequested = false;
+            renderFramePending = false;
             if (controls) controls.update();
             if (renderer && scene && camera) {
                 renderer.render(scene, camera);

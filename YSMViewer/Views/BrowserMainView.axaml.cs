@@ -163,15 +163,4 @@ public partial class BrowserMainView : UserControl
             vm.Renderer.SetCameraView(RenderCameraView.Top);
     }
 
-    private void OnAutoRotateClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm && vm.Renderer is IAutoRotateRenderer rot)
-        {
-            rot.IsAutoRotating = !rot.IsAutoRotating;
-
-            var text = this.FindControl<TextBlock>("AutoRotateText");
-            if (text is not null)
-                text.Text = rot.IsAutoRotating ? "Auto Rotate: ON" : "Auto Rotate: OFF";
-        }
-    }
 }

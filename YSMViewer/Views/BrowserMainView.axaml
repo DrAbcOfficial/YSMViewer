@@ -400,13 +400,6 @@
                     </Button>
                 </StackPanel>
 
-                <Button Grid.Column="1" x:Name="AutoRotateBtn"
-                        Click="OnAutoRotateClick" CornerRadius="4"
-                        Margin="12,0,0,0" Padding="10,6" FontSize="12">
-                    <TextBlock x:Name="AutoRotateText" Text="Auto Rotate: ON"
-                               VerticalAlignment="Center" />
-                </Button>
-
                 <!-- Spacer -->
                 <TextBlock Grid.Column="4" Text="{Binding StatusText}"
                            Foreground="{DynamicResource ThemeTextMuted}" FontSize="11"

@@ -30,9 +30,6 @@ public static partial class ThreeJsInterop
     [JSImport("globalThis.ysmSetCameraView")]
     public static partial void SetCameraView(string viewName);
 
-    [JSImport("globalThis.ysmSetAutoRotate")]
-    public static partial void SetAutoRotate(bool enabled);
-
     [JSImport("globalThis.ysmSetBackground")]
     public static partial void SetBackground(byte r, byte g, byte b);
 

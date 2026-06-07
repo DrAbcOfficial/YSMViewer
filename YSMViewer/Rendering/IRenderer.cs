@@ -26,9 +26,3 @@ public interface IAnimationRenderer : IRenderer
     void StopAnimation();
     void Update(float deltaTime);
 }
-
-public interface IAutoRotateRenderer : IRenderer
-{
-    bool IsAutoRotating { get; set; }
-    void Update(float deltaTime);
-}
