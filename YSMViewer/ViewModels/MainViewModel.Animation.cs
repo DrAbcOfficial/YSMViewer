@@ -6,12 +6,14 @@ namespace YSMViewer.ViewModels;
 public sealed partial class MainViewModel
 {
     private DispatcherTimer? _animationTimer;
+    private bool _suppressAnimChanged;
 
     private void ResetAnimationState()
     {
         HasAnimations = false;
         AnimationNames.Clear();
         CurrentAnimationName = string.Empty;
+        _suppressAnimChanged = false;
         IsAnimating = false;
     }
 
@@ -37,6 +39,8 @@ public sealed partial class MainViewModel
 
     partial void OnIsAnimatingChanged(bool value)
     {
+        if (_suppressAnimChanged) return;
+
         if (Renderer is IAnimationRenderer animRenderer)
         {
             if (value && CurrentAnimationName is { Length: > 0 })
@@ -47,6 +51,7 @@ public sealed partial class MainViewModel
             else if (!value)
             {
                 StopAnimationTimer();
+                animRenderer.StopAnimation();
             }
         }
     }
@@ -60,7 +65,10 @@ public sealed partial class MainViewModel
         animRenderer.PlayAnimation(name);
         AnimationProgress = 0f;
         AnimationTimeText = string.Empty;
+        _suppressAnimChanged = true;
         IsAnimating = true;
+        _suppressAnimChanged = false;
+        StartAnimationTimer();
         UpdateAnimationNavigationState();
     }
 
@@ -78,14 +86,11 @@ public sealed partial class MainViewModel
 
     public void StopAnimation()
     {
-        StopAnimationTimer();
+        _suppressAnimChanged = false;
         IsAnimating = false;
         CurrentAnimationName = string.Empty;
         AnimationProgress = 0f;
         AnimationTimeText = string.Empty;
-
-        if (Renderer is IAnimationRenderer animRenderer)
-            animRenderer.StopAnimation();
     }
 
     public void PreviousAnimation()
@@ -132,11 +137,12 @@ public sealed partial class MainViewModel
 
     private void StartAnimationTimer()
     {
-        if (_animationTimer is not null) return;
+        StopAnimationTimer();
+        int interval = IsDesktop ? 16 : 100;
         _animationTimer = new DispatcherTimer(
-            TimeSpan.FromMilliseconds(16),
+            TimeSpan.FromMilliseconds(interval),
             DispatcherPriority.Render,
-            (_, _) => UpdateAnimation(0.016f));
+            (_, _) => UpdateAnimation(interval / 1000f));
         _animationTimer.Start();
     }
 

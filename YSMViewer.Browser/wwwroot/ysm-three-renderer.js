@@ -379,17 +379,23 @@ export function loadAnimationData(json) {
 }
 
 function getObjectPath(root, target) {
-    if (root === target) return '';
-    for (let i = 0; i < root.children.length; i++) {
-        if (root.children[i] === target) {
-            return '.children[' + i + ']';
+    const visited = new Set();
+    function search(node) {
+        if (node === target) return '';
+        if (visited.has(node)) return null;
+        visited.add(node);
+        for (let i = 0; i < node.children.length; i++) {
+            if (node.children[i] === target) {
+                return '.children[' + i + ']';
+            }
+            const sub = search(node.children[i]);
+            if (sub !== null) {
+                return '.children[' + i + ']' + sub;
+            }
         }
-        const sub = getObjectPath(root.children[i], target);
-        if (sub !== null) {
-            return '.children[' + i + ']' + sub;
-        }
+        return null;
     }
-    return null;
+    return search(root);
 }
 
 function findBoneIndex(boneId) {
@@ -454,17 +460,23 @@ function startAnimLoop() {
     let lastTime = performance.now();
     function tick() {
         if (!animLoopActive) return;
-        const now = performance.now();
-        const dt = Math.min((now - lastTime) / 1000, 0.1);
-        lastTime = now;
+        try {
+            const now = performance.now();
+            const dt = Math.min((now - lastTime) / 1000, 0.1);
+            lastTime = now;
 
-        if (animMixer) {
-            animMixer.update(dt);
-            _currentAnimTime = animMixer.time;
-        }
-        if (controls) controls.update();
-        if (renderer && scene && camera) {
-            renderer.render(scene, camera);
+            if (animMixer) {
+                animMixer.update(dt);
+                _currentAnimTime = animMixer.time;
+            }
+            if (controls) controls.update();
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        } catch (e) {
+            console.error('[YSM-Three] Animation tick error:', e);
+            stopAnimLoop();
+            return;
         }
         requestAnimationFrame(tick);
     }
