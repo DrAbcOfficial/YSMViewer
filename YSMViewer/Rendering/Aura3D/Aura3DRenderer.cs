@@ -45,6 +45,8 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
     public Control View => _view;
     public RendererCapabilities Capabilities => RendererCapabilities.Desktop;
     public IReadOnlyList<string> AnimationNames => _animService.AnimationNames;
+    public float AnimationDuration => _animService.AnimationLength;
+    public float AnimationCurrentTime => _animService.CurrentTime;
 
     public void SetTheme(RenderTheme theme)
     {

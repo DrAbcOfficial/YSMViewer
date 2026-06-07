@@ -15,6 +15,10 @@ globalThis.ysmSetCameraView = YsmRenderer.setCameraView;
 globalThis.ysmSetBackground = YsmRenderer.setBackground;
 globalThis.ysmSetComponentVisible = YsmRenderer.setComponentVisible;
 globalThis.ysmSetBoneVisible = YsmRenderer.setBoneVisible;
+globalThis.ysmLoadAnimationData = YsmRenderer.loadAnimationData;
+globalThis.ysmPlayAnimation = YsmRenderer.playAnimation;
+globalThis.ysmStopAnimation = YsmRenderer.stopAnimation;
+globalThis.ysmGetAnimationProgress = YsmRenderer.getAnimationProgress;
 globalThis.ysmDispose = YsmRenderer.dispose;
 
 const dotnetRuntime = await dotnet

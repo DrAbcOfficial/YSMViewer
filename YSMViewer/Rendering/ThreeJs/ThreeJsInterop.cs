@@ -39,6 +39,19 @@ public static partial class ThreeJsInterop
     [JSImport("globalThis.ysmSetBoneVisible")]
     public static partial void SetBoneVisible(string boneId, bool visible);
 
+    [JSImport("globalThis.ysmLoadAnimationData")]
+    public static partial void LoadAnimationData(string json);
+
+    [JSImport("globalThis.ysmPlayAnimation")]
+    public static partial void PlayAnimation(string name);
+
+    [JSImport("globalThis.ysmStopAnimation")]
+    public static partial void StopAnimation();
+
+    [JSImport("globalThis.ysmGetAnimationProgress")]
+    [return: JSMarshalAs<JSType.String>]
+    public static partial string GetAnimationProgress();
+
     [JSImport("globalThis.ysmDispose")]
     public static partial void Dispose();
 }

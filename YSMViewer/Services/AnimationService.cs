@@ -12,16 +12,12 @@ public sealed class AnimationService(
     private readonly Dictionary<string, IAnimatableBone> _boneNodes = boneNodes;
     private readonly Dictionary<string, Vector3> _basePositions = [];
     private readonly Dictionary<string, Vector3> _baseEulers = baseEulers;
-    private readonly List<string> _animationNames = [];
-    private MinecraftAnimationFile? _currentFile;
+    private readonly Dictionary<string, MinecraftAnimation> _allAnimations = [];
     private MinecraftAnimation? _currentAnimation;
     private float _currentTime;
     private bool _isPlaying = true;
 
-    public string? CurrentAnimationName => _currentFile?.Animations
-        .FirstOrDefault(kv => kv.Value == _currentAnimation).Key;
-
-    public IReadOnlyList<string> AnimationNames => _animationNames;
+    public IReadOnlyList<string> AnimationNames => _allAnimations.Keys.ToList();
 
     public float AnimationLength => _currentAnimation?.AnimationLength ?? 0f;
     public float CurrentTime => _currentTime;
@@ -41,7 +37,8 @@ public sealed class AnimationService(
         _boneNodes.Clear();
         _basePositions.Clear();
         _baseEulers.Clear();
-        _animationNames.Clear();
+        _allAnimations.Clear();
+        _currentAnimation = null;
 
         foreach (var kv in boneNodes)
         {
@@ -57,16 +54,16 @@ public sealed class AnimationService(
 
     public void LoadAnimations(byte[] animationJsonData)
     {
-        _currentFile = JsonSerializer.Deserialize(animationJsonData, YsmJsonContext.Default.MinecraftAnimationFile);
-        if (_currentFile is null) return;
+        var file = JsonSerializer.Deserialize(animationJsonData, YsmJsonContext.Default.MinecraftAnimationFile);
+        if (file is null) return;
 
-        foreach (var (name, anim) in _currentFile.Animations)
+        foreach (var (name, anim) in file.Animations)
         {
-            if (!_animationNames.Contains(name))
-                _animationNames.Add(name);
-            if (anim.BonesRaw is { ValueKind: JsonValueKind.Object } raw)
+            if (!_allAnimations.ContainsKey(name))
             {
-                anim.Bones = ParseBones(raw);
+                if (anim.BonesRaw is { ValueKind: JsonValueKind.Object } raw)
+                    anim.Bones = ParseBones(raw);
+                _allAnimations[name] = anim;
             }
         }
     }
@@ -106,7 +103,7 @@ public sealed class AnimationService(
 
     public void PlayAnimation(string name)
     {
-        if (_currentFile?.Animations.TryGetValue(name, out var anim) == true)
+        if (_allAnimations.TryGetValue(name, out var anim))
         {
             _currentAnimation = anim;
             _currentTime = 0f;

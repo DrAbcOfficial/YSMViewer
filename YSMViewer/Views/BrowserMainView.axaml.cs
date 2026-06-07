@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using YSMViewer.Services;
 using YSMViewer.ViewModels;
 
 namespace YSMViewer.Views;
@@ -124,5 +125,41 @@ public partial class BrowserMainView : UserControl
         var banner = this.FindControl<Border>("BrowserBanner");
         if (banner is not null)
             banner.IsVisible = false;
+    }
+
+    private void OnShowAllComponentsClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            foreach (var comp in vm.Components)
+                vm.SetComponentVisible(comp.ComponentId, true);
+        }
+    }
+
+    private void OnHideAllComponentsClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            foreach (var comp in vm.Components)
+                vm.SetComponentVisible(comp.ComponentId, false);
+        }
+    }
+
+    private void OnExpandAllBonesClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+            vm.ExpandAllBones();
+    }
+
+    private void OnCollapseAllBonesClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+            vm.CollapseAllBones();
+    }
+
+    private void OnAnimationSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm && e.AddedItems.Count > 0 && e.AddedItems[0] is string name)
+            vm.SelectAnimation(name);
     }
 }

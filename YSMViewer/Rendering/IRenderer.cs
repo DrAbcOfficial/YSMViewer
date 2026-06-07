@@ -27,6 +27,8 @@ public interface IInteractiveRenderer : IRenderer
 public interface IAnimationRenderer : IRenderer
 {
     IReadOnlyList<string> AnimationNames { get; }
+    float AnimationDuration { get; }
+    float AnimationCurrentTime { get; }
     void PlayAnimation(string name);
     void StopAnimation();
     void Update(float deltaTime);

@@ -4,9 +4,14 @@ import { OrbitControls } from './OrbitControls.js';
 let scene, camera, renderer, controls;
 let canvasElement;
 let modelGroups = new Map();
+let boneGroups = new Map();
 let textureCache = new Map();
 let isSceneReady = false;
 let renderFramePending = false;
+let animMixer, animClips, currentAnimAction;
+let _currentAnimName = null;
+let _currentAnimTime = 0;
+let animLoopActive = false;
 
 export function init(canvasId) {
     canvasElement = document.getElementById(canvasId);
@@ -90,6 +95,7 @@ export function loadModelGeometry(specJson) {
         const spec = JSON.parse(specJson);
         clearSceneInternal();
         modelGroups.clear();
+        boneGroups.clear();
 
         for (const model of spec.models || []) {
             const modelGroup = new THREE.Group();
@@ -104,23 +110,24 @@ export function loadModelGeometry(specJson) {
             modelGroup.visible = model.defaultVisible !== false;
 
             const material = getOrCreateMaterial(model.textureId);
-            const boneGroups = new Map();
 
             for (const bone of model.bones || []) {
                 const boneGroup = new THREE.Group();
                 boneGroup.name = bone.name || bone.id;
                 boneGroup.userData = {
                     boneId: bone.id,
-                    componentId: model.id
+                    componentId: model.id,
+                    initialPosition: bone.localPosition ? [...bone.localPosition] : [0, 0, 0],
+                    initialRotation: bone.localRotation ? [...bone.localRotation] : [0, 0, 0, 1]
                 };
                 setObjectTransform(boneGroup, bone.localPosition, bone.localRotation);
                 boneGroups.set(bone.id, boneGroup);
             }
 
             for (const bone of model.bones || []) {
-                const boneGroup = boneGroups.get(bone.id);
+                const bg = boneGroups.get(bone.id);
                 const parentGroup = bone.parentId ? boneGroups.get(bone.parentId) : null;
-                (parentGroup || modelGroup).add(boneGroup);
+                (parentGroup || modelGroup).add(bg);
             }
 
             for (const meshData of model.meshGroups || []) {
@@ -202,6 +209,8 @@ async function loadTextureAsync(textureId, dataCopy) {
 export function clearScene() {
     clearSceneInternal();
     modelGroups.clear();
+    boneGroups.clear();
+    disposeAnimations();
     textureCache.forEach(t => t.dispose());
     textureCache.clear();
     isSceneReady = false;
@@ -271,8 +280,219 @@ export function setBoneVisible(boneId, visible) {
     requestRender();
 }
 
+export function loadAnimationData(json) {
+    try {
+        const animFile = JSON.parse(json);
+        if (!animFile.animations) return;
+        if (!animMixer) {
+            animMixer = new THREE.AnimationMixer(scene);
+        }
+        animClips = animClips || [];
+
+        for (const [animName, animData] of Object.entries(animFile.animations)) {
+            if (animClips.find(c => c.name === animName)) continue;
+
+            const tracks = [];
+            const bones = animData.bones || animData.animators || {};
+            const duration = animData.animation_length || animData.length || 1;
+
+            for (const [boneId, channels] of Object.entries(bones)) {
+                const boneObj = boneGroups.get(boneId);
+                if (!boneObj) continue;
+                const bonePath = getObjectPath(scene, boneObj);
+                if (!bonePath) continue;
+
+                if (channels.rotation) {
+                    const times = [];
+                    const values = [];
+                    const kfs = typeof channels.rotation === 'object' ? channels.rotation : {};
+                    for (const [t, val] of Object.entries(kfs)) {
+                        const time = parseFloat(t);
+                        times.push(time);
+                        if (Array.isArray(val) && val.length >= 3) {
+                            const euler = new THREE.Euler(
+                                -val[0] * Math.PI / 180,
+                                -val[1] * Math.PI / 180,
+                                val[2] * Math.PI / 180,
+                                'XYZ'
+                            );
+                            const q = new THREE.Quaternion().setFromEuler(euler);
+                            values.push(q.x, q.y, q.z, q.w);
+                        }
+                    }
+                    if (times.length > 0) {
+                        tracks.push(new THREE.QuaternionKeyframeTrack(
+                            bonePath + '.quaternion',
+                            times, values
+                        ));
+                    }
+                }
+
+                if (channels.position) {
+                    const times = [];
+                    const values = [];
+                    const kfs = typeof channels.position === 'object' ? channels.position : {};
+                    for (const [t, val] of Object.entries(kfs)) {
+                        const time = parseFloat(t);
+                        times.push(time);
+                        if (Array.isArray(val) && val.length >= 3) {
+                            values.push(-val[0] / 16, val[1] / 16, val[2] / 16);
+                        }
+                    }
+                    if (times.length > 0) {
+                        tracks.push(new THREE.VectorKeyframeTrack(
+                            bonePath + '.position',
+                            times, values
+                        ));
+                    }
+                }
+
+                if (channels.scale) {
+                    const times = [];
+                    const values = [];
+                    const kfs = typeof channels.scale === 'object' ? channels.scale : {};
+                    for (const [t, val] of Object.entries(kfs)) {
+                        const time = parseFloat(t);
+                        times.push(time);
+                        if (Array.isArray(val) && val.length >= 3) {
+                            values.push(val[0], val[1], val[2]);
+                        }
+                    }
+                    if (times.length > 0) {
+                        tracks.push(new THREE.VectorKeyframeTrack(
+                            bonePath + '.scale',
+                            times, values
+                        ));
+                    }
+                }
+            }
+
+            if (tracks.length > 0) {
+                const clip = new THREE.AnimationClip(animName, duration, tracks);
+                animClips.push(clip);
+            }
+        }
+        console.log('[YSM-Three] Animations loaded:', animClips.length);
+    } catch (err) {
+        console.error('[YSM-Three] Failed to load animation data:', err);
+    }
+}
+
+function getObjectPath(root, target) {
+    if (root === target) return '';
+    for (let i = 0; i < root.children.length; i++) {
+        if (root.children[i] === target) {
+            return '.children[' + i + ']';
+        }
+        const sub = getObjectPath(root.children[i], target);
+        if (sub !== null) {
+            return '.children[' + i + ']' + sub;
+        }
+    }
+    return null;
+}
+
+function findBoneIndex(boneId) {
+    return -1;
+}
+
+export function playAnimation(name) {
+    if (!animMixer || !animClips) return;
+    const clip = animClips.find(c => c.name === name);
+    if (!clip) return;
+
+    if (currentAnimAction) {
+        currentAnimAction.stop();
+    }
+    currentAnimAction = animMixer.clipAction(clip);
+    currentAnimAction.play();
+    animMixer.setTime(0);
+    _currentAnimName = name;
+    _currentAnimTime = 0;
+    startAnimLoop();
+}
+
+export function getAnimationProgress() {
+    if (!animMixer || !currentAnimAction) return JSON.stringify({ time: 0, duration: 0 });
+    const clip = currentAnimAction.getClip();
+    return JSON.stringify({ time: animMixer.time, duration: clip ? clip.duration : 0 });
+}
+
+export function stopAnimation() {
+    if (currentAnimAction) {
+        currentAnimAction.stop();
+        currentAnimAction = null;
+    }
+    if (animMixer) {
+        animMixer.stopAllAction();
+        animMixer.setTime(0);
+    }
+    _currentAnimName = null;
+    _currentAnimTime = 0;
+    stopAnimLoop();
+    for (const bg of boneGroups.values()) {
+        const ip = bg.userData?.initialPosition;
+        const ir = bg.userData?.initialRotation;
+        if (ip && ip.length >= 3) {
+            bg.position.set(ip[0], ip[1], ip[2]);
+        } else {
+            bg.position.set(0, 0, 0);
+        }
+        if (ir && ir.length >= 4) {
+            bg.quaternion.set(ir[0], ir[1], ir[2], ir[3]);
+        } else {
+            bg.quaternion.identity();
+        }
+        bg.scale.set(1, 1, 1);
+    }
+    requestRender();
+}
+
+function startAnimLoop() {
+    if (animLoopActive) return;
+    animLoopActive = true;
+    let lastTime = performance.now();
+    function tick() {
+        if (!animLoopActive) return;
+        const now = performance.now();
+        const dt = Math.min((now - lastTime) / 1000, 0.1);
+        lastTime = now;
+
+        if (animMixer) {
+            animMixer.update(dt);
+            _currentAnimTime = animMixer.time;
+        }
+        if (controls) controls.update();
+        if (renderer && scene && camera) {
+            renderer.render(scene, camera);
+        }
+        requestAnimationFrame(tick);
+    }
+    tick();
+}
+
+function stopAnimLoop() {
+    animLoopActive = false;
+}
+
+function disposeAnimations() {
+    if (currentAnimAction) {
+        currentAnimAction.stop();
+        currentAnimAction = null;
+    }
+    if (animMixer) {
+        animMixer.stopAllAction();
+        animMixer = null;
+    }
+    animClips = [];
+    _currentAnimName = null;
+    _currentAnimTime = 0;
+    animLoopActive = false;
+}
+
 export function dispose() {
     if (controls) controls.dispose();
+    disposeAnimations();
     clearSceneInternal();
     textureCache.forEach(t => t.dispose());
     textureCache.clear();
@@ -283,6 +503,7 @@ export function dispose() {
     window.removeEventListener('resize', onResize);
     scene = null;
     camera = null;
+    boneGroups.clear();
 }
 
 function buildBufferGeometry(meshData) {
@@ -411,6 +632,7 @@ function onResize() {
 }
 
 function requestRender() {
+    if (animLoopActive) return;
     if (!renderFramePending) {
         renderFramePending = true;
         requestAnimationFrame(() => {

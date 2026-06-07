@@ -6,11 +6,14 @@ using YSMViewer.Models.Document;
 
 namespace YSMViewer.Rendering.ThreeJs;
 
-public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IDisposable
+public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimationRenderer, IDisposable
 {
     private readonly ThreeJsViewHost _viewHost;
     private bool _isInitialized;
     private YsmModelDocument? _currentDocument;
+    private readonly List<string> _animationNames = [];
+    private float _animationDuration;
+    private float _animationCurrentTime;
 
     private int _lastX, _lastY, _lastW, _lastH;
 
@@ -22,7 +25,7 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IDisposab
     public Control View => _viewHost;
 
     public RendererCapabilities Capabilities { get; } = new(
-        SupportsAnimation: false,
+        SupportsAnimation: true,
         SupportsComponentVisibility: true,
         SupportsBoneVisibility: true,
         SupportsTextureProjection: false,
@@ -30,9 +33,32 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IDisposab
         SupportsFreeCamera: true,
         SupportsGizmo: false);
 
+    public IReadOnlyList<string> AnimationNames => _animationNames;
+    public float AnimationDuration => _animationDuration;
+    public float AnimationCurrentTime
+    {
+        get
+        {
+            if (!_isInitialized) return _animationCurrentTime;
+            try
+            {
+                var json = ThreeJsInterop.GetAnimationProgress();
+                if (!string.IsNullOrEmpty(json))
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    if (doc.RootElement.TryGetProperty("time", out var timeEl))
+                        _animationCurrentTime = (float)timeEl.GetDouble();
+                }
+            }
+            catch { }
+            return _animationCurrentTime;
+        }
+    }
+
     public void LoadModel(YsmModelDocument document)
     {
         _currentDocument = document;
+        _animationNames.Clear();
 
         if (!_isInitialized)
         {
@@ -54,11 +80,35 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IDisposab
             if (requiredTexIds.Contains(tex.Id) && tex.Data is { Length: > 0 })
                 ThreeJsInterop.AddTextureData(tex.Id, tex.Data);
         }
+
+        foreach (var anim in document.Animations)
+        {
+            var json = System.Text.Encoding.UTF8.GetString(anim.Data ?? []);
+            if (!string.IsNullOrEmpty(json))
+            {
+                ThreeJsInterop.LoadAnimationData(json);
+                var animFile = System.Text.Json.JsonSerializer.Deserialize(json,
+                    Models.YsmJsonContext.Default.MinecraftAnimationFile);
+                if (animFile?.Animations is not null)
+                {
+                    foreach (var (name, a) in animFile.Animations)
+                    {
+                        if (!_animationNames.Contains(name))
+                            _animationNames.Add(name);
+                        if (a.AnimationLength > _animationDuration)
+                            _animationDuration = a.AnimationLength;
+                    }
+                }
+            }
+        }
     }
 
     public void Clear()
     {
         _currentDocument = null;
+        _animationNames.Clear();
+        _animationDuration = 0f;
+        _animationCurrentTime = 0f;
         if (_isInitialized)
         {
             ThreeJsInterop.ClearScene();
@@ -102,6 +152,34 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IDisposab
     public void ZoomCamera(float delta) { }
     public void ResetCamera() => SetCameraView(RenderCameraView.Front);
     public (float Pitch, float Yaw) GetCameraOrbit() => (0f, 0f);
+
+    public void PlayAnimation(string name)
+    {
+        if (_isInitialized)
+        {
+            ThreeJsInterop.PlayAnimation(name);
+            _animationCurrentTime = 0f;
+        }
+    }
+
+    public void StopAnimation()
+    {
+        if (_isInitialized)
+        {
+            ThreeJsInterop.StopAnimation();
+            _animationCurrentTime = 0f;
+        }
+    }
+
+    public void Update(float deltaTime)
+    {
+        if (_isInitialized && _animationDuration > 0f)
+        {
+            _animationCurrentTime += deltaTime;
+            if (_animationCurrentTime >= _animationDuration)
+                _animationCurrentTime = 0f;
+        }
+    }
 
     public void Dispose()
     {

@@ -49,6 +49,10 @@
         <Style Selector="Button.view-btn:pointerover">
             <Setter Property="Background" Value="{DynamicResource ThemeBgHover}" />
         </Style>
+        <Style Selector="ProgressBar">
+            <Setter Property="Foreground" Value="{DynamicResource ThemeAccentRed}" />
+            <Setter Property="Background" Value="{DynamicResource ThemeBorder}" />
+        </Style>
         <Style Selector="Expander">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -82,7 +86,7 @@
                         Background="#CC1b2a4e" Padding="10,8" Margin="0">
                     <Grid>
                         <TextBlock
-                            Text="&#x26A0; Web version features WebGL-accelerated 3D rendering. Desktop client recommended for full animation support."
+                            Text="&#x26A0; Web version features WebGL-accelerated 3D rendering. Performance may vary by browser and device."
                             FontSize="11" Foreground="#FFCC00"
                             TextWrapping="Wrap" TextAlignment="Center"
                             HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -233,21 +237,26 @@
                                 <TextBlock Text="{Binding LocComponents}" FontWeight="SemiBold" FontSize="13"
                                            Foreground="{DynamicResource ThemeTextPrimary}" />
                             </Expander.Header>
-                            <StackPanel Spacing="4" Margin="12,8">
+                            <StackPanel Spacing="6" Margin="12,8">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Button Content="{Binding LocShowAll}" FontSize="10"
+                                            Click="OnShowAllComponentsClick"
+                                            Padding="8,3" CornerRadius="4" />
+                                    <Button Content="{Binding LocHideAll}" FontSize="10"
+                                            Click="OnHideAllComponentsClick"
+                                            Padding="8,3" CornerRadius="4" />
+                                </StackPanel>
                                 <ItemsControl ItemsSource="{Binding Components}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:ComponentViewModel">
                                             <Border CornerRadius="4" Margin="0,2"
                                                     Padding="8,4"
                                                     Background="{DynamicResource ThemeBgElevated}">
-                                                <Grid ColumnDefinitions="Auto,Auto,*">
-                                                    <CheckBox Grid.Column="0" IsChecked="{Binding IsVisible}"
-                                                              VerticalAlignment="Center" />
-                                                    <TextBlock Grid.Column="1" Text="&#x25CF;"
-                                                               FontSize="10" VerticalAlignment="Center"
-                                                               Foreground="{DynamicResource ThemeTextMuted}"
-                                                               Margin="4,0,0,0" />
-                                                    <TextBlock Grid.Column="2"
+                                                <Grid ColumnDefinitions="Auto,*">
+                                                    <CheckBox Grid.Column="0"
+                                                              IsChecked="{Binding IsVisible}"
+                                                              FontSize="12" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="1"
                                                                Text="{Binding Name}"
                                                                Foreground="{DynamicResource ThemeTextPrimary}"
                                                                FontSize="12" VerticalAlignment="Center"
@@ -268,6 +277,14 @@
                                            Foreground="{DynamicResource ThemeTextPrimary}" />
                             </Expander.Header>
                             <StackPanel Spacing="6" Margin="12,8">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Button Content="{Binding LocExpandAll}" FontSize="10"
+                                            Click="OnExpandAllBonesClick"
+                                            Padding="8,3" CornerRadius="4" />
+                                    <Button Content="{Binding LocCollapseAll}" FontSize="10"
+                                            Click="OnCollapseAllBonesClick"
+                                            Padding="8,3" CornerRadius="4" />
+                                </StackPanel>
                                 <TreeView ItemsSource="{Binding BoneTreeRoots}"
                                           Background="Transparent" BorderThickness="0"
                                           Foreground="{DynamicResource ThemeTextPrimary}" FontSize="12">
@@ -280,15 +297,33 @@
                                     <TreeView.ItemTemplate>
                                         <TreeDataTemplate ItemsSource="{Binding Children}"
                                                           x:DataType="vm:BoneTreeItemViewModel">
-                                            <Grid ColumnDefinitions="Auto,Auto,*">
-                                                <CheckBox Grid.Column="0" IsChecked="{Binding IsVisible}"
-                                                          VerticalAlignment="Center" />
-                                                <TextBlock Grid.Column="1" Text="{Binding Icon}" FontSize="12"
-                                                           VerticalAlignment="Center" Margin="4,0,4,0" />
-                                                <TextBlock Grid.Column="2" Text="{Binding Name}"
+                                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                                <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="12"
+                                                           VerticalAlignment="Center" Margin="0,0,4,0" />
+                                                <TextBlock Grid.Column="1" Text="{Binding Name}"
                                                            Foreground="{DynamicResource ThemeTextPrimary}"
                                                            FontSize="12" VerticalAlignment="Center"
                                                            TextTrimming="CharacterEllipsis" />
+                                                <ToggleButton Grid.Column="2" Width="24" Height="24"
+                                                              IsChecked="{Binding IsVisible, Mode=TwoWay}"
+                                                              CornerRadius="4" Padding="0" Margin="4,0,0,0"
+                                                              HorizontalContentAlignment="Center"
+                                                              VerticalContentAlignment="Center">
+                                                    <ToggleButton.Styles>
+                                                        <Style Selector="ToggleButton">
+                                                            <Setter Property="Background" Value="{DynamicResource ThemeToggleDefault}" />
+                                                        </Style>
+                                                        <Style Selector="ToggleButton:checked">
+                                                            <Setter Property="Background" Value="{DynamicResource ThemeToggleChecked}" />
+                                                        </Style>
+                                                        <Style Selector="ToggleButton:unchecked">
+                                                            <Setter Property="Background" Value="{DynamicResource ThemeToggleUnchecked}" />
+                                                        </Style>
+                                                    </ToggleButton.Styles>
+                                                    <TextBlock Text="◉" FontSize="11"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center" />
+                                                </ToggleButton>
                                             </Grid>
                                         </TreeDataTemplate>
                                     </TreeView.ItemTemplate>
@@ -345,6 +380,44 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- Animations Section -->
+                        <Expander IsExpanded="True" Padding="0"
+                                  IsVisible="{Binding HasAnimations}">
+                            <Expander.Header>
+                                <TextBlock Text="{Binding LocAnimations}" FontWeight="SemiBold" FontSize="13"
+                                           Foreground="{DynamicResource ThemeTextPrimary}" />
+                            </Expander.Header>
+                            <StackPanel Spacing="6" Margin="12,8">
+                                <ListBox x:Name="AnimationListBox"
+                                         ItemsSource="{Binding AnimationNames}"
+                                         SelectedItem="{Binding CurrentAnimationName}"
+                                         Background="Transparent" BorderThickness="0"
+                                         Foreground="{DynamicResource ThemeTextPrimary}" FontSize="12"
+                                         SelectionChanged="OnAnimationSelectionChanged"
+                                         MaxHeight="200">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" Padding="6,4" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                    <ListBox.Styles>
+                                        <Style Selector="ListBoxItem">
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Setter Property="CornerRadius" Value="4" />
+                                        </Style>
+                                        <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+                                            <Setter Property="Background" Value="{DynamicResource ThemeAnimSelected}" />
+                                            <Setter Property="CornerRadius" Value="4" />
+                                        </Style>
+                                        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                            <Setter Property="Background" Value="{DynamicResource ThemeBgHover}" />
+                                            <Setter Property="CornerRadius" Value="4" />
+                                        </Style>
+                                    </ListBox.Styles>
+                                </ListBox>
                             </StackPanel>
                         </Expander>
 

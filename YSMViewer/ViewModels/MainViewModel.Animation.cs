@@ -1,9 +1,12 @@
+using Avalonia.Threading;
 using YSMViewer.Rendering;
 
 namespace YSMViewer.ViewModels;
 
 public sealed partial class MainViewModel
 {
+    private DispatcherTimer? _animationTimer;
+
     private void ResetAnimationState()
     {
         HasAnimations = false;
@@ -27,6 +30,9 @@ public sealed partial class MainViewModel
 
         CanPreviousAnimation = animRenderer.AnimationNames.Count > 0;
         CanNextAnimation = animRenderer.AnimationNames.Count > 0;
+
+        if (AnimationNames.Count > 0 && string.IsNullOrEmpty(CurrentAnimationName))
+            CurrentAnimationName = AnimationNames[0];
     }
 
     partial void OnIsAnimatingChanged(bool value)
@@ -34,7 +40,14 @@ public sealed partial class MainViewModel
         if (Renderer is IAnimationRenderer animRenderer)
         {
             if (value && CurrentAnimationName is { Length: > 0 })
+            {
                 animRenderer.PlayAnimation(CurrentAnimationName);
+                StartAnimationTimer();
+            }
+            else if (!value)
+            {
+                StopAnimationTimer();
+            }
         }
     }
 
@@ -46,6 +59,7 @@ public sealed partial class MainViewModel
         CurrentAnimationName = name;
         animRenderer.PlayAnimation(name);
         AnimationProgress = 0f;
+        AnimationTimeText = string.Empty;
         IsAnimating = true;
         UpdateAnimationNavigationState();
     }
@@ -64,6 +78,7 @@ public sealed partial class MainViewModel
 
     public void StopAnimation()
     {
+        StopAnimationTimer();
         IsAnimating = false;
         CurrentAnimationName = string.Empty;
         AnimationProgress = 0f;
@@ -99,7 +114,35 @@ public sealed partial class MainViewModel
     {
         if (!IsAnimating || Renderer is not IAnimationRenderer animRenderer) return;
 
-        animRenderer.Update(deltaTime);
-        AnimationProgress = 0f;
+        float duration = animRenderer.AnimationDuration;
+        if (duration > 0f)
+        {
+            float current = animRenderer.AnimationCurrentTime;
+            AnimationProgress = current / duration;
+            int curSec = (int)current;
+            int totalSec = (int)duration;
+            AnimationTimeText = $"{curSec / 60}:{curSec % 60:D2} / {totalSec / 60}:{totalSec % 60:D2}";
+        }
+        else
+        {
+            AnimationProgress = 0f;
+            AnimationTimeText = string.Empty;
+        }
+    }
+
+    private void StartAnimationTimer()
+    {
+        if (_animationTimer is not null) return;
+        _animationTimer = new DispatcherTimer(
+            TimeSpan.FromMilliseconds(16),
+            DispatcherPriority.Render,
+            (_, _) => UpdateAnimation(0.016f));
+        _animationTimer.Start();
+    }
+
+    private void StopAnimationTimer()
+    {
+        _animationTimer?.Stop();
+        _animationTimer = null;
     }
 }

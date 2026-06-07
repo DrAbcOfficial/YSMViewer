@@ -30,7 +30,7 @@ public sealed record RendererCapabilities(
         SupportsGizmo: true);
 
     public static RendererCapabilities Browser { get; } = new(
-        SupportsAnimation: false,
+        SupportsAnimation: true,
         SupportsComponentVisibility: true,
         SupportsBoneVisibility: true,
         SupportsTextureProjection: false,
