@@ -32,9 +32,6 @@ public sealed partial class MainViewModel
 
         CanPreviousAnimation = animRenderer.AnimationNames.Count > 0;
         CanNextAnimation = animRenderer.AnimationNames.Count > 0;
-
-        if (AnimationNames.Count > 0 && string.IsNullOrEmpty(CurrentAnimationName))
-            CurrentAnimationName = AnimationNames[0];
     }
 
     partial void OnIsAnimatingChanged(bool value)

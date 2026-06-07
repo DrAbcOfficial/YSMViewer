@@ -36,8 +36,10 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
 
     public Aura3DRenderer()
     {
-        _view = new Aura3DView();
-        _view.CreateRenderPipeline = scene => new NoLightPipeline(scene);
+        _view = new Aura3DView
+        {
+            CreateRenderPipeline = scene => new YSMPipeline(scene)
+        };
         _view.SceneInitialized += OnSceneInitialized;
         _view.SceneUpdated += OnSceneUpdated;
     }
@@ -90,7 +92,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
         if (_sceneInitialized && _view.Scene is not null && document.Models.Count > 0)
             FitCameraToContent();
 
-        _animBones = new Dictionary<string, IAnimatableBone>();
+        _animBones = [];
         foreach (var kv in _boneNodes)
             _animBones[kv.Key] = new Aura3DBoneNode(kv.Value);
         _animService.SetBoneNodes(_animBones, _baseBoneEulers);

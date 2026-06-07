@@ -34,6 +34,7 @@ internal sealed partial class Program
         }
 
         await BuildAvaloniaApp()
+            .WithInterFont()
             .StartBrowserAppAsync("out");
     }
 
