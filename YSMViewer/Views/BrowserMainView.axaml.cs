@@ -1,82 +1,29 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Media;
 using Avalonia.Platform.Storage;
-using Avalonia.Svg.Skia;
-using Svg.Model;
 using YSMViewer.Rendering;
-using YSMViewer.Services;
 using YSMViewer.ViewModels;
 
 namespace YSMViewer.Views;
 
 public partial class BrowserMainView : UserControl
 {
-    private static readonly string[] ThemeSvgPaths =
-    [
-        "avares://YSMViewer/Assets/svg/mode-system.svg",
-        "avares://YSMViewer/Assets/svg/mode-light.svg",
-        "avares://YSMViewer/Assets/svg/mode-dark.svg",
-    ];
-
     public BrowserMainView()
     {
         InitializeComponent();
         Loaded += OnLoaded;
 
-        ThemeService.Instance.ModeChanged += OnThemeChanged;
-        UpdateThemeIcon();
+        DragDrop.AddDropHandler(this, OnDrop);
+        DragDrop.AddDragOverHandler(this, OnDragOverHandler);
+        DragDrop.AddDragEnterHandler(this, OnDragEnterHandler);
+        DragDrop.AddDragLeaveHandler(this, OnDragLeaveHandler);
     }
 
-    private void OnThemeChanged(AppThemeMode mode)
+    private void OnLoaded(object? sender, RoutedEventArgs e)
     {
-        UpdateThemeIcon();
-        ApplyAllSvgColors();
-    }
-
-    private void UpdateThemeIcon()
-    {
-        var img = this.FindControl<Image>("ThemeSvgImage");
-        if (img is null) return;
-
-        var mode = ThemeService.Instance.CurrentMode;
-        LoadSvgWithColor(img, ThemeSvgPaths[(int)mode]);
-    }
-
-    private void ApplyAllSvgColors()
-    {
-        var paths = new (string Name, string Path)[]
-        {
-            ("LangSvgImage", "avares://YSMViewer/Assets/svg/lang.svg"),
-            ("ThemeSvgImage", ThemeSvgPaths[(int)ThemeService.Instance.CurrentMode]),
-            ("GitHubSvgImage", "avares://YSMViewer/Assets/svg/github.svg"),
-            ("CameraFrontImg", "avares://YSMViewer/Assets/svg/up-junction.svg"),
-            ("CameraTopImg", "avares://YSMViewer/Assets/svg/down-junction.svg"),
-        };
-
-        foreach (var (name, path) in paths)
-        {
-            var img = this.FindControl<Image>(name);
-            if (img is not null)
-                LoadSvgWithColor(img, path);
-        }
-    }
-
-    private static void LoadSvgWithColor(Image image, string svgPath)
-    {
-        var color = ThemeService.Instance.IsDarkTheme() ? "#8b949e" : "#656d76";
-        try
-        {
-            var source = SvgSource.Load(svgPath, new Uri("avares://YSMViewer/"));
-            source.ReLoad(new SvgParameters(null, $":root {{ color: {color}; }}"));
-            image.Source = new SvgImage { Source = source };
-        }
-        catch { }
-    }
-
-    private void OnThemeToggleClick(object? sender, RoutedEventArgs e)
-    {
-        ThemeService.Instance.CycleTheme();
+        if (DataContext is MainViewModel vm)
+            _ = vm.LoadStartupFileIfNeeded();
     }
 
     private async void OnGitHubClick(object? sender, RoutedEventArgs e)
@@ -86,41 +33,59 @@ public partial class BrowserMainView : UserControl
         await topLevel.Launcher.LaunchUriAsync(new Uri("https://github.com/DrAbcOfficial/YSMViewer"));
     }
 
-    private void OnLanguageButtonClick(object? sender, RoutedEventArgs e)
+    private async void OnDrop(object? sender, DragEventArgs e)
     {
-        var menu = new ContextMenu();
+        e.Handled = true;
 
-        var enIcon = new Image { Width = 18, Height = 18 };
-        LoadSvgWithColor(enIcon, "avares://YSMViewer/Assets/svg/lang-en.svg");
-        var enItem = new MenuItem { Header = "English", Icon = enIcon };
-        enItem.Click += (_, _) =>
+        if (DataContext is not MainViewModel vm) return;
+        if (!e.DataTransfer.Formats.Contains(DataFormat.File)) return;
+
+        var files = e.DataTransfer.TryGetFiles();
+        if (files is null) return;
+
+        foreach (var file in files)
         {
-            LocalizationService.Instance.SetLanguage("en");
-            menu.Close();
-        };
-        menu.Items.Add(enItem);
-
-        var zhIcon = new Image { Width = 18, Height = 18 };
-        LoadSvgWithColor(zhIcon, "avares://YSMViewer/Assets/svg/lang-cn.svg");
-        var zhItem = new MenuItem { Header = "中文", Icon = zhIcon };
-        zhItem.Click += (_, _) =>
-        {
-            LocalizationService.Instance.SetLanguage("zh");
-            menu.Close();
-        };
-        menu.Items.Add(zhItem);
-
-        menu.Open(sender as Control ?? this);
+            if (file is not IStorageFile storageFile) continue;
+            try
+            {
+                await using var stream = await storageFile.OpenReadAsync();
+                using var ms = new System.IO.MemoryStream();
+                await stream.CopyToAsync(ms);
+                await vm.LoadFromBytesAsync(ms.ToArray());
+                return;
+            }
+            catch (Exception ex) { vm.SetError(ex); }
+        }
     }
 
-    private void OnLoaded(object? sender, RoutedEventArgs e)
+    private void OnDragOverHandler(object? sender, DragEventArgs e)
     {
-        ApplyAllSvgColors();
-
-        if (DataContext is MainViewModel vm)
+        if (DataContext is MainViewModel vm && vm.IsLoading)
         {
-            _ = vm.LoadStartupFileIfNeeded();
+            e.DragEffects = DragDropEffects.None;
+            e.Handled = true;
+            return;
         }
+
+        e.DragEffects = e.DataTransfer.Formats.Contains(DataFormat.File)
+            ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void OnDragEnterHandler(object? sender, DragEventArgs e)
+    {
+        if (DataContext is MainViewModel vm && vm.IsLoading) return;
+        if (e.DataTransfer.Formats.Contains(DataFormat.File))
+        {
+            var overlay = this.FindControl<Border>("DragOverlay");
+            overlay?.IsVisible = true;
+        }
+    }
+
+    private void OnDragLeaveHandler(object? sender, DragEventArgs e)
+    {
+        var overlay = this.FindControl<Border>("DragOverlay");
+        overlay?.IsVisible = false;
     }
 
     private async void OnOpenButtonClick(object? sender, RoutedEventArgs e)
@@ -171,6 +136,13 @@ public partial class BrowserMainView : UserControl
                 vm.Notifications.Show("Copied to clipboard", NotificationType.Info, 2000);
             }
         }
+    }
+
+    private void OnCloseBannerClick(object? sender, RoutedEventArgs e)
+    {
+        var banner = this.FindControl<Border>("BrowserBanner");
+        if (banner is not null)
+            banner.IsVisible = false;
     }
 
     private void OnCameraFrontClick(object? sender, RoutedEventArgs e)

@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:YSMViewer.ViewModels"
+             xmlns:a="https://sunce.tech/aura3d"
              xmlns:v="clr-namespace:YSMViewer.Views"
              xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Svg.Controls.Skia.Avalonia"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
@@ -112,6 +113,23 @@ ToolTip.Tip="{Binding LocSwitchLang}"
             <!-- Viewport -->
             <Panel Grid.Column="1" x:Name="ViewportPanel">
                 <ContentControl Content="{Binding Renderer.View}" />
+
+                <!-- Gizmo overlay -->
+                <Border x:Name="GizmoBorder"
+                        Width="100" Height="100"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Bottom"
+                        Margin="0,0,16,16"
+                        Background="Transparent"
+                        CornerRadius="8"
+                        PointerEntered="OnGizmoPointerEntered"
+                        PointerExited="OnGizmoPointerExited"
+                        PointerPressed="OnGizmoPointerPressed"
+                        PointerReleased="OnGizmoPointerReleased">
+                    <a:Aura3DView x:Name="GizmoView"
+                                  IsHitTestVisible="False"
+                                  SceneInitialized="OnGizmoSceneInitialized" />
+                </Border>
 
                 <!-- Empty state overlay -->
                 <Border IsVisible="{Binding !HasModel}"

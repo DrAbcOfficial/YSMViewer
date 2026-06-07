@@ -1,3 +1,6 @@
+using Aura3D.Avalonia;
+using Aura3D.Core.Nodes;
+using Aura3D.Core.Resources;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -5,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Svg.Skia;
 using Svg.Model;
+using System.Numerics;
 using YSMViewer.Rendering;
 using YSMViewer.Rendering.Aura3D;
 using YSMViewer.Services;
@@ -14,8 +18,11 @@ namespace YSMViewer.Views;
 
 public partial class MainView : UserControl
 {
+    private SphericalGizmo? _gizmo;
     private bool _isDragging;
+    private bool _gizmoIsDragging;
     private Avalonia.Point _lastMousePos;
+    private Avalonia.Point _gizmoLastPos;
 
     private static readonly string[] ThemeSvgPaths =
     [
@@ -104,7 +111,7 @@ public partial class MainView : UserControl
     {
         var rgba = ThemeService.Instance.GetViewportBackgroundColor();
         if (DataContext is MainViewModel vm)
-            vm.Renderer.SetTheme(new RenderTheme(rgba[0], rgba[1], rgba[2], rgba[3],
+            vm.Renderer.SetTheme(new RenderTheme(rgba[1], rgba[2], rgba[3], rgba[0],
                 ThemeService.Instance.IsDarkTheme()));
     }
 
@@ -271,20 +278,37 @@ public partial class MainView : UserControl
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         _isDragging = false;
+        _gizmoIsDragging = false;
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (!_isDragging) return;
-        if (DataContext is not MainViewModel vm) return;
-        if (vm.Renderer is not Aura3DRenderer aura) return;
+        if (_isDragging)
+        {
+            if (DataContext is not MainViewModel vm) return;
+            if (vm.Renderer is not Aura3DRenderer aura) return;
 
-        var pos = e.GetPosition(this);
-        float dx = (float)(pos.X - _lastMousePos.X);
-        float dy = (float)(pos.Y - _lastMousePos.Y);
-        _lastMousePos = pos;
+            var pos = e.GetPosition(this);
+            float dx = (float)(pos.X - _lastMousePos.X);
+            float dy = (float)(pos.Y - _lastMousePos.Y);
+            _lastMousePos = pos;
 
-        aura.OrbitCamera(dx * 0.3f, dy * 0.3f);
+            aura.OrbitCamera(dx * 0.3f, dy * 0.3f);
+            SyncGizmoCamera();
+        }
+        else if (_gizmoIsDragging)
+        {
+            if (DataContext is not MainViewModel vm) return;
+            if (vm.Renderer is not Aura3DRenderer aura) return;
+
+            var pos = e.GetPosition(this);
+            float dx = (float)(pos.X - _gizmoLastPos.X);
+            float dy = (float)(pos.Y - _gizmoLastPos.Y);
+            _gizmoLastPos = pos;
+
+            aura.OrbitCamera(dx * 0.3f, dy * 0.3f);
+            SyncGizmoCamera();
+        }
     }
 
     private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
@@ -408,5 +432,85 @@ public partial class MainView : UserControl
     {
         if (DataContext is MainViewModel vm)
             vm.Renderer.SetCameraView(RenderCameraView.Top);
+    }
+
+    private void OnGizmoSceneInitialized(object sender, InitializedRoutedEventArgs args)
+    {
+        var view = (Aura3DView)sender;
+        var scene = args.Scene;
+
+        try
+        {
+            var rgba = ThemeService.Instance.GetViewportBackgroundColor();
+            scene.Background = Texture.CreateFromColor(
+                System.Drawing.Color.FromArgb(rgba[0], rgba[1], rgba[2], rgba[3]));
+            scene.RenderPipeline.EnableFrustumCulling = true;
+
+            var pl = new PointLight
+            {
+                LightColor = System.Drawing.Color.White,
+                LuminousIntensity = 9999.0f,
+                Position = Vector3.Zero,
+                AttenuationRadius = 9999.0f,
+                CastShadow = false,
+            };
+            scene.AddNode(pl);
+
+            var camera = view.MainCamera;
+            camera.FieldOfView = 40f;
+            camera.NearPlane = 0.01f;
+            camera.FarPlane = 100f;
+
+            _gizmo = new SphericalGizmo();
+            view.AddNode(_gizmo);
+
+            SyncGizmoCamera();
+        }
+        catch { }
+    }
+
+    private void SyncGizmoCamera()
+    {
+        if (GizmoView.Scene is null) return;
+        if (DataContext is not MainViewModel vm) return;
+        if (vm.Renderer is not Aura3DRenderer aura) return;
+
+        const float gizmoCamDist = 2.5f;
+        float pitchRad = aura.CameraPitch * MathF.PI / 180f;
+        float yawRad = aura.CameraYaw * MathF.PI / 180f;
+
+        float x = gizmoCamDist * MathF.Cos(pitchRad) * MathF.Sin(yawRad);
+        float y = gizmoCamDist * MathF.Sin(pitchRad);
+        float z = gizmoCamDist * MathF.Cos(pitchRad) * MathF.Cos(yawRad);
+
+        var cam = GizmoView.MainCamera;
+        cam.Position = new Vector3(x, -y, z);
+        cam.LookAt(Vector3.Zero);
+    }
+
+    private void OnGizmoPointerEntered(object? sender, PointerEventArgs e)
+    {
+        GizmoBorder.Background = new SolidColorBrush(Avalonia.Media.Color.FromArgb(128, 0, 0, 0));
+    }
+
+    private void OnGizmoPointerExited(object? sender, PointerEventArgs e)
+    {
+        GizmoBorder.Background = Brushes.Transparent;
+    }
+
+    private void OnGizmoPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        var props = e.GetCurrentPoint(this).Properties;
+        if (props.IsLeftButtonPressed)
+        {
+            _gizmoIsDragging = true;
+            _gizmoLastPos = e.GetPosition(this);
+            e.Handled = true;
+        }
+    }
+
+    private void OnGizmoPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        _gizmoIsDragging = false;
     }
 }

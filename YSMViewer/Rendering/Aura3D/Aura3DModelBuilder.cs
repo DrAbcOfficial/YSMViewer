@@ -160,7 +160,7 @@ public static class Aura3DModelBuilder
 
     private static (Vector3 From, Vector3 To) ConvertCubeBoundsDoc(YsmCubeInfo cube)
     {
-        var from = new Vector3(-(cube.Origin.X + cube.Size.X), cube.Origin.Y, cube.Origin.Z);
+        var from = new Vector3(cube.Origin.X - cube.Size.X, cube.Origin.Y, cube.Origin.Z);
         var to = new Vector3(from.X + cube.Size.X, from.Y + cube.Size.Y, from.Z + cube.Size.Z);
         return (from, to);
     }

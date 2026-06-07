@@ -108,9 +108,8 @@ internal static class TriangleMeshBuilder
             cubeUV = cubeUV.Expand(cube.Size.X, cube.Size.Y, cube.Size.Z);
 
         float inflate = cube.Inflate;
-        var origin = new Vector3(-cube.Origin.X, cube.Origin.Y, cube.Origin.Z);
-        var from = origin;
-        var to = origin + cube.Size;
+        var from = new Vector3(cube.Origin.X - cube.Size.X, cube.Origin.Y, cube.Origin.Z);
+        var to = from + cube.Size;
 
         var center = (from + to) * 0.5f;
         var halfSize = (to - from) * 0.5f;

@@ -20,6 +20,11 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
     private readonly AnimationService _animService = new();
     private bool _sceneInitialized;
 
+    public Vector3 CameraOrbitTarget => _cameraOrbitTarget;
+    public float CameraYaw => _cameraYaw;
+    public float CameraPitch => _cameraPitch;
+    public float CameraDistance => _cameraDistance;
+
     private Vector3 _cameraOrbitTarget = Vector3.Zero;
     private float _cameraDistance = 30f;
     private float _cameraYaw = 180f;
