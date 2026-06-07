@@ -1,12 +1,13 @@
 ﻿using Avalonia;
 using Avalonia.Browser;
 using System;
+using System.Runtime.InteropServices.JavaScript;
 using System.Threading.Tasks;
 using YSMViewer;
 
 internal sealed partial class Program
 {
-    private static Task Main(string[] args)
+    private static async Task Main(string[] args)
     {
         if (args.Length > 0 && !string.IsNullOrEmpty(args[0]))
         {
@@ -33,10 +34,9 @@ internal sealed partial class Program
             catch { }
         }
 
-        return BuildAvaloniaApp()
-            // TODO: This suck, all utf-8 char turn into mess
-            // Use custom font instead
-            //.WithInterFont()
+        await JSHost.ImportAsync("YsmThreeRenderer", "../js/ysm-three-renderer.js");
+
+        await BuildAvaloniaApp()
             .StartBrowserAppAsync("out");
     }
 
