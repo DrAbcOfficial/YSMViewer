@@ -6,10 +6,20 @@ namespace YSMViewer.Rendering.Aura3D;
 
 public sealed class YSMPipeline : RenderPipeline
 {
+    private readonly YSMNoLightPass _noLightPass;
+
+    /// <summary>0 = off, >0 = simple shading intensity. Default 0.3.</summary>
+    public float SimpleShadingIntensity
+    {
+        get => _noLightPass.SimpleShadingIntensity;
+        set => _noLightPass.SimpleShadingIntensity = value;
+    }
+
     public YSMPipeline(Scene scene) : base(scene)
     {
         RegisterRenderPass(new BackgroundPass(this).SetOutPutRenderTarget("BaseRenderTarget"), RenderPassGroup.EveryCamera);
-        RegisterRenderPass(new YSMNoLightPass(this).SetOutPutRenderTarget("BaseRenderTarget"), RenderPassGroup.EveryCamera);
+        _noLightPass = new YSMNoLightPass(this);
+        RegisterRenderPass(_noLightPass.SetOutPutRenderTarget("BaseRenderTarget"), RenderPassGroup.EveryCamera);
         RegisterRenderPass(new NoLightTranslucentPass(this).SetOutPutRenderTarget("BaseRenderTarget"), RenderPassGroup.EveryCamera);
 
         RegisterRenderPass(new GammaCorrectionPass(this, "BaseRenderTarget", "Color").SetOutPutRenderTarget("GammaOutput"), RenderPassGroup.EveryCamera);
