@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Styling;
 using System.Diagnostics.CodeAnalysis;
+using YSMViewer.Rendering.Aura3D;
 using YSMViewer.Services;
 using YSMViewer.ViewModels;
 using YSMViewer.Views;
@@ -32,20 +33,17 @@ public partial class App : Application
 
         ThemeService.Instance.ApplyTheme();
 
-        var vm = new MainViewModel();
-
-        if (StartupFilePath is not null)
-        {
-            vm.StartupFilePath = StartupFilePath;
-        }
-
-        if (StartupFileUrl is not null)
-        {
-            vm.StartupFileUrl = StartupFileUrl;
-        }
-
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            var renderer = new Aura3DRenderer();
+            var vm = new MainViewModel(renderer);
+
+            if (StartupFilePath is not null)
+                vm.StartupFilePath = StartupFilePath;
+
+            if (StartupFileUrl is not null)
+                vm.StartupFileUrl = StartupFileUrl;
+
             desktop.MainWindow = new MainWindow
             {
                 DataContext = vm,
@@ -53,6 +51,15 @@ public partial class App : Application
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime single)
         {
+            var renderer = new Aura3DRenderer();
+            var vm = new MainViewModel(renderer);
+
+            if (StartupFilePath is not null)
+                vm.StartupFilePath = StartupFilePath;
+
+            if (StartupFileUrl is not null)
+                vm.StartupFileUrl = StartupFileUrl;
+
             single.MainView = new MainView
             {
                 DataContext = vm,

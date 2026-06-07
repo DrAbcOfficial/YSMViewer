@@ -254,7 +254,6 @@ public partial class MainView : UserControl
 
         if (DataContext is MainViewModel vm)
         {
-            vm.SetSceneCallback(AddModelToScene);
             _ = vm.LoadStartupFileIfNeeded();
         }
     }
@@ -315,14 +314,6 @@ public partial class MainView : UserControl
                     view.AddNode(_pendingModel);
                     FitCameraToModel(view.MainCamera, _pendingModel);
                     _loadedModel = _pendingModel;
-
-                    if (DataContext is MainViewModel vm)
-                    {
-                        foreach (var comp in vm.Components)
-                        {
-                            comp.ModelNode?.Enable = comp.IsVisible;
-                        }
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -549,14 +540,6 @@ public partial class MainView : UserControl
                 AuraView.AddNode(modelNode);
                 FitCameraToModel(AuraView.MainCamera, modelNode);
                 _loadedModel = modelNode;
-
-                if (DataContext is MainViewModel vm)
-                {
-                    foreach (var comp in vm.Components)
-                    {
-                        comp.ModelNode?.Enable = comp.IsVisible;
-                    }
-                }
             }
             else
             {
