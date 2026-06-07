@@ -116,7 +116,7 @@ void main()
 		discard;
 #endif
 
-	vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+	vec3 lightDir = normalize(vec3(-1.0, 1.0, -1.0));
 	float diff = max(dot(normalize(vNormal), lightDir), 0.0);
 	float shade = 0.2 + 0.8 * diff;
 	baseColor.rgb = mix(baseColor.rgb, baseColor.rgb * shade, simpleShadingIntensity);
