@@ -48,7 +48,7 @@ jobs:
           files: |
             publish/desktop-${{ matrix.rid }}/YSMViewer.Desktop
             publish/desktop-${{ matrix.rid }}/YSMViewer.Desktop.exe
-          args: --best --lzma
+          args: --best --lzma --force
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
