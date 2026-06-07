@@ -108,7 +108,7 @@
                         Background="#CC1b2a4e" Padding="10,8" Margin="0">
                     <Grid>
                         <TextBlock
-                            Text="&#x26A0; Web version has limited features and lower performance. Download the desktop client for the full experience."
+                            Text="&#x26A0; Web version features WebGL-accelerated 3D rendering. Desktop client recommended for full animation support."
                             FontSize="11" Foreground="#FFCC00"
                             TextWrapping="Wrap" TextAlignment="Center"
                             HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -253,7 +253,7 @@
                             </StackPanel>
                         </Expander>
 
-                        <!-- Components Section (read-only) -->
+                        <!-- Components Section -->
                         <Expander IsExpanded="False" Padding="0">
                             <Expander.Header>
                                 <TextBlock Text="{Binding LocComponents}" FontWeight="SemiBold" FontSize="13"
@@ -266,12 +266,14 @@
                                             <Border CornerRadius="4" Margin="0,2"
                                                     Padding="8,4"
                                                     Background="{DynamicResource ThemeBgElevated}">
-                                                <Grid ColumnDefinitions="Auto,*">
-                                                    <TextBlock Grid.Column="0" Text="&#x25CF;"
+                                                <Grid ColumnDefinitions="Auto,Auto,*">
+                                                    <CheckBox Grid.Column="0" IsChecked="{Binding IsVisible}"
+                                                              VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="1" Text="&#x25CF;"
                                                                FontSize="10" VerticalAlignment="Center"
                                                                Foreground="{DynamicResource ThemeTextMuted}"
                                                                Margin="4,0,0,0" />
-                                                    <TextBlock Grid.Column="1"
+                                                    <TextBlock Grid.Column="2"
                                                                Text="{Binding Name}"
                                                                Foreground="{DynamicResource ThemeTextPrimary}"
                                                                FontSize="12" VerticalAlignment="Center"
@@ -285,7 +287,7 @@
                             </StackPanel>
                         </Expander>
 
-                        <!-- Bones Section (read-only) -->
+                        <!-- Bones Section -->
                         <Expander IsExpanded="False" Padding="0">
                             <Expander.Header>
                                 <TextBlock Text="{Binding LocBones}" FontWeight="SemiBold" FontSize="13"
@@ -304,10 +306,12 @@
                                     <TreeView.ItemTemplate>
                                         <TreeDataTemplate ItemsSource="{Binding Children}"
                                                           x:DataType="vm:BoneTreeItemViewModel">
-                                            <Grid ColumnDefinitions="Auto,*">
-                                                <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="12"
-                                                           VerticalAlignment="Center" Margin="0,0,4,0" />
-                                                <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                            <Grid ColumnDefinitions="Auto,Auto,*">
+                                                <CheckBox Grid.Column="0" IsChecked="{Binding IsVisible}"
+                                                          VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="1" Text="{Binding Icon}" FontSize="12"
+                                                           VerticalAlignment="Center" Margin="4,0,4,0" />
+                                                <TextBlock Grid.Column="2" Text="{Binding Name}"
                                                            Foreground="{DynamicResource ThemeTextPrimary}"
                                                            FontSize="12" VerticalAlignment="Center"
                                                            TextTrimming="CharacterEllipsis" />

@@ -6,7 +6,7 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using System.Diagnostics.CodeAnalysis;
 using YSMViewer.Rendering.Aura3D;
-using YSMViewer.Rendering.Skia;
+using YSMViewer.Rendering.ThreeJs;
 using YSMViewer.Services;
 using YSMViewer.ViewModels;
 using YSMViewer.Views;
@@ -52,7 +52,7 @@ public partial class App : Application
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime single)
         {
-            var renderer = new SkiaProjectionRenderer();
+            var renderer = new ThreeJsRenderer();
             var vm = new MainViewModel(renderer);
 
             if (StartupFilePath is not null)

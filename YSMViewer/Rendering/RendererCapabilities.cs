@@ -31,10 +31,10 @@ public sealed record RendererCapabilities(
 
     public static RendererCapabilities Browser { get; } = new(
         SupportsAnimation: false,
-        SupportsComponentVisibility: false,
-        SupportsBoneVisibility: false,
-        SupportsTextureProjection: true,
+        SupportsComponentVisibility: true,
+        SupportsBoneVisibility: true,
+        SupportsTextureProjection: false,
         SupportsAutoRotation: true,
-        SupportsFreeCamera: false,
+        SupportsFreeCamera: true,
         SupportsGizmo: false);
 }

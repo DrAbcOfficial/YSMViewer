@@ -403,9 +403,9 @@ public sealed partial class MainViewModel : ViewModelBase
         AnimationNames.Clear();
 
         foreach (var tex in document.Textures)
-            AddTextureEntries([new YsmResourceEntry(tex.Name, tex.Data)], "Texture");
+            AddTextureEntry(tex.Name, tex.Data, tex.Width, tex.Height, "Texture");
         foreach (var img in document.Images)
-            AddTextureEntries([new YsmResourceEntry(img.Name, img.Data)], img.Category);
+            AddTextureEntry(img.Name, img.Data, img.Width, img.Height, img.Category);
 
         HasTextures = TextureItems.Count > 0;
 
@@ -620,53 +620,19 @@ public sealed partial class MainViewModel : ViewModelBase
             root.SetExpandedRecursive(false);
     }
 
-    private void AddTextureEntries(IReadOnlyList<YsmResourceEntry> entries, string category)
+    private void AddTextureEntry(string name, byte[] data, int width, int height, string category)
     {
-        foreach (var entry in entries)
+        TextureItems.Add(new TextureItemViewModel
         {
-            Avalonia.Media.Imaging.Bitmap? bitmap = null;
-            int width = 0;
-            int height = 0;
-            try
-            {
-                using var ms = new System.IO.MemoryStream(entry.Data);
-                bitmap = new Avalonia.Media.Imaging.Bitmap(ms);
-                width = bitmap.PixelSize.Width;
-                height = bitmap.PixelSize.Height;
-            }
-            catch { }
-
-            TextureItems.Add(new TextureItemViewModel
-            {
-                Name = entry.Name,
-                Category = category,
-                DataSize = entry.Data.Length,
-                Width = width,
-                Height = height,
-                Thumbnail = CreateThumbnail(bitmap),
-            });
-
-            bitmap?.Dispose();
-        }
-    }
-
-    private static Avalonia.Media.Imaging.Bitmap? CreateThumbnail(Avalonia.Media.Imaging.Bitmap? source, int maxSize = 128)
-    {
-        if (source is null) return null;
-        try
-        {
-            var (nw, nh) = source.PixelSize.Width >= source.PixelSize.Height
-                ? (maxSize, (int)(source.PixelSize.Height * (double)maxSize / source.PixelSize.Width))
-                : ((int)(source.PixelSize.Width * (double)maxSize / source.PixelSize.Height), maxSize);
-            nw = Math.Max(1, nw);
-            nh = Math.Max(1, nh);
-            return source.CreateScaledBitmap(new Avalonia.PixelSize(nw, nh));
-        }
-        catch { return null; }
+            Name = name,
+            Category = category,
+            DataSize = data.Length,
+            Width = width,
+            Height = height,
+            Thumbnail = null,
+        });
     }
 }
-
-public sealed record YsmResourceEntry(string Name, byte[] Data);
 
 public sealed partial class ComponentViewModel : ObservableObject
 {
