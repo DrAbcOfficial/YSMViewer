@@ -423,6 +423,7 @@ public sealed partial class MainViewModel : ViewModelBase
                 Name = displayName,
                 ComponentId = modelInfo.Id,
                 IsVisible = modelInfo.DefaultVisible,
+                OnVisibilityToggled = (id, vis) => SetComponentVisible(id, vis),
             });
         }
 
@@ -575,13 +576,14 @@ public sealed partial class MainViewModel : ViewModelBase
         }
     }
 
-    private static BoneTreeItemViewModel? BuildBoneTreeItem(YsmBoneInfo bone, YsmModelDocument document)
+    private BoneTreeItemViewModel? BuildBoneTreeItem(YsmBoneInfo bone, YsmModelDocument document)
     {
         var item = new BoneTreeItemViewModel
         {
             Name = bone.Name,
             BoneId = bone.Id,
             IsVisible = true,
+            OnVisibilityToggled = (id, vis) => SetBoneVisible(id, vis),
         };
 
         var childBones = new List<YsmBoneInfo>();
@@ -675,6 +677,13 @@ public sealed partial class ComponentViewModel : ObservableObject
     public partial bool IsVisible { get; set; } = false;
 
     public string ComponentId { get; set; } = string.Empty;
+
+    public Action<string, bool>? OnVisibilityToggled { get; set; }
+
+    partial void OnIsVisibleChanged(bool value)
+    {
+        OnVisibilityToggled?.Invoke(ComponentId, value);
+    }
 }
 
 public sealed partial class BoneTreeItemViewModel : ObservableObject
@@ -696,6 +705,15 @@ public sealed partial class BoneTreeItemViewModel : ObservableObject
 
     public string BoneId { get; set; } = string.Empty;
     public ObservableCollection<BoneTreeItemViewModel> Children { get; } = [];
+
+    public Action<string, bool>? OnVisibilityToggled { get; set; }
+
+    partial void OnIsVisibleChanged(bool value)
+    {
+        OnVisibilityToggled?.Invoke(BoneId, value);
+        foreach (var child in Children)
+            child.IsVisible = value;
+    }
 
     public void SetExpandedRecursive(bool expanded)
     {

@@ -1,6 +1,3 @@
-using Aura3D.Avalonia;
-using Aura3D.Core.Nodes;
-using Aura3D.Core.Resources;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -8,7 +5,8 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Svg.Skia;
 using Svg.Model;
-using System.Numerics;
+using YSMViewer.Rendering;
+using YSMViewer.Rendering.Aura3D;
 using YSMViewer.Services;
 using YSMViewer.ViewModels;
 
@@ -16,20 +14,9 @@ namespace YSMViewer.Views;
 
 public partial class MainView : UserControl
 {
-    private Model? _pendingModel;
-    private Model? _loadedModel;
-    private SphericalGizmo? _gizmo;
     private bool _isDragging;
-    private bool _gizmoIsDragging;
     private Avalonia.Point _lastMousePos;
-    private Avalonia.Point _gizmoLastPos;
-    private Vector3 _cameraOrbitTarget = Vector3.Zero;
-    private float _cameraDistance = 30f;
-    private float _cameraYaw = 180f;
-    private float _cameraPitch = -15f;
-    private bool _sceneInitialized;
 
-    private static readonly string[] ThemeTooltips = ["Switch to Dark mode", "Switch to System theme", "Switch to Light mode"];
     private static readonly string[] ThemeSvgPaths =
     [
         "avares://YSMViewer/Assets/svg/mode-system.svg",
@@ -73,9 +60,12 @@ public partial class MainView : UserControl
 
         var btn = this.FindControl<Button>("ThemeToggleButton");
         if (btn is not null)
-        {
-            ToolTip.SetTip(btn, ThemeTooltips[(int)mode]);
-        }
+            ToolTip.SetTip(btn, mode switch
+            {
+                AppThemeMode.Dark => "Switch to System theme",
+                AppThemeMode.System => "Switch to Light mode",
+                _ => "Switch to Dark mode",
+            });
     }
 
     private void ApplyAllSvgColors()
@@ -107,23 +97,15 @@ public partial class MainView : UserControl
             source.ReLoad(new SvgParameters(null, $":root {{ color: {color}; }}"));
             image.Source = new SvgImage { Source = source };
         }
-        catch
-        {
-        }
+        catch { }
     }
 
     private void UpdateSceneAppearance()
     {
-        UpdateSceneBackgrounds();
-    }
-
-    private void UpdateSceneBackgrounds()
-    {
         var rgba = ThemeService.Instance.GetViewportBackgroundColor();
-        var color = System.Drawing.Color.FromArgb(rgba[0], rgba[1], rgba[2], rgba[3]);
-
-        AuraView.Scene?.Background = Texture.CreateFromColor(color);
-        GizmoView.Scene?.Background = Texture.CreateFromColor(color);
+        if (DataContext is MainViewModel vm)
+            vm.Renderer.SetTheme(new RenderTheme(rgba[0], rgba[1], rgba[2], rgba[3],
+                ThemeService.Instance.IsDarkTheme()));
     }
 
     private void OnThemeToggleClick(object? sender, RoutedEventArgs e)
@@ -185,14 +167,8 @@ public partial class MainView : UserControl
 
             if (!path.EndsWith(".ysm", StringComparison.OrdinalIgnoreCase)) continue;
 
-            try
-            {
-                await vm.LoadFileAsync(path);
-            }
-            catch (Exception ex)
-            {
-                vm.SetError(ex);
-            }
+            try { await vm.LoadFileAsync(path); }
+            catch (Exception ex) { vm.SetError(ex); }
             return;
         }
 
@@ -207,10 +183,7 @@ public partial class MainView : UserControl
                 await vm.LoadFromBytesAsync(ms.ToArray());
                 return;
             }
-            catch (Exception ex)
-            {
-                vm.SetError(ex);
-            }
+            catch (Exception ex) { vm.SetError(ex); }
         }
     }
 
@@ -223,11 +196,8 @@ public partial class MainView : UserControl
             return;
         }
 
-        if (e.DataTransfer.Formats.Contains(DataFormat.File))
-            e.DragEffects = DragDropEffects.Copy;
-        else
-            e.DragEffects = DragDropEffects.None;
-
+        e.DragEffects = e.DataTransfer.Formats.Contains(DataFormat.File)
+            ? DragDropEffects.Copy : DragDropEffects.None;
         e.Handled = true;
     }
 
@@ -251,11 +221,10 @@ public partial class MainView : UserControl
     private void OnLoaded(object? sender, RoutedEventArgs e)
     {
         ApplyAllSvgColors();
+        UpdateSceneAppearance();
 
         if (DataContext is MainViewModel vm)
-        {
             _ = vm.LoadStartupFileIfNeeded();
-        }
     }
 
     private async void OnOpenButtonClick(object? sender, RoutedEventArgs e)
@@ -287,165 +256,6 @@ public partial class MainView : UserControl
         await vm.LoadFromBytesAsync(ms.ToArray());
     }
 
-    private void OnSceneInitialized(object sender, InitializedRoutedEventArgs args)
-    {
-        _sceneInitialized = true;
-        var view = (Aura3DView)sender;
-        var scene = args.Scene;
-
-        try
-        {
-            var rgba = ThemeService.Instance.GetViewportBackgroundColor();
-            scene.Background = Texture.CreateFromColor(System.Drawing.Color.FromArgb(rgba[0], rgba[1], rgba[2], rgba[3]));
-            scene.RenderPipeline.EnableFrustumCulling = true;
-
-
-            var camera = view.MainCamera;
-            camera.FieldOfView = 50f;
-            camera.NearPlane = 0.1f;
-            camera.FarPlane = 5000f;
-            UpdateCameraPosition(camera);
-            SyncGizmoCamera();
-
-            if (_pendingModel is not null)
-            {
-                try
-                {
-                    view.AddNode(_pendingModel);
-                    FitCameraToModel(view.MainCamera, _pendingModel);
-                    _loadedModel = _pendingModel;
-                }
-                catch (Exception ex)
-                {
-                    if (DataContext is MainViewModel vm)
-                        vm.SetError(ex);
-                }
-                finally
-                {
-                    _pendingModel = null;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            if (DataContext is MainViewModel vm)
-                vm.SetError(ex);
-        }
-    }
-
-    private void OnGizmoSceneInitialized(object sender, InitializedRoutedEventArgs args)
-    {
-        var view = (Aura3DView)sender;
-        var scene = args.Scene;
-
-        try
-        {
-            var rgba = ThemeService.Instance.GetViewportBackgroundColor();
-            scene.Background = Texture.CreateFromColor(System.Drawing.Color.FromArgb(rgba[0], rgba[1], rgba[2], rgba[3]));
-            scene.RenderPipeline.EnableFrustumCulling = true;
-
-            var pl = new PointLight()
-            {
-                LightColor = System.Drawing.Color.White,
-                LuminousIntensity = 9999.0f,
-                Position = new Vector3(0, 0, 0),
-                AttenuationRadius = 9999.0f,
-                CastShadow = false
-            };
-            scene.AddNode(pl);
-
-            var camera = view.MainCamera;
-            camera.FieldOfView = 40f;
-            camera.NearPlane = 0.01f;
-            camera.FarPlane = 100f;
-
-            _gizmo = new SphericalGizmo();
-            view.AddNode(_gizmo);
-
-            SyncGizmoCamera();
-        }
-        catch (Exception ex)
-        {
-            if (DataContext is MainViewModel vm)
-                vm.SetError(ex);
-        }
-    }
-
-    private void SyncGizmoCamera()
-    {
-        if (GizmoView.Scene is null) return;
-
-        const float gizmoCamDist = 2.5f;
-        float pitchRad = _cameraPitch * MathF.PI / 180f;
-        float yawRad = _cameraYaw * MathF.PI / 180f;
-
-        float x = gizmoCamDist * MathF.Cos(pitchRad) * MathF.Sin(yawRad);
-        float y = gizmoCamDist * MathF.Sin(pitchRad);
-        float z = gizmoCamDist * MathF.Cos(pitchRad) * MathF.Cos(yawRad);
-
-        var cam = GizmoView.MainCamera;
-        cam.Position = new Vector3(x, -y, z);
-        cam.LookAt(Vector3.Zero);
-    }
-
-    private void OnGizmoPointerEntered(object? sender, PointerEventArgs e)
-    {
-        GizmoBorder.Background = new SolidColorBrush(Avalonia.Media.Color.FromArgb(128, 0, 0, 0));
-    }
-
-    private void OnGizmoPointerExited(object? sender, PointerEventArgs e)
-    {
-        GizmoBorder.Background = Brushes.Transparent;
-    }
-
-    private void OnGizmoPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        var props = e.GetCurrentPoint(this).Properties;
-        if (props.IsLeftButtonPressed)
-        {
-            _gizmoIsDragging = true;
-            _gizmoLastPos = e.GetPosition(this);
-            e.Handled = true;
-        }
-    }
-
-    private void OnGizmoPointerReleased(object? sender, PointerReleasedEventArgs e)
-    {
-        _gizmoIsDragging = false;
-    }
-
-    private void FitCameraToModel(Camera camera, Model model)
-    {
-        var bb = model.BoundingBox;
-        var center = new Vector3(
-            (bb.Min.X + bb.Max.X) / 2f,
-            (bb.Min.Y + bb.Max.Y) / 2f,
-            (bb.Min.Z + bb.Max.Z) / 2f);
-        var size = new Vector3(
-            bb.Max.X - bb.Min.X,
-            bb.Max.Y - bb.Min.Y,
-            bb.Max.Z - bb.Min.Z);
-        _cameraOrbitTarget = center;
-        _cameraDistance = MathF.Max(size.X, MathF.Max(size.Y, size.Z)) * 1.5f;
-        _cameraYaw = 180f;
-        _cameraPitch = -15f;
-        UpdateCameraPosition(camera);
-        SyncGizmoCamera();
-    }
-
-    private void UpdateCameraPosition(Camera camera)
-    {
-        float pitchRad = _cameraPitch * MathF.PI / 180f;
-        float yawRad = _cameraYaw * MathF.PI / 180f;
-
-        float x = _cameraDistance * MathF.Cos(pitchRad) * MathF.Sin(yawRad);
-        float y = _cameraDistance * MathF.Sin(pitchRad);
-        float z = _cameraDistance * MathF.Cos(pitchRad) * MathF.Cos(yawRad);
-
-        camera.Position = _cameraOrbitTarget + new Vector3(x, -y, z);
-        camera.LookAt(_cameraOrbitTarget);
-    }
-
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         var props = e.GetCurrentPoint(this).Properties;
@@ -461,108 +271,34 @@ public partial class MainView : UserControl
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         _isDragging = false;
-        _gizmoIsDragging = false;
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (AuraView.Scene is null) return;
+        if (!_isDragging) return;
+        if (DataContext is not MainViewModel vm) return;
+        if (vm.Renderer is not Aura3DRenderer aura) return;
 
-        if (_isDragging)
-        {
-            var pos = e.GetPosition(this);
-            float dx = (float)(pos.X - _lastMousePos.X);
-            float dy = (float)(pos.Y - _lastMousePos.Y);
-            _lastMousePos = pos;
+        var pos = e.GetPosition(this);
+        float dx = (float)(pos.X - _lastMousePos.X);
+        float dy = (float)(pos.Y - _lastMousePos.Y);
+        _lastMousePos = pos;
 
-            _cameraYaw -= dx * 0.3f;
-            _cameraPitch += dy * 0.3f;
-            _cameraPitch = Math.Clamp(_cameraPitch, -89f, 89f);
-
-            UpdateCameraPosition(AuraView.MainCamera);
-            SyncGizmoCamera();
-        }
-        else if (_gizmoIsDragging)
-        {
-            var pos = e.GetPosition(this);
-            float dx = (float)(pos.X - _gizmoLastPos.X);
-            float dy = (float)(pos.Y - _gizmoLastPos.Y);
-            _gizmoLastPos = pos;
-
-            _cameraYaw -= dx * 0.3f;
-            _cameraPitch += dy * 0.3f;
-            _cameraPitch = Math.Clamp(_cameraPitch, -89f, 89f);
-
-            UpdateCameraPosition(AuraView.MainCamera);
-            SyncGizmoCamera();
-        }
+        aura.OrbitCamera(dx * 0.3f, dy * 0.3f);
     }
 
     private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
-        if (AuraView.Scene is null) return;
-
-        _cameraDistance *= 1f - (float)e.Delta.Y * 0.1f;
-        _cameraDistance = MathF.Max(_cameraDistance, 0.5f);
-        UpdateCameraPosition(AuraView.MainCamera);
-        SyncGizmoCamera();
+        if (DataContext is MainViewModel vm && vm.Renderer is Aura3DRenderer aura)
+            aura.ZoomCamera((float)e.Delta.Y);
     }
 
-    private void OnSceneUpdated(object sender, UpdateRoutedEventArgs e)
-    {
-        if (_sceneInitialized && DataContext is MainViewModel vm)
-        {
-            vm.UpdateAnimation((float)e.DeltaTime);
-        }
-    }
-
-    private void AddModelToScene(Model modelNode)
-    {
-        try
-        {
-            if (_loadedModel is not null && AuraView.Scene is not null)
-            {
-                AuraView.Scene.RemoveNode(_loadedModel);
-                _loadedModel = null;
-            }
-
-            if (AuraView.Scene is not null)
-            {
-                var dl = new DirectionalLight
-                {
-                    RotationDegrees = new Vector3(-45, 45, 0),
-                    LightColor = System.Drawing.Color.White,
-                    CastShadow = false
-                };
-
-                AuraView.AddNode(dl);
-
-                AuraView.AddNode(modelNode);
-                FitCameraToModel(AuraView.MainCamera, modelNode);
-                _loadedModel = modelNode;
-            }
-            else
-            {
-                _pendingModel = modelNode;
-            }
-        }
-        catch (Exception ex)
-        {
-            if (DataContext is MainViewModel vm)
-                vm.SetError(ex);
-        }
-    }
-
-    private void OnKeyDown(object? sender, KeyEventArgs e)
-    {
-    }
+    private void OnKeyDown(object? sender, KeyEventArgs e) { }
 
     private void OnDismissErrorClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainViewModel vm)
-        {
             vm.HasError = false;
-        }
     }
 
     private async void OnCopyErrorClick(object? sender, RoutedEventArgs e)
@@ -589,8 +325,8 @@ public partial class MainView : UserControl
             {
                 var icon = btn.FindControl<PathIcon>("PlayPauseIcon");
                 icon?.Data = vm.IsAnimating
-                        ? Avalonia.Media.Geometry.Parse("M6 4 L6 28 L12 28 L12 4 Z M18 4 L18 28 L24 28 L24 4 Z")
-                        : Avalonia.Media.Geometry.Parse("M8 4 L8 28 L24 16 Z");
+                    ? Avalonia.Media.Geometry.Parse("M6 4 L6 28 L12 28 L12 4 Z M18 4 L18 28 L24 28 L24 4 Z")
+                    : Avalonia.Media.Geometry.Parse("M8 4 L8 28 L24 16 Z");
             }
         }
     }
@@ -610,9 +346,7 @@ public partial class MainView : UserControl
     private void OnAnimationSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (DataContext is MainViewModel vm && e.AddedItems.Count > 0 && e.AddedItems[0] is string name)
-        {
             vm.SelectAnimation(name);
-        }
     }
 
     private void OnShowAllComponentsClick(object? sender, RoutedEventArgs e)
@@ -620,7 +354,7 @@ public partial class MainView : UserControl
         if (DataContext is MainViewModel vm)
         {
             foreach (var comp in vm.Components)
-                comp.IsVisible = true;
+                vm.SetComponentVisible(comp.ComponentId, true);
         }
     }
 
@@ -629,7 +363,7 @@ public partial class MainView : UserControl
         if (DataContext is MainViewModel vm)
         {
             foreach (var comp in vm.Components)
-                comp.IsVisible = false;
+                vm.SetComponentVisible(comp.ComponentId, false);
         }
     }
 
@@ -658,27 +392,21 @@ public partial class MainView : UserControl
         }
     }
 
-    private void SetCameraView(float yaw, float pitch)
-    {
-        if (!_sceneInitialized || AuraView.Scene is null) return;
-        _cameraYaw = yaw;
-        _cameraPitch = pitch;
-        UpdateCameraPosition(AuraView.MainCamera);
-        SyncGizmoCamera();
-    }
-
     private void OnCameraFrontClick(object? sender, RoutedEventArgs e)
     {
-        SetCameraView(180f, 0f);
+        if (DataContext is MainViewModel vm)
+            vm.Renderer.SetCameraView(RenderCameraView.Front);
     }
 
     private void OnCameraLeftClick(object? sender, RoutedEventArgs e)
     {
-        SetCameraView(-90f, 0f);
+        if (DataContext is MainViewModel vm)
+            vm.Renderer.SetCameraView(RenderCameraView.Side);
     }
 
     private void OnCameraTopClick(object? sender, RoutedEventArgs e)
     {
-        SetCameraView(180f, -89f);
+        if (DataContext is MainViewModel vm)
+            vm.Renderer.SetCameraView(RenderCameraView.Top);
     }
 }
