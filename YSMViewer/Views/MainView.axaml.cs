@@ -21,6 +21,7 @@ public partial class MainView : UserControl
 {
     private SphericalGizmo? _gizmo;
     private bool _isDragging;
+    private bool _isPanning;
     private bool _gizmoIsDragging;
     private Avalonia.Point _lastMousePos;
     private Avalonia.Point _gizmoLastPos;
@@ -83,6 +84,7 @@ public partial class MainView : UserControl
             ("LangSvgImage", "avares://YSMViewer/Assets/svg/lang.svg"),
             ("ThemeSvgImage", ThemeSvgPaths[(int)ThemeService.Instance.CurrentMode]),
             ("GitHubSvgImage", "avares://YSMViewer/Assets/svg/github.svg"),
+            ("CameraResetImg", "avares://YSMViewer/Assets/svg/origin.svg"),
             ("CameraFrontImg", "avares://YSMViewer/Assets/svg/up-junction.svg"),
             ("CameraLeftImg", "avares://YSMViewer/Assets/svg/left-junction.svg"),
             ("CameraTopImg", "avares://YSMViewer/Assets/svg/down-junction.svg"),
@@ -274,11 +276,18 @@ public partial class MainView : UserControl
             _lastMousePos = e.GetPosition(this);
             e.Handled = true;
         }
+        else if (props.IsMiddleButtonPressed)
+        {
+            _isPanning = true;
+            _lastMousePos = e.GetPosition(this);
+            e.Handled = true;
+        }
     }
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         _isDragging = false;
+        _isPanning = false;
         _gizmoIsDragging = false;
     }
 
@@ -296,6 +305,18 @@ public partial class MainView : UserControl
 
             aura.OrbitCamera(dx * 0.3f, dy * 0.3f);
             SyncGizmoCamera();
+        }
+        else if (_isPanning)
+        {
+            if (DataContext is not MainViewModel vm) return;
+            if (vm.Renderer is not Aura3DRenderer aura) return;
+
+            var pos = e.GetPosition(this);
+            float dx = (float)(pos.X - _lastMousePos.X);
+            float dy = (float)(pos.Y - _lastMousePos.Y);
+            _lastMousePos = pos;
+
+            aura.PanCamera(dx, dy);
         }
         else if (_gizmoIsDragging)
         {
@@ -415,6 +436,12 @@ public partial class MainView : UserControl
                 Foreground = Brushes.White,
             };
         }
+    }
+
+    private void OnCameraResetClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm && vm.Renderer is Aura3DRenderer aura)
+            aura.ResetCamera();
     }
 
     private void OnCameraFrontClick(object? sender, RoutedEventArgs e)

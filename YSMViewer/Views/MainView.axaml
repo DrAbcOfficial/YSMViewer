@@ -508,6 +508,11 @@ ToolTip.Tip="{Binding LocSwitchLang}"
 
                 <!-- Camera view buttons -->
                 <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <Button Click="OnCameraResetClick" CornerRadius="4"
+                            Width="32" Height="32" Padding="0"
+                            ToolTip.Tip="Reset view">
+                        <Image x:Name="CameraResetImg" Width="20" Height="20" />
+                    </Button>
                     <Button Click="OnCameraFrontClick" CornerRadius="4"
                             Width="32" Height="32" Padding="0"
                             ToolTip.Tip="{Binding LocFrontView}">

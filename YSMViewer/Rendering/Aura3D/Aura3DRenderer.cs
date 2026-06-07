@@ -172,6 +172,32 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
         UpdateCameraPosition();
     }
 
+    public void ResetCamera()
+    {
+        _cameraOrbitTarget = Vector3.Zero;
+        _cameraDistance = 30f;
+        _cameraYaw = 180f;
+        _cameraPitch = -15f;
+        UpdateCameraPosition();
+    }
+
+    public void PanCamera(float deltaX, float deltaY)
+    {
+        float pitchRad = _cameraPitch * MathF.PI / 180f;
+        float yawRad = _cameraYaw * MathF.PI / 180f;
+
+        var forward = new Vector3(
+            MathF.Cos(pitchRad) * MathF.Sin(yawRad),
+            MathF.Sin(pitchRad),
+            MathF.Cos(pitchRad) * MathF.Cos(yawRad));
+        var right = Vector3.Normalize(Vector3.Cross(forward, Vector3.UnitY));
+        var up = Vector3.Normalize(Vector3.Cross(right, forward));
+
+        float speed = _cameraDistance * 0.002f;
+        _cameraOrbitTarget += right * (deltaX * speed) + up * (deltaY * speed);
+        UpdateCameraPosition();
+    }
+
     private void OnSceneInitialized(object? sender, InitializedRoutedEventArgs args)
     {
         _sceneInitialized = true;
