@@ -156,6 +156,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
 
     public void PlayAnimation(string name)
     {
+        _animService.ResetBones();
         _animService.PlayAnimation(name);
         _animService.IsPlaying = true;
     }
