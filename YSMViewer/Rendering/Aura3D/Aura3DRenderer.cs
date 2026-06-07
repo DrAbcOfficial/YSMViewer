@@ -217,7 +217,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
 
         try
         {
-            
+
             scene.RenderPipeline.EnableFrustumCulling = true;
 
             var camera = _view.MainCamera;

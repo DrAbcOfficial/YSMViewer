@@ -1,18 +1,12 @@
 using System.IO.Compression;
-using System.Text;
 using YSMParser.Core.Parsers;
 
 namespace YSMViewer.Services;
 
-public sealed class ZipYsmParser : YSMParser.Core.Parsers.YSMParser
+public sealed class ZipYsmParser(byte[] buffer) : YSMParser.Core.Parsers.YSMParser
 {
-    private readonly byte[] _buffer;
+    private readonly byte[] _buffer = buffer;
     private Dictionary<string, byte[]> _resources = [];
-
-    public ZipYsmParser(byte[] buffer)
-    {
-        _buffer = buffer;
-    }
 
     public override int GetYSGPVersion() => 0;
 

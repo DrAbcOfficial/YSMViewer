@@ -17,7 +17,10 @@ public sealed class AnimationService(
     private float _currentTime;
     private bool _isPlaying = true;
 
-    public IReadOnlyList<string> AnimationNames => _allAnimations.Keys.ToList();
+    public IReadOnlyList<string> AnimationNames =>
+        _allAnimations.Where(kv => IsValidLength(kv.Value.AnimationLength))
+                      .Select(kv => kv.Key)
+                      .ToList();
 
     public float AnimationLength => _currentAnimation?.AnimationLength ?? 0f;
     public float CurrentTime => _currentTime;
@@ -69,6 +72,9 @@ public sealed class AnimationService(
         {
             if (!_allAnimations.ContainsKey(name))
             {
+                if (!IsValidLength(anim.AnimationLength))
+                    continue;
+
                 if (anim.BonesRaw is { ValueKind: JsonValueKind.Object } raw)
                     anim.Bones = ParseBones(raw);
                 _allAnimations[name] = anim;
@@ -113,11 +119,17 @@ public sealed class AnimationService(
     {
         if (_allAnimations.TryGetValue(name, out var anim))
         {
+            if (!IsValidLength(anim.AnimationLength))
+                return;
+
             _currentAnimation = anim;
             _currentTime = 0f;
             _isPlaying = true;
         }
     }
+
+    private static bool IsValidLength(float length) =>
+        length > 0f && !float.IsInfinity(length) && !float.IsNaN(length);
 
     public void Update(float deltaTime)
     {

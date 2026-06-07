@@ -9,7 +9,6 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using System.Numerics;
 using YSMViewer.Rendering;
-using YSMViewer.Rendering.Aura3D;
 using YSMViewer.Services;
 using YSMViewer.ViewModels;
 
@@ -91,7 +90,7 @@ public partial class MainView : UserControl
             var path = file.TryGetLocalPath();
             if (path is null) continue;
 
-            if (!path.EndsWith(".ysm", StringComparison.OrdinalIgnoreCase) && 
+            if (!path.EndsWith(".ysm", StringComparison.OrdinalIgnoreCase) &&
                 !path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) continue;
 
             try { await vm.LoadFileAsync(path); }
