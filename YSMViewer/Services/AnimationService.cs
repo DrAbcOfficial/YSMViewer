@@ -1,4 +1,3 @@
-using Aura3D.Core.Nodes;
 using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -7,10 +6,10 @@ using YSMViewer.Models;
 namespace YSMViewer.Services;
 
 public sealed class AnimationService(
-    Dictionary<string, Node> boneNodes,
+    Dictionary<string, IAnimatableBone> boneNodes,
     Dictionary<string, Vector3> baseEulers)
 {
-    private readonly Dictionary<string, Node> _boneNodes = boneNodes;
+    private readonly Dictionary<string, IAnimatableBone> _boneNodes = boneNodes;
     private readonly Dictionary<string, Vector3> _basePositions = [];
     private readonly Dictionary<string, Vector3> _baseEulers = baseEulers;
     private MinecraftAnimationFile? _currentFile;
@@ -33,8 +32,9 @@ public sealed class AnimationService(
 
     public AnimationService() : this([], []) { }
 
+
     public void SetBoneNodes(
-        Dictionary<string, Node> boneNodes,
+        Dictionary<string, IAnimatableBone> boneNodes,
         IReadOnlyDictionary<string, Vector3>? baseEulers = null)
     {
         _boneNodes.Clear();

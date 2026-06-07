@@ -17,6 +17,11 @@ public interface IInteractiveRenderer : IRenderer
 {
     void SetComponentVisible(string componentId, bool visible);
     void SetBoneVisible(string boneId, bool visible);
+    void OrbitCamera(float deltaYaw, float deltaPitch);
+    void PanCamera(float deltaX, float deltaY);
+    void ZoomCamera(float delta);
+    void ResetCamera();
+    (float Pitch, float Yaw) GetCameraOrbit();
 }
 
 public interface IAnimationRenderer : IRenderer

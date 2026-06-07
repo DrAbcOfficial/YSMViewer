@@ -391,7 +391,7 @@
                         <Image x:Name="CameraFrontImg" Width="20" Height="20" />
                     </Button>
                     <Button Classes="view-btn" Click="OnCameraSideClick"
-                            ToolTip.Tip="{Binding LocSideView}">
+                            ToolTip.Tip="{Binding LocLeftView}">
                         <Image x:Name="CameraSideImg" Width="20" Height="20" />
                     </Button>
                     <Button Classes="view-btn" Click="OnCameraTopClick"

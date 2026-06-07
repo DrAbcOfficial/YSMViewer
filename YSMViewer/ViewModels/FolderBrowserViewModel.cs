@@ -61,7 +61,6 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         LocName = r.GetString("Name", c)!;
         LocComplexityCol = r.GetString("ComplexityCol", c)!;
         LocEmptyFolder = r.GetString("EmptyFolder", c)!;
-        LocSelectFolder = r.GetString("SelectFolder", c)!;
     }
 
     [ObservableProperty]
@@ -79,8 +78,7 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
     [ObservableProperty]
     public partial string LocEmptyFolder { get; set; } = "";
 
-    [ObservableProperty]
-    public partial string LocSelectFolder { get; set; } = "";
+
 
     partial void OnSearchTextChanged(string value)
     {

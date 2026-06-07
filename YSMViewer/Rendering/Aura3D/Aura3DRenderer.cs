@@ -19,12 +19,15 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
     private readonly Dictionary<string, Vector3> _baseBoneEulers = [];
     private readonly List<Model> _sceneRoots = [];
     private readonly AnimationService _animService = new();
+    private Dictionary<string, IAnimatableBone>? _animBones;
     private bool _sceneInitialized;
 
     public Vector3 CameraOrbitTarget => _cameraOrbitTarget;
     public float CameraYaw => _cameraYaw;
     public float CameraPitch => _cameraPitch;
     public float CameraDistance => _cameraDistance;
+
+    public (float Pitch, float Yaw) GetCameraOrbit() => (_cameraPitch, _cameraYaw);
 
     private Vector3 _cameraOrbitTarget = Vector3.Zero;
     private float _cameraDistance = 30f;
@@ -85,7 +88,10 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
         if (_sceneInitialized && _view.Scene is not null && document.Models.Count > 0)
             FitCameraToContent();
 
-        _animService.SetBoneNodes(new Dictionary<string, Node>(_boneNodes), _baseBoneEulers);
+        _animBones = new Dictionary<string, IAnimatableBone>();
+        foreach (var kv in _boneNodes)
+            _animBones[kv.Key] = new Aura3DBoneNode(kv.Value);
+        _animService.SetBoneNodes(_animBones, _baseBoneEulers);
     }
 
     public void Clear()
@@ -106,6 +112,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
 
         _loadedModel = null;
         _sceneRoots.Clear();
+        _animBones = null;
         _document = null;
     }
 

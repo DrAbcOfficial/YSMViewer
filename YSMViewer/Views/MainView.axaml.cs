@@ -11,7 +11,6 @@ using Avalonia.Svg.Skia;
 using Svg.Model;
 using System.Numerics;
 using YSMViewer.Rendering;
-using YSMViewer.Rendering.Aura3D;
 using YSMViewer.Services;
 using YSMViewer.ViewModels;
 
@@ -296,47 +295,47 @@ public partial class MainView : UserControl
         if (_isDragging)
         {
             if (DataContext is not MainViewModel vm) return;
-            if (vm.Renderer is not Aura3DRenderer aura) return;
+            if (vm.Renderer is not IInteractiveRenderer interactive) return;
 
             var pos = e.GetPosition(this);
             float dx = (float)(pos.X - _lastMousePos.X);
             float dy = (float)(pos.Y - _lastMousePos.Y);
             _lastMousePos = pos;
 
-            aura.OrbitCamera(dx * 0.3f, dy * 0.3f);
+            interactive.OrbitCamera(dx * 0.3f, dy * 0.3f);
             SyncGizmoCamera();
         }
         else if (_isPanning)
         {
             if (DataContext is not MainViewModel vm) return;
-            if (vm.Renderer is not Aura3DRenderer aura) return;
+            if (vm.Renderer is not IInteractiveRenderer interactive) return;
 
             var pos = e.GetPosition(this);
             float dx = (float)(pos.X - _lastMousePos.X);
             float dy = (float)(pos.Y - _lastMousePos.Y);
             _lastMousePos = pos;
 
-            aura.PanCamera(dx, dy);
+            interactive.PanCamera(dx, dy);
         }
         else if (_gizmoIsDragging)
         {
             if (DataContext is not MainViewModel vm) return;
-            if (vm.Renderer is not Aura3DRenderer aura) return;
+            if (vm.Renderer is not IInteractiveRenderer interactive) return;
 
             var pos = e.GetPosition(this);
             float dx = (float)(pos.X - _gizmoLastPos.X);
             float dy = (float)(pos.Y - _gizmoLastPos.Y);
             _gizmoLastPos = pos;
 
-            aura.OrbitCamera(dx * 0.3f, dy * 0.3f);
+            interactive.OrbitCamera(dx * 0.3f, dy * 0.3f);
             SyncGizmoCamera();
         }
     }
 
     private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
-        if (DataContext is MainViewModel vm && vm.Renderer is Aura3DRenderer aura)
-            aura.ZoomCamera((float)e.Delta.Y);
+        if (DataContext is MainViewModel vm && vm.Renderer is IInteractiveRenderer interactive)
+            interactive.ZoomCamera((float)e.Delta.Y);
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e) { }
@@ -440,8 +439,8 @@ public partial class MainView : UserControl
 
     private void OnCameraResetClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is MainViewModel vm && vm.Renderer is Aura3DRenderer aura)
-            aura.ResetCamera();
+        if (DataContext is MainViewModel vm && vm.Renderer is IInteractiveRenderer interactive)
+            interactive.ResetCamera();
     }
 
     private void OnCameraFrontClick(object? sender, RoutedEventArgs e)
@@ -497,11 +496,12 @@ public partial class MainView : UserControl
     {
         if (GizmoView.Scene is null) return;
         if (DataContext is not MainViewModel vm) return;
-        if (vm.Renderer is not Aura3DRenderer aura) return;
+        if (vm.Renderer is not IInteractiveRenderer interactive) return;
 
         const float gizmoCamDist = 2.5f;
-        float pitchRad = aura.CameraPitch * MathF.PI / 180f;
-        float yawRad = aura.CameraYaw * MathF.PI / 180f;
+        var (pitch, yaw) = interactive.GetCameraOrbit();
+        float pitchRad = pitch * MathF.PI / 180f;
+        float yawRad = yaw * MathF.PI / 180f;
 
         float x = gizmoCamDist * MathF.Cos(pitchRad) * MathF.Sin(yawRad);
         float y = gizmoCamDist * MathF.Sin(pitchRad);

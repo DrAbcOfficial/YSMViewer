@@ -214,15 +214,6 @@ namespace YSMViewer.Resources {
         }
         
         /// <summary>
-        ///   查找类似 Loading... 的本地化字符串。
-        /// </summary>
-        public static string Loading {
-            get {
-                return ResourceManager.GetString("Loading", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Name 的本地化字符串。
         /// </summary>
         public static string Name {
@@ -277,15 +268,6 @@ namespace YSMViewer.Resources {
         }
         
         /// <summary>
-        ///   查找类似 Select folder with YSM models 的本地化字符串。
-        /// </summary>
-        public static string SelectFolder {
-            get {
-                return ResourceManager.GetString("SelectFolder", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Show All 的本地化字符串。
         /// </summary>
         public static string ShowAll {
@@ -327,15 +309,6 @@ namespace YSMViewer.Resources {
         public static string ToggleTheme {
             get {
                 return ResourceManager.GetString("ToggleTheme", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Top view 的本地化字符串。
-        /// </summary>
-        public static string TopView {
-            get {
-                return ResourceManager.GetString("TopView", resourceCulture);
             }
         }
         

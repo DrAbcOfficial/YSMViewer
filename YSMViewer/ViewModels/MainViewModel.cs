@@ -64,9 +64,6 @@ public sealed partial class MainViewModel : ViewModelBase
         LocOpenFolder = L.GetString("OpenFolder", culture)!;
         LocSearchPrompt = L.GetString("SearchPrompt", culture)!;
         LocEmptyFolder = L.GetString("EmptyFolder", culture)!;
-        LocSelectFolder = L.GetString("SelectFolder", culture)!;
-        LocOpenYSMTitle = L.GetString("OpenYSMTitle", culture)!;
-        LocSideView = L.GetString("LeftView", culture)!;
         StatusText = LocStatusReady;
     }
 
@@ -137,9 +134,6 @@ public sealed partial class MainViewModel : ViewModelBase
     public partial string LocLeftView { get; set; } = "";
 
     [ObservableProperty]
-    public partial string LocSideView { get; set; } = "";
-
-    [ObservableProperty]
     public partial string LocTopView { get; set; } = "";
 
     [ObservableProperty]
@@ -154,11 +148,7 @@ public sealed partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     public partial string LocEmptyFolder { get; set; } = "";
 
-    [ObservableProperty]
-    public partial string LocSelectFolder { get; set; } = "";
 
-    [ObservableProperty]
-    public partial string LocOpenYSMTitle { get; set; } = "";
 
     private async Task OnFileSelectedFromBrowser(string filePath)
     {

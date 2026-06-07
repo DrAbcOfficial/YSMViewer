@@ -1,7 +1,3 @@
-using Aura3D.Core;
-using Aura3D.Core.Nodes;
-using Aura3D.Core.Resources;
-using Avalonia.Media.Imaging;
 using System.Numerics;
 using System.Text.Json;
 using YSMParser.Core.Parsers;
@@ -19,140 +15,11 @@ public sealed class YsmLoaderService
         SubEntity,
     }
 
-    public sealed record YsmMetadata(
-        string? Name,
-        string? Tips,
-        string? LicenseType,
-        bool IsFree,
-        string[] Authors,
-        float WidthScale,
-        float HeightScale);
-
-    public sealed record LoadedModel(
-        Model ContainerNode,
-        IReadOnlyList<ModelNodeInfo> ModelNodes,
-        Dictionary<string, Node> BoneNodes,
-        IReadOnlyDictionary<string, Vector3> BaseBoneEulers,
-        string ModelName,
-        int Version,
-        IReadOnlyList<YsmResourceEntry> Models,
-        IReadOnlyList<YsmResourceEntry> Textures,
-        IReadOnlyList<YsmResourceEntry> Animations,
-        IReadOnlyList<YsmResourceEntry> Avatars,
-        IReadOnlyList<YsmResourceEntry> Backgrounds,
-        IReadOnlyList<YsmResourceEntry> SpecialImages,
-        YsmMetadata? Metadata);
-
-    public sealed record ModelNodeInfo(
-        string Name,
-        Model Node,
-        byte[] GeometryData,
-        ModelCategory Category,
-        bool DefaultVisible,
-        int GeometryCount = 1,
-        string GeometryIdentifier = "");
-
     private static ModelCategory ClassifyModel(string name)
     {
         if (name == "main") return ModelCategory.Main;
         if (name == "arm") return ModelCategory.Arm;
         return ModelCategory.SubEntity;
-    }
-
-    public static LoadedModel Load(string filePath)
-    {
-        using var parser = YSMParserFactory.Create(filePath);
-        parser.Parse();
-        return LoadFromParser(parser);
-    }
-
-    public static LoadedModel LoadFromBytes(byte[] data)
-    {
-        using var parser = YSMParserFactory.CreateFromBytes(data);
-        parser.Parse();
-        return LoadFromParser(parser);
-    }
-
-    private static LoadedModel LoadFromParser(YSMParser.Core.Parsers.YSMParser parser)
-    {
-        var resources = parser.GetResources();
-
-        if (resources.Models.Count == 0)
-            throw new InvalidOperationException("No models found in YSM file");
-
-        var containerModel = new Model { Name = "ysm_root" };
-        var modelNodes = new List<ModelNodeInfo>();
-
-        byte[]? fallbackTexture = null;
-        if (resources.Textures.Count > 0)
-            fallbackTexture = EnsurePng(resources.Textures[0].Data);
-
-        Dictionary<string, Node>? primaryBoneNodes = null;
-        Dictionary<string, Vector3>? primaryBaseEulers = null;
-        string? primaryModelName = null;
-
-        for (int i = 0; i < resources.Models.Count; i++)
-        {
-            var modelEntry = resources.Models[i];
-
-            List<MinecraftGeometry> allGeometries;
-            try
-            {
-                allGeometries = ParseAllGeometries(modelEntry.Data);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[YsmLoaderService] Skipping non-geometry model '{modelEntry.Name}': {ex.Message}");
-                continue;
-            }
-
-            var geometry = allGeometries[0];
-            if (geometry?.Description is null)
-                throw new InvalidOperationException($"Geometry has no description for model '{modelEntry.Name}'");
-            if (geometry.Bones is null)
-                throw new InvalidOperationException($"Geometry has no bones for model '{modelEntry.Name}'");
-            var category = ClassifyModel(modelEntry.Name);
-            bool defaultVisible = category == ModelCategory.Main;
-
-            var textureData = FindTextureForModel(modelEntry.Name, resources.Textures) ?? fallbackTexture ?? [];
-            var result = MeshBuilderService.BuildModelNode(
-                geometry, textureData,
-                geometry.Description.TextureWidth,
-                geometry.Description.TextureHeight,
-                modelEntry.Name);
-
-            result.RootModel.Enable = defaultVisible;
-            containerModel.AddChild(result.RootModel, AttachToParentRule.KeepLocal);
-
-            var info = new ModelNodeInfo(modelEntry.Name, result.RootModel, modelEntry.Data, category, defaultVisible,
-                allGeometries.Count, geometry.Description.Identifier);
-            modelNodes.Add(info);
-
-            if (modelNodes.Count == 1 || primaryModelName is null)
-            {
-                primaryModelName = geometry.Description.Identifier;
-                primaryBoneNodes = result.BoneNodes;
-                primaryBaseEulers = result.BaseBoneEulers;
-            }
-        }
-
-        if (modelNodes.Count == 0)
-            throw new InvalidOperationException("No valid geometry models found in YSM file");
-
-        return new LoadedModel(
-            containerModel,
-            modelNodes,
-            primaryBoneNodes ?? [],
-            primaryBaseEulers ?? [],
-            primaryModelName ?? "Unknown",
-            parser.GetYSGPVersion(),
-            resources.Models,
-            resources.Textures,
-            resources.Animations,
-            resources.Avatars,
-            resources.Backgrounds,
-            resources.SpecialImages,
-            ParseMetadata(resources.YsmJson, resources.InfoJson));
     }
 
     private static List<MinecraftGeometry> ParseAllGeometries(byte[] jsonData)
@@ -195,104 +62,6 @@ public sealed class YsmLoaderService
         return sb.ToString();
     }
 
-    public static void ApplyTextureToModel(Model model, byte[] textureData)
-    {
-        var pngData = EnsurePng(textureData) ?? textureData;
-        var texture = TextureLoader.LoadTexture(pngData);
-        texture.SetMinFilter(TextureFilterMode.Nearest)
-               .SetMagFilter(TextureFilterMode.Nearest);
-        texture.SetWarpS(TextureWrapMode.Repeat)
-               .SetWarpT(TextureWrapMode.Repeat);
-
-        var meshes = model.GetNodesInChildren<InstancedMesh>();
-        foreach (var mesh in meshes)
-        {
-            mesh.Material?.BaseColor = texture;
-        }
-    }
-
-    private static YsmMetadata? ParseMetadata(byte[]? ysmJson, byte[]? infoJson)
-    {
-        try
-        {
-            if (ysmJson is { Length: > 0 })
-                return ParseYsmJson(ysmJson);
-            if (infoJson is { Length: > 0 })
-                return ParseInfoJson(infoJson);
-        }
-        catch { }
-        return null;
-    }
-
-    private static YsmMetadata? ParseYsmJson(byte[] data)
-    {
-        using var doc = JsonDocument.Parse(data);
-        var root = doc.RootElement;
-
-        string? name = null;
-        string? tips = null;
-        string? licenseType = null;
-        bool isFree = false;
-        var authors = new List<string>();
-        float widthScale = 1f;
-        float heightScale = 1f;
-
-        if (root.TryGetProperty("metadata", out var meta))
-        {
-            if (meta.TryGetProperty("name", out var n)) name = n.GetString();
-            if (meta.TryGetProperty("tips", out var t)) tips = t.GetString();
-            if (meta.TryGetProperty("license", out var lic)
-                && lic.TryGetProperty("type", out var lt)) licenseType = lt.GetString();
-            if (meta.TryGetProperty("authors", out var auths))
-            {
-                foreach (var a in auths.EnumerateArray())
-                {
-                    if (a.TryGetProperty("name", out var an)) authors.Add(an.GetString() ?? "");
-                }
-            }
-        }
-
-        if (root.TryGetProperty("properties", out var props))
-        {
-            if (props.TryGetProperty("free", out var fr) && fr.ValueKind == JsonValueKind.True) isFree = true;
-            if (props.TryGetProperty("width_scale", out var ws)
-                && ws.TryGetSingle(out var wsv)) widthScale = wsv;
-            if (props.TryGetProperty("height_scale", out var hs)
-                && hs.TryGetSingle(out var hsv)) heightScale = hsv;
-        }
-
-        return new YsmMetadata(name, tips, licenseType, isFree, [.. authors], widthScale, heightScale);
-    }
-
-    private static YsmMetadata? ParseInfoJson(byte[] data)
-    {
-        using var doc = JsonDocument.Parse(data);
-        var root = doc.RootElement;
-
-        string? name = null;
-        string? tips = null;
-        string? licenseType = null;
-        bool isFree = false;
-        var authors = new List<string>();
-
-        if (root.TryGetProperty("name", out var n)) name = n.GetString();
-        if (root.TryGetProperty("tips", out var t)) tips = t.GetString();
-        if (root.TryGetProperty("license", out var lic)) licenseType = lic.GetString();
-        if (root.TryGetProperty("free", out var fr)
-            && (fr.ValueKind == JsonValueKind.True || (fr.ValueKind == JsonValueKind.Number && fr.TryGetSingle(out var fsv) && fsv > 0.5f)))
-            isFree = true;
-        if (root.TryGetProperty("authors", out var auths))
-        {
-            foreach (var a in auths.EnumerateArray())
-            {
-                if (a.ValueKind == JsonValueKind.String) authors.Add(a.GetString() ?? "");
-                else if (a.TryGetProperty("name", out var an)) authors.Add(an.GetString() ?? "");
-            }
-        }
-
-        return new YsmMetadata(name, tips, licenseType, isFree, [.. authors], 1f, 1f);
-    }
-
     private static byte[]? FindTextureForModel(string modelName, IReadOnlyList<YsmResourceEntry> textures)
     {
         if (textures.Count == 0) return null;
@@ -330,37 +99,7 @@ public sealed class YsmLoaderService
         var entry = exactMatch ?? containsMatch ?? defaultMatch;
         if (entry is null) return null;
 
-        return EnsurePng(entry.Data);
-    }
-
-    private static byte[]? EnsurePng(byte[]? data)
-    {
-        if (data is null or { Length: 0 }) return null;
-
-        if (data.Length >= 8)
-        {
-            if (data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47)
-                return data;
-
-            return ConvertImageToPng(data);
-        }
-
-        return data;
-    }
-
-    private static byte[] ConvertImageToPng(byte[] imageData)
-    {
-        try
-        {
-            using var bitmap = new Bitmap(new MemoryStream(imageData));
-            using var ms = new MemoryStream();
-            bitmap.Save(ms);
-            return ms.ToArray();
-        }
-        catch
-        {
-            return imageData;
-        }
+        return YsmImageHelper.EnsurePng(entry.Data);
     }
 
     public static YsmModelDocument LoadDocumentFromFile(string filePath)
@@ -384,7 +123,7 @@ public sealed class YsmLoaderService
         if (resources.Models.Count == 0)
             throw new InvalidOperationException("No models found in YSM file");
 
-        var meta = ParseMetadata(resources.YsmJson, resources.InfoJson);
+        var meta = YsmMetadataParser.Parse(resources.YsmJson, resources.InfoJson);
 
         var info = new YsmDocumentModelInfo(
             Name: meta?.Name ?? "Unknown",
@@ -397,7 +136,7 @@ public sealed class YsmLoaderService
 
         byte[]? fallbackTexture = null;
         if (resources.Textures.Count > 0)
-            fallbackTexture = EnsurePng(resources.Textures[0].Data);
+            fallbackTexture = YsmImageHelper.EnsurePng(resources.Textures[0].Data);
 
         var models = new List<YsmGeometryModel>();
         var textureResources = new List<YsmTextureResource>();
@@ -406,8 +145,8 @@ public sealed class YsmLoaderService
 
         foreach (var tex in resources.Textures)
         {
-            var pngData = EnsurePng(tex.Data) ?? tex.Data;
-            var (width, height) = GetPngDimensions(pngData);
+            var pngData = YsmImageHelper.EnsurePng(tex.Data) ?? tex.Data;
+            var (width, height) = YsmImageHelper.GetPngDimensions(pngData);
             textureResources.Add(new YsmTextureResource(
                 Id: tex.Name,
                 Name: tex.Name,
@@ -461,11 +200,11 @@ public sealed class YsmLoaderService
             string? textureId = null;
             if (textureMatch is not null)
             {
-                var pngData = EnsurePng(textureMatch) ?? textureMatch;
+                var pngData = YsmImageHelper.EnsurePng(textureMatch) ?? textureMatch;
                 var texResource = textureResources.FirstOrDefault(t => t.Data.Length == pngData.Length && Enumerable.SequenceEqual(t.Data, pngData));
                 if (texResource is null)
                 {
-                    var (width, height) = GetPngDimensions(pngData);
+                    var (width, height) = YsmImageHelper.GetPngDimensions(pngData);
                     texResource = new YsmTextureResource(
                         Id: $"tex_{modelEntry.Name}",
                         Name: modelEntry.Name,
@@ -568,30 +307,12 @@ public sealed class YsmLoaderService
         return new Vector3(-rotation[0], -rotation[1], rotation[2]);
     }
 
-    private static (int width, int height) GetPngDimensions(byte[] data)
-    {
-        try
-        {
-            if (data.Length < 24)
-                return (0, 0);
-            if (data[0] != 0x89 || data[1] != 0x50 || data[2] != 0x4E || data[3] != 0x47)
-                return (0, 0);
-            int width = (data[16] << 24) | (data[17] << 16) | (data[18] << 8) | data[19];
-            int height = (data[20] << 24) | (data[21] << 16) | (data[22] << 8) | data[23];
-            return (width, height);
-        }
-        catch
-        {
-            return (0, 0);
-        }
-    }
-
     private static void AddImageResources(List<YsmImageResource> list, IReadOnlyList<YsmResourceEntry> entries, string category)
     {
         foreach (var entry in entries)
         {
-            var pngData = EnsurePng(entry.Data) ?? entry.Data;
-            var (width, height) = GetPngDimensions(pngData);
+            var pngData = YsmImageHelper.EnsurePng(entry.Data) ?? entry.Data;
+            var (width, height) = YsmImageHelper.GetPngDimensions(pngData);
             list.Add(new YsmImageResource(
                 Name: entry.Name,
                 Category: category,
