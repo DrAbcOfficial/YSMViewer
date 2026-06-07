@@ -54,7 +54,15 @@ public sealed class AnimationService(
 
     public void LoadAnimations(byte[] animationJsonData)
     {
-        var file = JsonSerializer.Deserialize(animationJsonData, YsmJsonContext.Default.MinecraftAnimationFile);
+        MinecraftAnimationFile? file;
+        try
+        {
+            file = JsonSerializer.Deserialize(animationJsonData, YsmJsonContext.Default.MinecraftAnimationFile);
+        }
+        catch
+        {
+            return;
+        }
         if (file is null) return;
 
         foreach (var (name, anim) in file.Animations)

@@ -29,7 +29,7 @@ public partial class BrowserMainView : UserControl
         {
             Title = "Open YSM Model",
             AllowMultiple = false,
-            FileTypeFilter = [new FilePickerFileType("YSM Models") { Patterns = ["*.ysm"] }],
+            FileTypeFilter = [new FilePickerFileType("YSM/ZIP Models") { Patterns = ["*.ysm", "*.zip"] }],
         });
         if (files is not { Count: > 0 }) return;
         await using var stream = await files[0].OpenReadAsync();

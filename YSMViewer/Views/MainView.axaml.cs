@@ -48,7 +48,7 @@ public partial class MainView : UserControl
         {
             Title = "Open YSM Model",
             AllowMultiple = false,
-            FileTypeFilter = [new FilePickerFileType("YSM Models") { Patterns = ["*.ysm"] }],
+            FileTypeFilter = [new FilePickerFileType("YSM/ZIP Models") { Patterns = ["*.ysm", "*.zip"] }],
         });
         if (files is not { Count: > 0 }) return;
         await using var stream = await files[0].OpenReadAsync();
@@ -91,7 +91,8 @@ public partial class MainView : UserControl
             var path = file.TryGetLocalPath();
             if (path is null) continue;
 
-            if (!path.EndsWith(".ysm", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!path.EndsWith(".ysm", StringComparison.OrdinalIgnoreCase) && 
+                !path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) continue;
 
             try { await vm.LoadFileAsync(path); }
             catch (Exception ex) { vm.SetError(ex); }

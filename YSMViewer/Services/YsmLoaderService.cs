@@ -104,6 +104,12 @@ public sealed class YsmLoaderService
 
     public static YsmModelDocument LoadDocumentFromFile(string filePath)
     {
+        if (IsZipFile(filePath))
+        {
+            var data = File.ReadAllBytes(filePath);
+            return LoadDocumentFromBytes(data);
+        }
+
         using var parser = YSMParserFactory.Create(filePath);
         parser.Parse();
         return LoadDocument(parser);
@@ -111,10 +117,16 @@ public sealed class YsmLoaderService
 
     public static YsmModelDocument LoadDocumentFromBytes(byte[] data)
     {
-        using var parser = YSMParserFactory.CreateFromBytes(data);
+        using var parser = IsZipData(data) ? new ZipYsmParser(data) : YSMParserFactory.CreateFromBytes(data);
         parser.Parse();
         return LoadDocument(parser);
     }
+
+    public static bool IsZipFile(string filePath) =>
+        filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
+
+    public static bool IsZipData(byte[] data) =>
+        data.Length >= 4 && data[0] == 0x50 && data[1] == 0x4B && data[2] == 0x03 && data[3] == 0x04;
 
     private static YsmModelDocument LoadDocument(YSMParser.Core.Parsers.YSMParser parser)
     {

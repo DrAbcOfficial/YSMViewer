@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.Text.Json;
+using YSMViewer.Services;
 
 namespace YSMViewer.ViewModels;
 
@@ -239,7 +240,9 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         try
         {
             var data = await File.ReadAllBytesAsync(filePath);
-            using var parser = YSMParser.Core.Parsers.YSMParserFactory.CreateFromBytes(data);
+            using var parser = YsmLoaderService.IsZipData(data)
+                ? new ZipYsmParser(data)
+                : YSMParser.Core.Parsers.YSMParserFactory.CreateFromBytes(data);
 
             var peekResult = parser.Peek();
 
@@ -326,6 +329,8 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         try
         {
             foreach (var file in Directory.EnumerateFiles(dir, "*.ysm"))
+                results.Add(file);
+            foreach (var file in Directory.EnumerateFiles(dir, "*.zip"))
                 results.Add(file);
 
             if (depth < maxDepth)
