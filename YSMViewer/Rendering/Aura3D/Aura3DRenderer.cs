@@ -1,6 +1,6 @@
 using Aura3D.Avalonia;
-using Aura3D.Core;
 using Aura3D.Core.Nodes;
+using Aura3D.Core.Renderers;
 using Aura3D.Core.Resources;
 using Avalonia.Controls;
 using System.Numerics;
@@ -33,6 +33,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
     public Aura3DRenderer()
     {
         _view = new Aura3DView();
+        _view.CreateRenderPipeline = scene => new NoLightPipeline(scene);
         _view.SceneInitialized += OnSceneInitialized;
         _view.SceneUpdated += OnSceneUpdated;
     }
@@ -44,8 +45,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
     public void SetTheme(RenderTheme theme)
     {
         var color = System.Drawing.Color.FromArgb(theme.BgA, theme.BgR, theme.BgG, theme.BgB);
-        if (_view.Scene is not null)
-            _view.Scene.Background = Texture.CreateFromColor(color);
+        _view.Scene?.Background = Texture.CreateFromColor(color);
     }
 
     public void LoadModel(YsmModelDocument document)
@@ -171,6 +171,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
 
         try
         {
+            
             scene.RenderPipeline.EnableFrustumCulling = true;
 
             var camera = _view.MainCamera;
@@ -186,14 +187,6 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
                     if (_componentModels.TryGetValue(geoModel.Id, out var compModel))
                         _view.AddNode(compModel);
                 }
-
-                var dl = new DirectionalLight
-                {
-                    RotationDegrees = new Vector3(-45, 45, 0),
-                    LightColor = System.Drawing.Color.White,
-                    CastShadow = false,
-                };
-                _view.AddNode(dl);
 
                 FitCameraToContent();
                 _loadedModel = null;
@@ -214,13 +207,6 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
     {
         if (_view.Scene is null) return;
 
-        var dl = new DirectionalLight
-        {
-            RotationDegrees = new Vector3(-45, 45, 0),
-            LightColor = System.Drawing.Color.White,
-            CastShadow = false,
-        };
-        _view.AddNode(dl);
         _view.AddNode(model);
     }
 

@@ -4,7 +4,6 @@ using Aura3D.Core.Resources;
 using System.Numerics;
 using YSMViewer.Models;
 using YSMViewer.Models.Document;
-using YSMViewer.Services;
 
 namespace YSMViewer.Rendering.Aura3D;
 

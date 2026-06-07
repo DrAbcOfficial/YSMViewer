@@ -191,10 +191,10 @@ public static class ThreeJsPayloadBuilder
             BoneId: boneId,
             LocalPosition: ToArray(localPosition),
             LocalRotation: ToArray(CreateBlockbenchQuaternion(cube.Rotation)),
-            Positions: positions.ToArray(),
-            Normals: normals.ToArray(),
-            Uvs: uvs.ToArray(),
-            Indices: indices.ToArray());
+            Positions: [.. positions],
+            Normals: [.. normals],
+            Uvs: [.. uvs],
+            Indices: [.. indices]);
     }
 
     private static void AddQuadFace(

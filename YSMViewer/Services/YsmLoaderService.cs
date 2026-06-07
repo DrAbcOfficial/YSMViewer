@@ -407,13 +407,13 @@ public sealed class YsmLoaderService
         foreach (var tex in resources.Textures)
         {
             var pngData = EnsurePng(tex.Data) ?? tex.Data;
-            var dims = GetPngDimensions(pngData);
+            var (width, height) = GetPngDimensions(pngData);
             textureResources.Add(new YsmTextureResource(
                 Id: tex.Name,
                 Name: tex.Name,
                 Data: pngData,
-                Width: dims.width,
-                Height: dims.height));
+                Width: width,
+                Height: height));
         }
 
         foreach (var anim in resources.Animations)
@@ -465,13 +465,13 @@ public sealed class YsmLoaderService
                 var texResource = textureResources.FirstOrDefault(t => t.Data.Length == pngData.Length && Enumerable.SequenceEqual(t.Data, pngData));
                 if (texResource is null)
                 {
-                    var dims = GetPngDimensions(pngData);
+                    var (width, height) = GetPngDimensions(pngData);
                     texResource = new YsmTextureResource(
                         Id: $"tex_{modelEntry.Name}",
                         Name: modelEntry.Name,
                         Data: pngData,
-                        Width: dims.width,
-                        Height: dims.height);
+                        Width: width,
+                        Height: height);
                     textureResources.Add(texResource);
                 }
                 textureId = texResource.Id;
@@ -591,13 +591,13 @@ public sealed class YsmLoaderService
         foreach (var entry in entries)
         {
             var pngData = EnsurePng(entry.Data) ?? entry.Data;
-            var dims = GetPngDimensions(pngData);
+            var (width, height) = GetPngDimensions(pngData);
             list.Add(new YsmImageResource(
                 Name: entry.Name,
                 Category: category,
                 Data: pngData,
-                Width: dims.width,
-                Height: dims.height));
+                Width: width,
+                Height: height));
         }
     }
 }

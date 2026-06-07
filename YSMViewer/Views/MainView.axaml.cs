@@ -1,5 +1,6 @@
 using Aura3D.Avalonia;
 using Aura3D.Core.Nodes;
+using Aura3D.Core.Renderers;
 using Aura3D.Core.Resources;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -434,6 +435,12 @@ public partial class MainView : UserControl
             vm.Renderer.SetCameraView(RenderCameraView.Top);
     }
 
+    private void OnGizmoSetupPipeline(object? sender, RoutedEventArgs args)
+    {
+        if (sender is Aura3DView view)
+            view.CreateRenderPipeline = s => new NoLightPipeline(s);
+    }
+
     private void OnGizmoSceneInitialized(object sender, InitializedRoutedEventArgs args)
     {
         var view = (Aura3DView)sender;
@@ -445,16 +452,6 @@ public partial class MainView : UserControl
             scene.Background = Texture.CreateFromColor(
                 System.Drawing.Color.FromArgb(rgba[0], rgba[1], rgba[2], rgba[3]));
             scene.RenderPipeline.EnableFrustumCulling = true;
-
-            var pl = new PointLight
-            {
-                LightColor = System.Drawing.Color.White,
-                LuminousIntensity = 9999.0f,
-                Position = Vector3.Zero,
-                AttenuationRadius = 9999.0f,
-                CastShadow = false,
-            };
-            scene.AddNode(pl);
 
             var camera = view.MainCamera;
             camera.FieldOfView = 40f;
