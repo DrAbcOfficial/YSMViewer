@@ -260,12 +260,48 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
 
                 complexity = peekResult.Models.Sum(m => m.BoneCount + m.TotalCubeCount);
             }
+            else
+            {
+                complexity = ComputeComplexityV1V2(parser, peekResult);
+            }
         }
         catch
         {
         }
 
         return (displayName, complexity);
+    }
+
+    private static int ComputeComplexityV1V2(
+        YSMParser.Core.Parsers.YSMParser parser,
+        YSMParser.Core.Parsers.YsmPeekResult peekResult)
+    {
+        if (peekResult.ResourceNames is not { Count: > 0 })
+            return 0;
+
+        parser.Parse();
+        var resources = parser.GetResources();
+        int complexity = 0;
+
+        foreach (var model in resources.Models)
+        {
+            try
+            {
+                var geoData = System.Text.Json.JsonSerializer.Deserialize(
+                    model.Data, Models.YsmJsonContext.Default.MinecraftGeometryFile);
+                if (geoData?.Geometries is not null)
+                {
+                    foreach (var geo in geoData.Geometries)
+                    {
+                        complexity += geo.Bones?.Count ?? 0;
+                        complexity += geo.Bones?.Sum(b => b.Cubes?.Count ?? 0) ?? 0;
+                    }
+                }
+            }
+            catch { }
+        }
+
+        return complexity;
     }
 
     private static string? ParseMetaName(byte[]? jsonData)

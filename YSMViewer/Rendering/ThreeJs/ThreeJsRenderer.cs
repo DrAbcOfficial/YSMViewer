@@ -25,7 +25,7 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimatio
     public Control View => _viewHost;
 
     public RendererCapabilities Capabilities { get; } = new(
-        SupportsAnimation: true,
+        SupportsAnimation: false,
         SupportsComponentVisibility: true,
         SupportsBoneVisibility: true,
         SupportsTextureProjection: false,
@@ -81,22 +81,25 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimatio
                 ThreeJsInterop.AddTextureData(tex.Id, tex.Data);
         }
 
-        foreach (var anim in document.Animations)
+        if (Capabilities.SupportsAnimation)
         {
-            var json = System.Text.Encoding.UTF8.GetString(anim.Data ?? []);
-            if (!string.IsNullOrEmpty(json))
+            foreach (var anim in document.Animations)
             {
-                ThreeJsInterop.LoadAnimationData(json);
-                var animFile = System.Text.Json.JsonSerializer.Deserialize(json,
-                    Models.YsmJsonContext.Default.MinecraftAnimationFile);
-                if (animFile?.Animations is not null)
+                var json = System.Text.Encoding.UTF8.GetString(anim.Data ?? []);
+                if (!string.IsNullOrEmpty(json))
                 {
-                    foreach (var (name, a) in animFile.Animations)
+                    ThreeJsInterop.LoadAnimationData(json);
+                    var animFile = System.Text.Json.JsonSerializer.Deserialize(json,
+                        Models.YsmJsonContext.Default.MinecraftAnimationFile);
+                    if (animFile?.Animations is not null)
                     {
-                        if (!_animationNames.Contains(name))
-                            _animationNames.Add(name);
-                        if (a.AnimationLength > _animationDuration)
-                            _animationDuration = a.AnimationLength;
+                        foreach (var (name, a) in animFile.Animations)
+                        {
+                            if (!_animationNames.Contains(name))
+                                _animationNames.Add(name);
+                            if (a.AnimationLength > _animationDuration)
+                                _animationDuration = a.AnimationLength;
+                        }
                     }
                 }
             }
