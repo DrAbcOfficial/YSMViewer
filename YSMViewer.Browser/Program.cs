@@ -1,7 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Browser;
 using System;
-using System.Runtime.InteropServices.JavaScript;
 using System.Threading.Tasks;
 using YSMViewer;
 
@@ -33,8 +32,6 @@ internal sealed partial class Program
             }
             catch { }
         }
-
-        await JSHost.ImportAsync("YsmThreeRenderer", "../ysm-three-renderer.js");
 
         await BuildAvaloniaApp()
             .StartBrowserAppAsync("out");

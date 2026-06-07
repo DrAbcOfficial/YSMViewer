@@ -6,47 +6,42 @@ namespace YSMViewer.Rendering.ThreeJs;
 [SupportedOSPlatform("browser")]
 public static partial class ThreeJsInterop
 {
-    private const string ModuleName = "YsmThreeRenderer";
-
-    public static Task InitializeAsync() =>
-        JSHost.ImportAsync(ModuleName, "../js/ysm-three-renderer.js");
-
-    [JSImport("init", ModuleName)]
+    [JSImport("globalThis.ysmInit")]
     public static partial void Init(string canvasId);
 
-    [JSImport("setViewportRect", ModuleName)]
+    [JSImport("globalThis.ysmSetViewportRect")]
     public static partial void SetViewportRect(int x, int y, int width, int height);
 
-    [JSImport("showCanvas", ModuleName)]
+    [JSImport("globalThis.ysmShowCanvas")]
     public static partial void ShowCanvas();
 
-    [JSImport("hideCanvas", ModuleName)]
+    [JSImport("globalThis.ysmHideCanvas")]
     public static partial void HideCanvas();
 
-    [JSImport("loadModelGeometry", ModuleName)]
+    [JSImport("globalThis.ysmLoadModelGeometry")]
     public static partial void LoadModelGeometry(string specJson);
 
-    [JSImport("addTextureData", ModuleName)]
+    [JSImport("globalThis.ysmAddTextureData")]
     public static partial void AddTextureData(string textureId, byte[] data);
 
-    [JSImport("clearScene", ModuleName)]
+    [JSImport("globalThis.ysmClearScene")]
     public static partial void ClearScene();
 
-    [JSImport("setCameraView", ModuleName)]
+    [JSImport("globalThis.ysmSetCameraView")]
     public static partial void SetCameraView(string viewName);
 
-    [JSImport("setAutoRotate", ModuleName)]
+    [JSImport("globalThis.ysmSetAutoRotate")]
     public static partial void SetAutoRotate(bool enabled);
 
-    [JSImport("setBackground", ModuleName)]
+    [JSImport("globalThis.ysmSetBackground")]
     public static partial void SetBackground(byte r, byte g, byte b);
 
-    [JSImport("setComponentVisible", ModuleName)]
+    [JSImport("globalThis.ysmSetComponentVisible")]
     public static partial void SetComponentVisible(string componentId, bool visible);
 
-    [JSImport("setBoneVisible", ModuleName)]
+    [JSImport("globalThis.ysmSetBoneVisible")]
     public static partial void SetBoneVisible(string boneId, bool visible);
 
-    [JSImport("dispose", ModuleName)]
+    [JSImport("globalThis.ysmDispose")]
     public static partial void Dispose();
 }
