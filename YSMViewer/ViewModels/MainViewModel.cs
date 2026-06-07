@@ -560,14 +560,17 @@ public sealed partial class MainViewModel : ViewModelBase
 
         foreach (var bone in rootBones)
         {
-            var item = BuildBoneTreeItem(bone, _currentDocument);
+            var item = BuildBoneTreeItem(bone, _currentDocument, []);
             if (item is not null)
                 BoneTreeRoots.Add(item);
         }
     }
 
-    private BoneTreeItemViewModel? BuildBoneTreeItem(YsmBoneInfo bone, YsmModelDocument document)
+    private BoneTreeItemViewModel? BuildBoneTreeItem(YsmBoneInfo bone, YsmModelDocument document, HashSet<string> visited)
     {
+        if (!visited.Add(bone.Id))
+            return null;
+
         var item = new BoneTreeItemViewModel
         {
             Name = bone.Name,
@@ -588,7 +591,9 @@ public sealed partial class MainViewModel : ViewModelBase
 
         foreach (var child in childBones)
         {
-            var childItem = BuildBoneTreeItem(child, document);
+            if (visited.Contains(child.Id))
+                continue;
+            var childItem = BuildBoneTreeItem(child, document, visited);
             if (childItem is not null)
                 item.Children.Add(childItem);
         }

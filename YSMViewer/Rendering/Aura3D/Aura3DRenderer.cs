@@ -17,6 +17,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
     private readonly Dictionary<string, Model> _componentModels = [];
     private readonly Dictionary<string, Node> _boneNodes = [];
     private readonly Dictionary<string, Vector3> _baseBoneEulers = [];
+    private readonly List<Model> _sceneRoots = [];
     private readonly AnimationService _animService = new();
     private bool _sceneInitialized;
 
@@ -94,10 +95,17 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
         _boneNodes.Clear();
         _baseBoneEulers.Clear();
 
-        if (_loadedModel is not null && _view.Scene is not null)
-            _view.Scene.RemoveNode(_loadedModel);
+        if (_view.Scene is not null)
+        {
+            foreach (var root in _sceneRoots)
+                _view.Scene.RemoveNode(root);
+
+            if (_loadedModel is not null)
+                _view.Scene.RemoveNode(_loadedModel);
+        }
 
         _loadedModel = null;
+        _sceneRoots.Clear();
         _document = null;
     }
 
@@ -208,6 +216,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
         if (_view.Scene is null) return;
 
         _view.AddNode(model);
+        _sceneRoots.Add(model);
     }
 
     private void FitCameraToContent()
