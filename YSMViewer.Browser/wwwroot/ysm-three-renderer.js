@@ -151,50 +151,51 @@ export function loadModelGeometry(specJson) {
 }
 
 export function addTextureData(textureId, uint8Array) {
-    try {
-        const mimeType = detectImageMimeType(uint8Array);
-        const blob = new Blob([uint8Array], { type: mimeType });
-        const url = URL.createObjectURL(blob);
-
-        const onTextureLoaded = (tex) => {
-            tex.magFilter = THREE.NearestFilter;
-            tex.minFilter = THREE.NearestFilter;
-            tex.colorSpace = THREE.SRGBColorSpace;
-            tex.needsUpdate = true;
-            textureCache.set(textureId, tex);
-            applyTextureToMaterials(textureId, tex);
-            requestRender();
-            URL.revokeObjectURL(url);
-        };
-
-        const onTextureError = (err) => {
-            console.warn('[YSM-Three] TextureLoader error for', textureId, '- trying createImageBitmap fallback');
-            loadTextureViaImageBitmap(blob, textureId).then((tex) => {
-                if (tex) {
-                    onTextureLoaded(tex);
-                }
-            });
-            URL.revokeObjectURL(url);
-        };
-
-        new THREE.TextureLoader().load(url, onTextureLoaded, undefined, onTextureError);
-    } catch (err) {
-        console.error('[YSM-Three] Failed to add texture:', textureId, err);
-    }
+    const dataCopy = uint8Array.slice(0);
+    loadTextureAsync(textureId, dataCopy);
 }
 
-async function loadTextureViaImageBitmap(blob, textureId) {
+async function loadTextureAsync(textureId, dataCopy) {
     try {
-        const imageBitmap = await createImageBitmap(blob);
+        const mimeType = detectImageMimeType(dataCopy);
+        const blob = new Blob([dataCopy], { type: mimeType });
+        let imageBitmap;
+        try {
+            imageBitmap = await createImageBitmap(blob);
+        } catch (err) {
+            console.warn('[YSM-Three] createImageBitmap failed for', textureId, '- trying TextureLoader');
+            const url = URL.createObjectURL(blob);
+            try {
+                const tex = await new Promise((resolve, reject) => {
+                    new THREE.TextureLoader().load(url, resolve, undefined, reject);
+                });
+                tex.magFilter = THREE.NearestFilter;
+                tex.minFilter = THREE.NearestFilter;
+                tex.colorSpace = THREE.SRGBColorSpace;
+                tex.needsUpdate = true;
+                textureCache.set(textureId, tex);
+                applyTextureToMaterials(textureId, tex);
+                requestRender();
+                URL.revokeObjectURL(url);
+                return;
+            } catch (loaderErr) {
+                console.error('[YSM-Three] TextureLoader also failed for', textureId, loaderErr);
+                URL.revokeObjectURL(url);
+                return;
+            }
+        }
+
         const tex = new THREE.Texture(imageBitmap);
         tex.magFilter = THREE.NearestFilter;
         tex.minFilter = THREE.NearestFilter;
         tex.colorSpace = THREE.SRGBColorSpace;
         tex.needsUpdate = true;
-        return tex;
+
+        textureCache.set(textureId, tex);
+        applyTextureToMaterials(textureId, tex);
+        requestRender();
     } catch (err) {
-        console.error('[YSM-Three] createImageBitmap fallback also failed for', textureId, err);
-        return null;
+        console.error('[YSM-Three] Failed to add texture:', textureId, err);
     }
 }
 
@@ -327,22 +328,18 @@ function getOrCreateMaterial(textureId) {
 
 function applyTextureToMaterials(textureId, texture) {
     if (!scene) return;
+    const newMat = new THREE.MeshBasicMaterial({
+        map: texture,
+        color: 0xffffff,
+        side: THREE.FrontSide,
+        alphaTest: 0.5,
+        transparent: false,
+    });
     scene.traverse((child) => {
         if (child.isMesh && child.material) {
-            const mat = child.material;
             const modelGroup = findComponentGroup(child);
             if (modelGroup && modelGroup.userData.textureId === textureId) {
-                if (Array.isArray(mat)) {
-                    mat.forEach((m) => {
-                        m.map = texture;
-                        m.color?.set(0xffffff);
-                        m.needsUpdate = true;
-                    });
-                } else {
-                    mat.map = texture;
-                    mat.color?.set(0xffffff);
-                    mat.needsUpdate = true;
-                }
+                child.material = newMat;
             }
         }
     });
