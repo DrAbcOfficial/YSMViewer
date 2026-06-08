@@ -18,4 +18,8 @@
   <ItemGroup>
     <WasmContent Include="wwwroot\lib\**" />
   </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
 </Project>

@@ -27,9 +27,18 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        var interFont = new FontFamily("avares://Avalonia.Fonts.Inter#Inter");
+        var interFont = "avares://Avalonia.Fonts.Inter#Inter";
+        if (ApplicationLifetime is ISingleViewApplicationLifetime)
+        {
+            interFont +=
+                ",avares://YSMViewer.Browser/Assets/fonts/NotoSansSC-Regular.ttf#Noto Sans SC" +
+                ",avares://YSMViewer.Browser/Assets/fonts/NotoSansKR-Regular.ttf#Noto Sans KR" +
+                ",avares://YSMViewer.Browser/Assets/fonts/NotoSansJP-Regular.ttf#Noto Sans JP" +
+                ",avares://YSMViewer.Browser/Assets/fonts/NotoColorEmoji-Regular.ttf#Noto Color Emoji";
+        }
+        var fontFamily = new FontFamily(interFont);
         var fontStyle = new Style(x => x.OfType<TextBlock>());
-        fontStyle.Setters.Add(new Setter(TextBlock.FontFamilyProperty, interFont));
+        fontStyle.Setters.Add(new Setter(TextBlock.FontFamilyProperty, fontFamily));
         Application.Current!.Styles.Add(fontStyle);
 
         ThemeService.Instance.ApplyTheme();
