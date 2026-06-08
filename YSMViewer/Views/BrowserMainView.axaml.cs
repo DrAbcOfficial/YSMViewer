@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -8,10 +9,14 @@ namespace YSMViewer.Views;
 
 public partial class BrowserMainView : UserControl
 {
+    private double _rightPanelSavedWidth = 300;
+    private const double MobileBreakpoint = 768;
+
     public BrowserMainView()
     {
         InitializeComponent();
         Loaded += OnLoaded;
+        SizeChanged += OnSizeChanged;
 
         DragDrop.AddDropHandler(this, OnDrop);
         DragDrop.AddDragOverHandler(this, OnDragOverHandler);
@@ -40,7 +45,34 @@ public partial class BrowserMainView : UserControl
     private void OnLoaded(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainViewModel vm)
+        {
+            UpdateMobileState();
             _ = vm.LoadStartupFileIfNeeded();
+        }
+    }
+
+    private void OnSizeChanged(object? sender, SizeChangedEventArgs e)
+    {
+        UpdateMobileState();
+    }
+
+    private void UpdateMobileState()
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        var width = Bounds.Width;
+        var isMobile = width > 0 && width < MobileBreakpoint;
+        if (isMobile != vm.IsMobileView)
+        {
+            vm.IsMobileView = isMobile;
+            if (isMobile)
+            {
+                vm.IsRightPanelVisible = false;
+                vm.IsPanelOverlayVisible = false;
+                if (BrowserMainContentGrid.ColumnDefinitions.Count > 2)
+                    BrowserMainContentGrid.ColumnDefinitions[2].Width = new GridLength(0);
+            }
+        }
     }
 
     private async void OnDrop(object? sender, DragEventArgs e)
@@ -160,5 +192,46 @@ public partial class BrowserMainView : UserControl
     {
         if (DataContext is MainViewModel vm && e.AddedItems.Count > 0 && e.AddedItems[0] is string name)
             vm.SelectAnimation(name);
+    }
+
+    private void OnBrowserToggleRightPanelClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        var col = BrowserMainContentGrid.ColumnDefinitions[2];
+        if (vm.IsRightPanelVisible)
+        {
+            if (col.Width.IsAbsolute)
+                _rightPanelSavedWidth = col.Width.Value;
+            col.Width = new GridLength(0);
+            vm.IsRightPanelVisible = false;
+        }
+        else
+        {
+            col.Width = new GridLength(_rightPanelSavedWidth);
+            vm.IsRightPanelVisible = true;
+        }
+    }
+
+    private void OnBrowserTogglePanelOverlayClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        vm.IsPanelOverlayVisible = !vm.IsPanelOverlayVisible;
+    }
+
+    private void OnMobileOverlayBgPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+            vm.IsPanelOverlayVisible = false;
+    }
+
+    private void OnBrowserShowAllComponentsClick(object? sender, RoutedEventArgs e)
+    {
+        OnShowAllComponentsClick(sender, e);
+    }
+
+    private void OnBrowserHideAllComponentsClick(object? sender, RoutedEventArgs e)
+    {
+        OnHideAllComponentsClick(sender, e);
     }
 }

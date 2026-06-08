@@ -1,5 +1,6 @@
 ﻿using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using YSMViewer.Models.Document;
 using YSMViewer.Rendering;
@@ -230,6 +231,48 @@ public sealed partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial TextureItemViewModel? SelectedTexture { get; set; }
+
+    // Panel layout
+    [ObservableProperty]
+    public partial bool IsLeftPanelVisible { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool IsRightPanelVisible { get; set; } = true;
+
+    [ObservableProperty]
+    public partial double LeftPanelWidth { get; set; } = 280;
+
+    [ObservableProperty]
+    public partial double RightPanelWidth { get; set; } = 300;
+
+    [ObservableProperty]
+    public partial double RightPanelPreviousWidth { get; set; } = 300;
+
+    [ObservableProperty]
+    public partial bool IsMobileView { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsPanelOverlayVisible { get; set; }
+
+    [RelayCommand]
+    private void ToggleLeftPanel()
+    {
+        IsLeftPanelVisible = !IsLeftPanelVisible;
+    }
+
+    [RelayCommand]
+    private void ToggleRightPanel()
+    {
+        if (IsRightPanelVisible)
+            RightPanelPreviousWidth = RightPanelWidth;
+        IsRightPanelVisible = !IsRightPanelVisible;
+    }
+
+    [RelayCommand]
+    private void TogglePanelOverlay()
+    {
+        IsPanelOverlayVisible = !IsPanelOverlayVisible;
+    }
 
     private async Task OnFileSelectedFromBrowser(string filePath)
     {

@@ -74,7 +74,12 @@
         <shared:ModelToolBar Grid.Row="0" DataContext="{Binding}" />
 
         <!-- Main Content -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+        <Grid Grid.Row="1" x:Name="BrowserMainContentGrid">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="4" />
+                <ColumnDefinition Width="300" MinWidth="0" />
+            </Grid.ColumnDefinitions>
 
             <!-- Viewport -->
             <Panel Grid.Column="0" x:Name="ViewportPanel">
@@ -173,14 +178,85 @@
                         </StackPanel>
                     </StackPanel>
                 </Border>
+
+                <!-- Floating restore button for collapsed side panel -->
+                <Border x:Name="BrowserPanelRestoreBtn"
+                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Margin="0,0,0,0" IsHitTestVisible="True"
+                        Background="{DynamicResource ThemeBgSurface}"
+                        BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1,1,0,1"
+                        CornerRadius="6,0,0,6" Padding="0"
+                        Width="20" Height="48"
+                        IsVisible="{Binding !IsRightPanelVisible}">
+                    <Border.Styles>
+                        <Style Selector="Border#BrowserPanelRestoreBtn">
+                            <Setter Property="Opacity" Value="0.6" />
+                        </Style>
+                        <Style Selector="Border#BrowserPanelRestoreBtn:pointerover">
+                            <Setter Property="Opacity" Value="1" />
+                        </Style>
+                    </Border.Styles>
+                    <Button Width="20" Height="48" Padding="0"
+                            CornerRadius="6,0,0,6" Background="Transparent"
+                            Click="OnBrowserToggleRightPanelClick">
+                        <svg:Svg Path="avares://YSMViewer/Assets/svg/chevron-left.svg"
+                                 Stretch="Uniform" Width="12" Height="12" />
+                    </Button>
+                </Border>
+
+                <!-- Mobile panel toggle FAB -->
+                <Border x:Name="MobilePanelFab"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                        Margin="0,0,16,16" IsHitTestVisible="True"
+                        Background="{DynamicResource ThemeAccentRed}"
+                        CornerRadius="28" Padding="0"
+                        Width="56" Height="56"
+                        IsVisible="{Binding IsMobileView}">
+                    <Border.Styles>
+                        <Style Selector="Border#MobilePanelFab:pointerover">
+                            <Setter Property="Opacity" Value="0.85" />
+                        </Style>
+                    </Border.Styles>
+                    <Button Width="56" Height="56" Padding="0"
+                            CornerRadius="28" Background="Transparent"
+                            Click="OnBrowserTogglePanelOverlayClick">
+                        <svg:Svg Path="avares://YSMViewer/Assets/svg/panel-open.svg"
+                                 Stretch="Uniform" Width="24" Height="24" />
+                    </Button>
+                </Border>
             </Panel>
 
+            <!-- GridSplitter -->
+            <GridSplitter Grid.Column="1" Width="4"
+                          Background="Transparent"
+                          ResizeBehavior="PreviousAndNext"
+                          IsVisible="{Binding IsRightPanelVisible}" />
+
             <!-- Side Panel -->
-            <Border Grid.Column="1" IsVisible="{Binding HasModel}"
+            <Border Grid.Column="2"
                     Background="{DynamicResource ThemeBgSurface}"
                     BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1,0,0,0"
-                    MinWidth="240">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                    IsVisible="{Binding IsRightPanelVisible}">
+                <Grid RowDefinitions="Auto,*">
+                    <Border Grid.Row="0" Padding="8,6"
+                            Background="{DynamicResource ThemeBgElevated}"
+                            BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,0,0,1">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Text="Tools" FontWeight="SemiBold" FontSize="12"
+                                       Foreground="{DynamicResource ThemeTextPrimary}"
+                                       VerticalAlignment="Center" />
+                            <Button Grid.Column="1" x:Name="BrowserRightPanelToggleBtn"
+                                    Width="24" Height="24" Padding="0"
+                                    CornerRadius="4" Background="Transparent"
+                                    ToolTip.Tip="Collapse panel"
+                                    Click="OnBrowserToggleRightPanelClick">
+                                <svg:Svg x:Name="BrowserRightPanelToggleSvg"
+                                         Path="avares://YSMViewer/Assets/svg/chevron-right.svg"
+                                         Stretch="Uniform" Width="14" Height="14" />
+                            </Button>
+                        </Grid>
+                    </Border>
+                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Spacing="2" Margin="0,4">
 
                         <!-- Info Section -->
@@ -423,11 +499,103 @@
 
                     </StackPanel>
                 </ScrollViewer>
-            </Border>
-        </Grid>
+            </Grid>
+        </Border>
+    </Grid>
 
         <shared:ModelBottomBar Grid.Row="2" DataContext="{Binding}" />
     </Grid>
+
+    <!-- Mobile panel overlay -->
+    <Border x:Name="MobileOverlayBg"
+            IsVisible="{Binding IsPanelOverlayVisible}"
+            HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+            Background="#80000000"
+            PointerPressed="OnMobileOverlayBgPressed">
+        <Border HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                Width="320"
+                Background="{DynamicResource ThemeBgSurface}">
+            <Grid RowDefinitions="Auto,*">
+                <Border Grid.Row="0" Padding="12,10"
+                        Background="{DynamicResource ThemeBgElevated}"
+                        BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,0,0,1">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Tools" FontWeight="SemiBold" FontSize="14"
+                                   Foreground="{DynamicResource ThemeTextPrimary}"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Width="28" Height="28" Padding="0"
+                                CornerRadius="4" Background="Transparent"
+                                Click="OnBrowserTogglePanelOverlayClick">
+                            <svg:Svg Path="avares://YSMViewer/Assets/svg/cross.svg"
+                                     Stretch="Uniform" Width="16" Height="16" />
+                        </Button>
+                    </Grid>
+                </Border>
+                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Spacing="2" Margin="0,4">
+                        <Expander IsExpanded="True" Padding="0">
+                            <Expander.Header>
+                                <TextBlock Text="{Binding LocInfo}" FontWeight="SemiBold" FontSize="13"
+                                           Foreground="{DynamicResource ThemeTextPrimary}" />
+                            </Expander.Header>
+                            <StackPanel Spacing="10" Margin="12,8">
+                                <TextBlock Text="{Binding ModelDisplayName}" FontSize="18" FontWeight="Bold"
+                                           Foreground="{DynamicResource ThemeTextPrimary}" TextWrapping="Wrap" />
+                                <Border Height="1" Background="{DynamicResource ThemeDivider}" />
+                                <StackPanel Spacing="6">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="Version" FontSize="11"
+                                                   Foreground="{DynamicResource ThemeTextMuted}" Width="60" />
+                                        <TextBlock Text="{Binding ModelVersion}" FontSize="12"
+                                                   Foreground="{DynamicResource ThemeTextSecondary}" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasModelAuthors}">
+                                        <TextBlock Text="Authors" FontSize="11"
+                                                   Foreground="{DynamicResource ThemeTextMuted}" Width="60" />
+                                        <TextBlock Text="{Binding ModelAuthors}" FontSize="12"
+                                                   Foreground="{DynamicResource ThemeTextSecondary}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </Expander>
+                        <Expander IsExpanded="False" Padding="0">
+                            <Expander.Header>
+                                <TextBlock Text="{Binding LocComponents}" FontWeight="SemiBold" FontSize="13"
+                                           Foreground="{DynamicResource ThemeTextPrimary}" />
+                            </Expander.Header>
+                            <StackPanel Spacing="6" Margin="12,8">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Button Content="{Binding LocShowAll}" FontSize="10"
+                                            Click="OnBrowserShowAllComponentsClick"
+                                            Padding="8,3" CornerRadius="4" />
+                                    <Button Content="{Binding LocHideAll}" FontSize="10"
+                                            Click="OnBrowserHideAllComponentsClick"
+                                            Padding="8,3" CornerRadius="4" />
+                                </StackPanel>
+                                <ItemsControl ItemsSource="{Binding Components}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ComponentViewModel">
+                                            <Border CornerRadius="4" Margin="0,2" Padding="8,4"
+                                                    Background="{DynamicResource ThemeBgElevated}">
+                                                <Grid ColumnDefinitions="Auto,*">
+                                                    <CheckBox Grid.Column="0" IsChecked="{Binding IsVisible}"
+                                                              FontSize="12" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                                               Foreground="{DynamicResource ThemeTextPrimary}"
+                                                               FontSize="12" VerticalAlignment="Center"
+                                                               Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Expander>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </Border>
 
     <!-- Toast overlay -->
     <ItemsControl ItemsSource="{Binding Notifications.Notifications}"

@@ -63,17 +63,49 @@
         <shared:ModelToolBar Grid.Row="0" DataContext="{Binding}" />
 
         <!-- ===== Main Content ===== -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,3*,*">
+        <Grid Grid.Row="1" x:Name="MainContentGrid">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280" MinWidth="0" />
+                <ColumnDefinition Width="4" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="4" />
+                <ColumnDefinition Width="300" MinWidth="0" />
+            </Grid.ColumnDefinitions>
 
             <!-- Folder Browser -->
             <Border Grid.Column="0" Background="{DynamicResource ThemeBgSurface}"
                     BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,0,1,0"
                     IsVisible="{Binding IsDesktop}">
-                <v:FolderBrowserView DataContext="{Binding FolderBrowser}" />
+                <Grid RowDefinitions="Auto,*">
+                    <Border Grid.Row="0" Padding="8,6" Background="{DynamicResource ThemeBgElevated}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Text="Files" FontWeight="SemiBold" FontSize="12"
+                                       Foreground="{DynamicResource ThemeTextPrimary}"
+                                       VerticalAlignment="Center" />
+                            <Button Grid.Column="1" x:Name="LeftPanelToggleBtn"
+                                    Width="24" Height="24" Padding="0"
+                                    CornerRadius="4" Background="Transparent"
+                                    ToolTip.Tip="Collapse panel"
+                                    Click="OnToggleLeftPanelClick">
+                                <svg:Svg x:Name="LeftPanelToggleIcon"
+                                         Path="avares://YSMViewer/Assets/svg/chevron-left.svg"
+                                         Stretch="Uniform" Width="14" Height="14" />
+                            </Button>
+                        </Grid>
+                    </Border>
+                    <v:FolderBrowserView Grid.Row="1"
+                                         DataContext="{Binding FolderBrowser}" />
+                </Grid>
             </Border>
 
+            <!-- Left Splitter -->
+            <GridSplitter Grid.Column="1" Width="4"
+                          Background="Transparent"
+                          ResizeBehavior="PreviousAndNext"
+                          IsVisible="{Binding IsDesktop}" />
+
             <!-- Viewport -->
-            <Panel Grid.Column="1" x:Name="ViewportPanel">
+            <Panel Grid.Column="2" x:Name="ViewportPanel">
                 <ContentControl Content="{Binding Renderer.View}" />
 
                 <!-- Gizmo overlay -->
@@ -92,6 +124,55 @@
                                   IsHitTestVisible="False"
                                   SetupPipeline="OnGizmoSetupPipeline"
                                   SceneInitialized="OnGizmoSceneInitialized" />
+                </Border>
+
+                <!-- Floating restore buttons for collapsed panels -->
+                <Border x:Name="LeftRestoreBtn"
+                        HorizontalAlignment="Left" VerticalAlignment="Center"
+                        Margin="0,0,0,0" IsHitTestVisible="True"
+                        Background="{DynamicResource ThemeBgSurface}"
+                        BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,1,1,1"
+                        CornerRadius="0,6,6,0" Padding="0"
+                        Width="20" Height="48"
+                        IsVisible="{Binding !IsLeftPanelVisible}">
+                    <Border.Styles>
+                        <Style Selector="Border#LeftRestoreBtn">
+                            <Setter Property="Opacity" Value="0.6" />
+                        </Style>
+                        <Style Selector="Border#LeftRestoreBtn:pointerover">
+                            <Setter Property="Opacity" Value="1" />
+                        </Style>
+                    </Border.Styles>
+                    <Button Width="20" Height="48" Padding="0"
+                            CornerRadius="0,6,6,0" Background="Transparent"
+                            Click="OnToggleLeftPanelClick">
+                        <svg:Svg Path="avares://YSMViewer/Assets/svg/chevron-right.svg"
+                                 Stretch="Uniform" Width="12" Height="12" />
+                    </Button>
+                </Border>
+
+                <Border x:Name="RightRestoreBtn"
+                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Margin="0,0,0,0" IsHitTestVisible="True"
+                        Background="{DynamicResource ThemeBgSurface}"
+                        BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1,1,0,1"
+                        CornerRadius="6,0,0,6" Padding="0"
+                        Width="20" Height="48"
+                        IsVisible="{Binding !IsRightPanelVisible}">
+                    <Border.Styles>
+                        <Style Selector="Border#RightRestoreBtn">
+                            <Setter Property="Opacity" Value="0.6" />
+                        </Style>
+                        <Style Selector="Border#RightRestoreBtn:pointerover">
+                            <Setter Property="Opacity" Value="1" />
+                        </Style>
+                    </Border.Styles>
+                    <Button Width="20" Height="48" Padding="0"
+                            CornerRadius="6,0,0,6" Background="Transparent"
+                            Click="OnToggleRightPanelClick">
+                        <svg:Svg Path="avares://YSMViewer/Assets/svg/chevron-left.svg"
+                                 Stretch="Uniform" Width="12" Height="12" />
+                    </Button>
                 </Border>
 
                 <!-- Empty state overlay -->
@@ -156,12 +237,37 @@
                 </Border>
             </Panel>
 
+            <!-- Right Splitter -->
+            <GridSplitter Grid.Column="3" Width="4"
+                          Background="Transparent"
+                          ResizeBehavior="PreviousAndNext"
+                          IsVisible="{Binding IsRightPanelVisible}" />
+
             <!-- Side Panel -->
-            <Border Grid.Column="2" IsVisible="{Binding HasModel}"
+            <Border Grid.Column="4"
                     Background="{DynamicResource ThemeBgSurface}"
                     BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1,0,0,0"
-                    MinWidth="240">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                    IsVisible="{Binding IsRightPanelVisible}">
+                <Grid RowDefinitions="Auto,*">
+                    <Border Grid.Row="0" Padding="8,6"
+                            Background="{DynamicResource ThemeBgElevated}"
+                            BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,0,0,1">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Text="Tools" FontWeight="SemiBold" FontSize="12"
+                                       Foreground="{DynamicResource ThemeTextPrimary}"
+                                       VerticalAlignment="Center" />
+                            <Button Grid.Column="1" x:Name="RightPanelToggleBtn"
+                                    Width="24" Height="24" Padding="0"
+                                    CornerRadius="4" Background="Transparent"
+                                    ToolTip.Tip="Collapse panel"
+                                    Click="OnToggleRightPanelClick">
+                                <svg:Svg x:Name="RightPanelToggleIcon"
+                                         Path="avares://YSMViewer/Assets/svg/chevron-right.svg"
+                                         Stretch="Uniform" Width="14" Height="14" />
+                            </Button>
+                        </Grid>
+                    </Border>
+                    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Spacing="2" Margin="0,4">
 
                         <!-- Info Section -->
@@ -404,8 +510,9 @@
 
                     </StackPanel>
                 </ScrollViewer>
-            </Border>
-        </Grid>
+            </Grid>
+        </Border>
+    </Grid>
 
         <shared:ModelBottomBar Grid.Row="2" DataContext="{Binding}" />
 </Grid>

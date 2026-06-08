@@ -350,4 +350,45 @@ public partial class MainView : UserControl
     {
         _gizmoIsDragging = false;
     }
+
+    private double _leftPanelSavedWidth = 280;
+    private double _rightPanelSavedWidth = 300;
+
+    private void OnToggleLeftPanelClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        var col = MainContentGrid.ColumnDefinitions[0];
+        if (vm.IsLeftPanelVisible)
+        {
+            if (col.Width.IsAbsolute)
+                _leftPanelSavedWidth = col.Width.Value;
+            col.Width = new GridLength(0);
+            vm.IsLeftPanelVisible = false;
+        }
+        else
+        {
+            col.Width = new GridLength(_leftPanelSavedWidth);
+            vm.IsLeftPanelVisible = true;
+        }
+    }
+
+    private void OnToggleRightPanelClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        var col = MainContentGrid.ColumnDefinitions[4];
+        if (vm.IsRightPanelVisible)
+        {
+            if (col.Width.IsAbsolute)
+                _rightPanelSavedWidth = col.Width.Value;
+            col.Width = new GridLength(0);
+            vm.IsRightPanelVisible = false;
+        }
+        else
+        {
+            col.Width = new GridLength(_rightPanelSavedWidth);
+            vm.IsRightPanelVisible = true;
+        }
+    }
 }
