@@ -30,15 +30,6 @@ globalThis.ysmHideRestoreBtn = () => {
     const btn = document.getElementById('ysm-restore-btn');
     if (btn) btn.style.display = 'none';
 };
-globalThis.ysmShowFab = () => {
-    const btn = document.getElementById('ysm-fab');
-    if (btn) btn.style.display = 'block';
-};
-globalThis.ysmHideFab = () => {
-    const btn = document.getElementById('ysm-fab');
-    if (btn) btn.style.display = 'none';
-};
-
 const { getAssemblyExports, getConfig, runMain } = await dotnet
     .withDiagnosticTracing(false)
     .withApplicationArgumentsFromQuery()
@@ -49,9 +40,6 @@ getAssemblyExports("YSMViewer.dll").then(exports => {
     const interop = exports.YSMViewer.Rendering.ThreeJs.ThreeJsInterop;
     document.getElementById('ysm-restore-btn').addEventListener('click', () => {
         try { interop.OnRestoreButtonClicked(); } catch (e) { }
-    });
-    document.getElementById('ysm-fab').addEventListener('click', () => {
-        try { interop.OnFabButtonClicked(); } catch (e) { }
     });
 });
 

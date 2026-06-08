@@ -251,9 +251,6 @@ public sealed partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool IsMobileView { get; set; }
 
-    [ObservableProperty]
-    public partial bool IsPanelOverlayVisible { get; set; }
-
     [RelayCommand]
     private void ToggleLeftPanel()
     {
@@ -266,12 +263,6 @@ public sealed partial class MainViewModel : ViewModelBase
         if (IsRightPanelVisible)
             RightPanelPreviousWidth = RightPanelWidth;
         IsRightPanelVisible = !IsRightPanelVisible;
-    }
-
-    [RelayCommand]
-    private void TogglePanelOverlay()
-    {
-        IsPanelOverlayVisible = !IsPanelOverlayVisible;
     }
 
     private async Task OnFileSelectedFromBrowser(string filePath)
