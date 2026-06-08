@@ -62,6 +62,17 @@ export function setViewportRect(x, y, width, height) {
     canvasElement.style.display = 'block';
     canvasElement.style.zIndex = '1';
 
+    const restoreBtn = document.getElementById('ysm-restore-btn');
+    if (restoreBtn) {
+        restoreBtn.style.left = (x + width - 20) + 'px';
+        restoreBtn.style.top = (y + (height - 48) / 2) + 'px';
+    }
+    const fab = document.getElementById('ysm-fab');
+    if (fab) {
+        fab.style.left = (x + width - 72) + 'px';
+        fab.style.top = (y + height - 72) + 'px';
+    }
+
     if (renderer) {
         renderer.setSize(width, height, false);
         camera.aspect = width / Math.max(height, 1);

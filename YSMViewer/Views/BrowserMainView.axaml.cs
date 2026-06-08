@@ -3,10 +3,14 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.Versioning;
+using YSMViewer.Rendering.ThreeJs;
 using YSMViewer.ViewModels;
 
 namespace YSMViewer.Views;
 
+[SupportedOSPlatform("browser")]
 public partial class BrowserMainView : UserControl
 {
     private double _rightPanelSavedWidth = 300;
@@ -22,6 +26,9 @@ public partial class BrowserMainView : UserControl
         DragDrop.AddDragOverHandler(this, OnDragOverHandler);
         DragDrop.AddDragEnterHandler(this, OnDragEnterHandler);
         DragDrop.AddDragLeaveHandler(this, OnDragLeaveHandler);
+
+        ThreeJsInterop.RestoreButtonClicked += OnRestoreButtonFromHtml;
+        ThreeJsInterop.FabButtonClicked += OnFabButtonFromHtml;
     }
 
     private async void OnOpenButtonClick(object? sender, RoutedEventArgs e)
@@ -47,8 +54,37 @@ public partial class BrowserMainView : UserControl
         if (DataContext is MainViewModel vm)
         {
             UpdateMobileState();
+            SyncButtonVisibility();
+            vm.PropertyChanged += OnVmPropertyChanged;
             _ = vm.LoadStartupFileIfNeeded();
         }
+    }
+
+    private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.IsRightPanelVisible) ||
+            e.PropertyName == nameof(MainViewModel.IsMobileView))
+        {
+            SyncButtonVisibility();
+        }
+    }
+
+    private void SyncButtonVisibility()
+    {
+        if (DataContext is not MainViewModel vm) return;
+        try
+        {
+            if (vm.IsRightPanelVisible)
+                ThreeJsInterop.HideRestoreButton();
+            else
+                ThreeJsInterop.ShowRestoreButton();
+
+            if (vm.IsMobileView && !vm.IsPanelOverlayVisible)
+                ThreeJsInterop.ShowFab();
+            else
+                ThreeJsInterop.HideFab();
+        }
+        catch { }
     }
 
     private void OnSizeChanged(object? sender, SizeChangedEventArgs e)
@@ -73,6 +109,7 @@ public partial class BrowserMainView : UserControl
                     BrowserMainContentGrid.ColumnDefinitions[2].Width = new GridLength(0);
             }
         }
+        SyncButtonVisibility();
     }
 
     private async void OnDrop(object? sender, DragEventArgs e)
@@ -213,12 +250,6 @@ public partial class BrowserMainView : UserControl
         }
     }
 
-    private void OnBrowserTogglePanelOverlayClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainViewModel vm) return;
-        vm.IsPanelOverlayVisible = !vm.IsPanelOverlayVisible;
-    }
-
     private void OnMobileOverlayBgPressed(object? sender, PointerPressedEventArgs e)
     {
         if (DataContext is MainViewModel vm)
@@ -233,5 +264,28 @@ public partial class BrowserMainView : UserControl
     private void OnBrowserHideAllComponentsClick(object? sender, RoutedEventArgs e)
     {
         OnHideAllComponentsClick(sender, e);
+    }
+
+    private void OnBrowserTogglePanelOverlayClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+            vm.IsPanelOverlayVisible = !vm.IsPanelOverlayVisible;
+    }
+
+    private void OnRestoreButtonFromHtml()
+    {
+        OnBrowserToggleRightPanelClick(null, null!);
+    }
+
+    private void OnFabButtonFromHtml()
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            vm.IsPanelOverlayVisible = !vm.IsPanelOverlayVisible;
+            if (vm.IsPanelOverlayVisible)
+                ThreeJsInterop.HideFab();
+            else if (vm.IsMobileView)
+                ThreeJsInterop.ShowFab();
+        }
     }
 }

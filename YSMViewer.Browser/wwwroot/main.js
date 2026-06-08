@@ -21,11 +21,39 @@ globalThis.ysmStopAnimation = YsmRenderer.stopAnimation;
 globalThis.ysmGetAnimationProgress = YsmRenderer.getAnimationProgress;
 globalThis.ysmDispose = YsmRenderer.dispose;
 
-const dotnetRuntime = await dotnet
+// UI overlay button helpers
+globalThis.ysmShowRestoreBtn = () => {
+    const btn = document.getElementById('ysm-restore-btn');
+    if (btn) btn.style.display = 'block';
+};
+globalThis.ysmHideRestoreBtn = () => {
+    const btn = document.getElementById('ysm-restore-btn');
+    if (btn) btn.style.display = 'none';
+};
+globalThis.ysmShowFab = () => {
+    const btn = document.getElementById('ysm-fab');
+    if (btn) btn.style.display = 'block';
+};
+globalThis.ysmHideFab = () => {
+    const btn = document.getElementById('ysm-fab');
+    if (btn) btn.style.display = 'none';
+};
+
+const { getAssemblyExports, getConfig, runMain } = await dotnet
     .withDiagnosticTracing(false)
     .withApplicationArgumentsFromQuery()
     .create();
 
-const config = dotnetRuntime.getConfig();
+// Wire up HTML overlay button click handlers to C#
+getAssemblyExports("YSMViewer.dll").then(exports => {
+    const interop = exports.YSMViewer.Rendering.ThreeJs.ThreeJsInterop;
+    document.getElementById('ysm-restore-btn').addEventListener('click', () => {
+        try { interop.OnRestoreButtonClicked(); } catch (e) { }
+    });
+    document.getElementById('ysm-fab').addEventListener('click', () => {
+        try { interop.OnFabButtonClicked(); } catch (e) { }
+    });
+});
 
-await dotnetRuntime.runMain(config.mainAssemblyName, [globalThis.location.href]);
+const config = getConfig();
+await runMain(config.mainAssemblyName, [globalThis.location.href]);

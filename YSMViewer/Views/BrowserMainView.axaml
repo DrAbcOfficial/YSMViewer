@@ -179,51 +179,7 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Floating restore button for collapsed side panel -->
-                <Border x:Name="BrowserPanelRestoreBtn"
-                        HorizontalAlignment="Right" VerticalAlignment="Center"
-                        Margin="0,0,0,0" IsHitTestVisible="True"
-                        Background="{DynamicResource ThemeBgSurface}"
-                        BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1,1,0,1"
-                        CornerRadius="6,0,0,6" Padding="0"
-                        Width="20" Height="48"
-                        IsVisible="{Binding !IsRightPanelVisible}">
-                    <Border.Styles>
-                        <Style Selector="Border#BrowserPanelRestoreBtn">
-                            <Setter Property="Opacity" Value="0.6" />
-                        </Style>
-                        <Style Selector="Border#BrowserPanelRestoreBtn:pointerover">
-                            <Setter Property="Opacity" Value="1" />
-                        </Style>
-                    </Border.Styles>
-                    <Button Width="20" Height="48" Padding="0"
-                            CornerRadius="6,0,0,6" Background="Transparent"
-                            Click="OnBrowserToggleRightPanelClick">
-                        <svg:Svg Path="avares://YSMViewer/Assets/svg/chevron-left.svg"
-                                 Stretch="Uniform" Width="12" Height="12" />
-                    </Button>
-                </Border>
 
-                <!-- Mobile panel toggle FAB -->
-                <Border x:Name="MobilePanelFab"
-                        HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                        Margin="0,0,16,16" IsHitTestVisible="True"
-                        Background="{DynamicResource ThemeAccentRed}"
-                        CornerRadius="28" Padding="0"
-                        Width="56" Height="56"
-                        IsVisible="{Binding IsMobileView}">
-                    <Border.Styles>
-                        <Style Selector="Border#MobilePanelFab:pointerover">
-                            <Setter Property="Opacity" Value="0.85" />
-                        </Style>
-                    </Border.Styles>
-                    <Button Width="56" Height="56" Padding="0"
-                            CornerRadius="28" Background="Transparent"
-                            Click="OnBrowserTogglePanelOverlayClick">
-                        <svg:Svg Path="avares://YSMViewer/Assets/svg/panel-open.svg"
-                                 Stretch="Uniform" Width="24" Height="24" />
-                    </Button>
-                </Border>
             </Panel>
 
             <!-- GridSplitter -->

@@ -54,4 +54,32 @@ public static partial class ThreeJsInterop
 
     [JSImport("globalThis.ysmDispose")]
     public static partial void Dispose();
+
+    [JSImport("globalThis.ysmShowRestoreBtn")]
+    public static partial void ShowRestoreButton();
+
+    [JSImport("globalThis.ysmHideRestoreBtn")]
+    public static partial void HideRestoreButton();
+
+    [JSImport("globalThis.ysmShowFab")]
+    public static partial void ShowFab();
+
+    [JSImport("globalThis.ysmHideFab")]
+    public static partial void HideFab();
+
+    [JSExport]
+    public static void OnRestoreButtonClicked()
+    {
+        RestoreButtonClicked?.Invoke();
+    }
+
+    public static event Action? RestoreButtonClicked;
+
+    [JSExport]
+    public static void OnFabButtonClicked()
+    {
+        FabButtonClicked?.Invoke();
+    }
+
+    public static event Action? FabButtonClicked;
 }
