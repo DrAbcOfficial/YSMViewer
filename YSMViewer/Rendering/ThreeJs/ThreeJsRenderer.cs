@@ -60,6 +60,7 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimatio
         _currentDocument = document;
         _animationNames.Clear();
 
+        bool wasUninitialized = !_isInitialized;
         if (!_isInitialized)
         {
             ThreeJsInterop.ShowCanvas();
@@ -70,6 +71,14 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimatio
         {
             ThreeJsInterop.ShowCanvas();
         }
+
+        // Push the viewport rect now that the canvas is initialized and visible.
+        // During the initial layout pass _isInitialized was false, so the cached
+        // bounds were stored but SetViewportRect was never called.  Apply them
+        // here so the canvas is correctly sized and positioned without waiting
+        // for another layout pass (which may not fire if bounds haven't changed).
+        if (wasUninitialized && _lastW > 0 && _lastH > 0)
+            ThreeJsInterop.SetViewportRect(_lastX, _lastY, _lastW, _lastH);
 
         var specJson = ThreeJsPayloadBuilder.BuildSpecJson(document);
         ThreeJsInterop.LoadModelGeometry(specJson);
