@@ -11,6 +11,7 @@ globalThis.ysmHideCanvas = YsmRenderer.hideCanvas;
 globalThis.ysmLoadModelGeometry = YsmRenderer.loadModelGeometry;
 globalThis.ysmAddTextureData = YsmRenderer.addTextureData;
 globalThis.ysmClearScene = YsmRenderer.clearScene;
+globalThis.ysmResetCamera = YsmRenderer.resetCamera;
 globalThis.ysmSetCameraView = YsmRenderer.setCameraView;
 globalThis.ysmSetBackground = YsmRenderer.setBackground;
 globalThis.ysmSetComponentVisible = YsmRenderer.setComponentVisible;

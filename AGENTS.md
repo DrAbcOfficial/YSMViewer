@@ -2,85 +2,84 @@
 
 ## Prerequisites
 
-- **.NET SDK 10.0** (`net10.0` target). Install the SDK, then build. No `global.json` root pin; the SDK version is implied by the TFM.
+- **.NET SDK 10.0** (`net10.0` target). No `global.json`; the SDK version is implied by the TFM.
 
-## Submodule
+## NuGet
 
-~~`YSMParser.Net/` is a **git submodule** (not a plain copy). After a fresh clone:~~
-
-~~```powershell
-git submodule update --init --recursive
-```~~
-
-~~The submodule points to `https://github.com/DrAbcOfficial/YSMParser.NET`. See `YSMParser.Net/AGENTS.md` for its build/test/architecture details.~~
-
-YSMParser.Core is consumed as a **NuGet package** (`YSMParser.Core` 1.0.0) from nuget.org. No submodule needed.
+`YSMParser.Core` is consumed from **nuget.org** (no submodule, no local project reference).
 
 ## Build & Run
 
 ```powershell
-# Build everything (desktop + browser)
+# Build everything
 dotnet build YSMViewer.slnx
 
-# Run the desktop app
+# Run desktop
 dotnet run --project YSMViewer.Desktop
 
-# Run the desktop app, opening a file on launch
+# Open a file on launch
 dotnet run --project YSMViewer.Desktop -- path\to\file.ysm
 ```
 
-There are **no tests** in YSMViewer itself.
+There are **no tests** in YSMViewer.
 
-## Solution & Toolchain
+## Solution
 
-- **Solution format**: `.slnx` (new XML format, not legacy `.sln`).
-- **Central package management**: `Directory.Packages.props` pins all NuGet versions.
-- **Targets**: Desktop (`net10.0`, WinExe) and Browser (`net10.0-browser`, WASM via `Microsoft.NET.Sdk.WebAssembly`).
-- **CI**: `.github/workflows/build.yml` — every push builds + uploads artifact; `v*` tag creates release + deploys Browser to `webpage` branch for GitHub Pages.
+- **Format**: `.slnx` (not `.sln`).
+- **Central package management**: `Directory.Packages.props` — add new NuGet deps there, not in individual `.csproj` files.
+- **Three projects**: `YSMViewer/` (shared lib), `YSMViewer.Desktop/` (WinExe entrypoint), `YSMViewer.Browser/` (WASM entrypoint).
 
-## Project Map
+## CI (`.github/workflows/build.yml`)
 
-| Project | Type | Purpose |
-|---|---|---|
-| `YSMViewer/` | Library | Main UI. Avalonia views, ViewModels (CommunityToolkit.Mvvm), services, 3D viewport (Aura3D). |
-| `YSMViewer.Desktop/` | Exe (WinExe) | Desktop launcher. `Program.cs` handles `STAThread`, optional file-open arg, developer tools in Debug. |
-| `YSMViewer.Browser/` | Exe (WASM) | Browser/WASM launcher. Single-view lifetime, `AllowUnsafeBlocks`. |
+- Every push builds `YSMViewer.Desktop -c Release` on ubuntu-latest.
+- `v*` tag triggers full release: cross-platform desktop publish (win-x64, linux-x64, osx-arm64) + browser WASM publish + GitHub Pages deploy to `webpage` branch.
+- Browser publish requires `dotnet workload install wasm-tools`.
+- Desktop Release uses `PublishSingleFile`, `SelfContained`, `PublishTrimmed`.
 
-Only the Desktop and Browser projects are entrypoints. `YSMViewer/` is just the shared UI library.
+## Architecture
 
-## Architecture Notes
+### Two rendering backends
 
-### MVVM pattern
+An `IRenderer` abstraction (`Rendering/IRenderer.cs`) has two implementations:
+- **Desktop** (`Aura3D/Aura3DRenderer.cs`) — Aura3D + GLTF loader.
+- **Browser** (`ThreeJs/ThreeJsRenderer.cs`) — Three.js via JS interop (no Aura3D in WASM).
 
-Uses **CommunityToolkit.Mvvm** (source generators). ViewModels use `[ObservableProperty]`, `[RelayCommand]`, etc. The `ViewLocator` resolves Views from ViewModels by convention:
+`App.axaml.cs` selects the renderer based on `ApplicationLifetime` type.
 
-```
-YSMViewer.ViewModels.FooViewModel -> YSMViewer.Views.FooView
-```
+### Entrypoints
 
-`ViewModelBase` extends `ObservableObject`. Do not expect XAML code-behind for logic — use commands and bindings.
+- **Desktop** (`YSMViewer.Desktop/Program.cs`): `[STAThread] Main` sets `App.StartupFilePath` from `args[0]`, calls `StartWithClassicDesktopLifetime`.
+- **Browser** (`YSMViewer.Browser/Program.cs`): reads `?file=` from query string → `App.StartupFileUrl`, calls `StartBrowserAppAsync`.
 
-### Avalonia specifics
+### MVVM
 
-- **Compiled bindings enabled by default** (`AvaloniaUseCompiledBindingsByDefault=true`). Use `x:DataType` on elements.
-- **3D rendering** uses **Aura3D.Avalonia** (0.0.3) + `Aura3D.Model.GltfLoader` for GLB scene loading.
-- Desktop uses `IClassicDesktopStyleApplicationLifetime`; Browser uses `ISingleViewApplicationLifetime`. The `App` class checks both in `OnFrameworkInitializationCompleted`.
-- `App.StartupFilePath` is set from `args[0]` by `Program.cs` before the Avalonia app starts. The `MainViewModel` picks it up to auto-load a model.
+- **CommunityToolkit.Mvvm** source generators (`[ObservableProperty]`, `[RelayCommand]`).
+- `ViewLocator` resolves `FooViewModel` → `FooView` by string convention (reflection; trimming suppressed via `UnconditionalSuppressMessage`).
+- `MainViewModel` is split across partial files: `MainViewModel.cs`, `MainViewModel.Animation.cs`, `MainViewModel.BoneTree.cs`, `MainViewModel.NestedViewModels.cs`.
+- Compiled bindings are enabled by default (`AvaloniaUseCompiledBindingsByDefault=true`); use `x:DataType` on elements.
 
-### Views / components
+### Services (`YSMViewer/Services/`)
 
-Key view files (under `YSMViewer/Views/`):
-- `MainWindow.axaml` / `MainView.axaml` — desktop vs browser shells
+`YsmLoaderService`, `MeshBuilderService`, `AnimationService`, `LocalizationService`, `ThemeService`, `YsmImageHelper`, `YsmMetadataParser`, `ZipYsmParser`.
+
+### Views (`YSMViewer/Views/`)
+
+- `MainWindow` — desktop shell
+- `BrowserMainView` — browser shell
+- `MainView` — shared 3D scene view
+- `FolderBrowserView` — folder navigation
+- `Shared/ModelToolBar`, `Shared/ModelBottomBar` — reusable components
 - `SphericalGizmo.cs` — custom control (code-only, no .axaml)
-- `RadialMenu.cs` — custom control (code-only, no .axaml)
 
-### Services
+### Assets
 
-Under `YSMViewer/Services/`:
-- `YsmLoaderService.cs` — wraps YSMParser.Core to load .ysm files
-- `MeshBuilderService.cs` — builds Aura3D meshes from parsed geometry
-- `AnimationService.cs` — handles animation playback
+`Assets/` under `YSMViewer/` is embedded as `<AvaloniaResource>`. Browser also has its own `Assets/` with CJK/emoji fonts (`NotoSansSC`, `NotoSansKR`, `NotoSansJP`, `NotoColorEmoji`).
 
-### Avalonia resources
+## Conventions & quirks
 
-`YSMViewer/Assets/` is included as `<AvaloniaResource>`. All files under it are embedded as Avalonia resources, not as plain content files.
+- `AllowUnsafeBlocks` is set in both `YSMViewer.csproj` and `YSMViewer.Browser.csproj`.
+- `AvaloniaUI.DiagnosticsSupport` (developer tools) is Debug-only, excluded in Release via `IncludeAssets`/`PrivateAssets` conditions.
+- `ViewLocator` has `[RequiresUnreferencedCode]` — trimming is aware of this.
+- `WasmBuildNative` is enabled for the Browser project.
+- No `Directory.Build.props` exists.
+- No `opencode.json` — no repo-local OpenCode config.

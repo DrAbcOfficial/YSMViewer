@@ -1,6 +1,6 @@
 # YSMViewer
 
-A cross-platform 3D model viewer for `.ysm` files — Encrypted binary format used for Minecraft player models. Built with Avalonia and Aura3D.
+A cross-platform 3D model viewer for `.ysm` files — Encrypted binary format used for Minecraft player models. Built with Avalonia.
 
 ## Quick Start
 
@@ -19,6 +19,18 @@ dotnet run --project YSMViewer.Desktop -- path\to\model.ysm
 
 - **SDK**: .NET 10.0
 
+## Camera Controls
+
+| Operation | Desktop | Browser |
+|---|---|---|
+| Orbit | Left mouse drag | Left mouse drag |
+| Zoom | Mouse scroll / middle mouse drag | Mouse scroll / pinch |
+| Pan | Right mouse drag | Right mouse drag |
+| Reset view | Bottom bar **Reset** button | Bottom bar **Reset** button |
+| Front view | Bottom bar **Front** button | Bottom bar **Front** button |
+| Left view | Bottom bar **Left** button | Bottom bar **Left** button |
+| Top view | Bottom bar **Top** button | Bottom bar **Top** button |
+
 ## Live Preview
 
 Try it in your browser: [YSMViewer Live](https://drabcofficial.github.io/YSMViewer/)
@@ -34,7 +46,7 @@ Try it in your browser: [YSMViewer Live](https://drabcofficial.github.io/YSMView
 ## Tech Stack
 
 - **UI**: [Avalonia](https://avaloniaui.net/) 12.0
-- **3D**: [Aura3D](https://github.com/cesun/Aura3D)
+- **3D**: [Aura3D](https://github.com/cesun/Aura3D) (Desktop) / [Three.js](https://threejs.org/) (Browser via JS interop)
 - **MVVM**: [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet) (source generators)
 - **Parser**: [YSMParser.Core](https://www.nuget.org/packages/YSMParser.Core) (NuGet)
 

@@ -162,7 +162,11 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimatio
     public void OrbitCamera(float deltaYaw, float deltaPitch) { }
     public void PanCamera(float deltaX, float deltaY) { }
     public void ZoomCamera(float delta) { }
-    public void ResetCamera() => SetCameraView(RenderCameraView.Front);
+    public void ResetCamera()
+    {
+        if (_isInitialized)
+            ThreeJsInterop.ResetCamera();
+    }
     public (float Pitch, float Yaw) GetCameraOrbit() => (0f, 0f);
 
     public void PlayAnimation(string name)

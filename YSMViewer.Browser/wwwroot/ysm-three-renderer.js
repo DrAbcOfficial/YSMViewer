@@ -261,6 +261,12 @@ export function setCameraView(viewName) {
     requestRender();
 }
 
+export function resetCamera() {
+    if (!isSceneReady) return;
+    fitCameraToScene();
+    requestRender();
+}
+
 export function setBackground(r, g, b) {
     const color = new THREE.Color(r / 255, g / 255, b / 255);
     if (scene) scene.background = color;

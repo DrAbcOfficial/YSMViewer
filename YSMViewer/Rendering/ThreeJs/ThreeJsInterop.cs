@@ -27,6 +27,9 @@ public static partial class ThreeJsInterop
     [JSImport("globalThis.ysmClearScene")]
     public static partial void ClearScene();
 
+    [JSImport("globalThis.ysmResetCamera")]
+    public static partial void ResetCamera();
+
     [JSImport("globalThis.ysmSetCameraView")]
     public static partial void SetCameraView(string viewName);
 

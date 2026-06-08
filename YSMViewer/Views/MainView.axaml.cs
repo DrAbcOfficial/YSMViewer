@@ -19,6 +19,7 @@ public partial class MainView : UserControl
     private SphericalGizmo? _gizmo;
     private bool _isDragging;
     private bool _isPanning;
+    private bool _isZooming;
     private bool _gizmoIsDragging;
     private Point _lastMousePos;
     private Point _gizmoLastPos;
@@ -148,15 +149,21 @@ public partial class MainView : UserControl
     {
         var props = e.GetCurrentPoint(this).Properties;
 
-        if (props.IsRightButtonPressed)
+        if (props.IsLeftButtonPressed)
         {
             _isDragging = true;
             _lastMousePos = e.GetPosition(this);
             e.Handled = true;
         }
-        else if (props.IsMiddleButtonPressed)
+        else if (props.IsRightButtonPressed)
         {
             _isPanning = true;
+            _lastMousePos = e.GetPosition(this);
+            e.Handled = true;
+        }
+        else if (props.IsMiddleButtonPressed)
+        {
+            _isZooming = true;
             _lastMousePos = e.GetPosition(this);
             e.Handled = true;
         }
@@ -166,6 +173,7 @@ public partial class MainView : UserControl
     {
         _isDragging = false;
         _isPanning = false;
+        _isZooming = false;
         _gizmoIsDragging = false;
     }
 
@@ -195,6 +203,17 @@ public partial class MainView : UserControl
             _lastMousePos = pos;
 
             interactive.PanCamera(dx, dy);
+        }
+        else if (_isZooming)
+        {
+            if (DataContext is not MainViewModel vm) return;
+            if (vm.Renderer is not IInteractiveRenderer interactive) return;
+
+            var pos = e.GetPosition(this);
+            float dy = (float)(pos.Y - _lastMousePos.Y);
+            _lastMousePos = pos;
+
+            interactive.ZoomCamera(dy * 0.05f);
         }
         else if (_gizmoIsDragging)
         {
