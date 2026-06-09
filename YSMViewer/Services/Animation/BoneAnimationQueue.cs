@@ -171,17 +171,7 @@ public sealed class BoneAnimationQueue
                 ? EvaluateKeyFrames(_rotationFrames, adjustedTick, molang)
                 : EvaluateKeyFrames(_rotationFrames, 0f, molang);
 
-            Vector3 result;
-            if (progress >= 1f)
-            {
-                result = destValue;
-            }
-            else
-            {
-                result = Vector3.Lerp(_snapshotRotBedrock, destValue, progress);
-            }
-
-            RotationValue = result;
+            RotationValue = destValue;
             RotationTransitionOffset = _snapshotRotBedrock;
             RotationTransitionLerp = progress;
             RotationType = PointType.Transition;
@@ -199,8 +189,12 @@ public sealed class BoneAnimationQueue
             }
             else
             {
-                Vector3 snapshotDelta = _snapshotPos - _basePos;
-                result = Vector3.Lerp(snapshotDelta, destValue, progress);
+                Vector3 snapshotDeltaGltf = _snapshotPos - _basePos;
+                Vector3 snapshotDeltaBedrock = new Vector3(
+                    snapshotDeltaGltf.X * -16f,
+                    snapshotDeltaGltf.Y * 16f,
+                    snapshotDeltaGltf.Z * 16f);
+                result = Vector3.Lerp(snapshotDeltaBedrock, destValue, progress);
             }
 
             PositionValue = result;

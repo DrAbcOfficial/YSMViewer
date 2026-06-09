@@ -14,7 +14,7 @@ public enum AnimationResamplerState
 
 public sealed class AnimationControllerInstance
 {
-    private const float DefaultEndingTransitionDuration = 3f;
+    private const float DefaultEndingTransitionDuration = 0.15f;
 
     private readonly MinecraftAnimation _animation;
     private readonly AnimationContext _context;

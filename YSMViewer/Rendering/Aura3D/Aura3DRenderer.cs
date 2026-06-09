@@ -35,6 +35,9 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
     private float _animTime;
     private bool _useAnimationController;
 
+    private readonly HashSet<string> _bonesAnimatedThisFrame = [];
+    private const float ResetSpeed = 0.15f;
+
     public Vector3 CameraOrbitTarget => _cameraOrbitTarget;
     public float CameraYaw => _cameraYaw;
     public float CameraPitch => _cameraPitch;
@@ -282,6 +285,8 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
             bool isMoving = _molangService?.SafeGetUserVar("is_moving") > 0.5;
             _stateMachine.Process(_animTime, deltaTime, isMoving);
 
+            _bonesAnimatedThisFrame.Clear();
+
             _stateMachine.ForEachTransform((boneName, pos, rot, scale) =>
             {
                 if (_animBones!.TryGetValue(boneName, out var bone))
@@ -289,6 +294,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
                     bone.Position = pos;
                     bone.RotationQuaternion = rot;
                     bone.Scale = scale;
+                    _bonesAnimatedThisFrame.Add(boneName);
                 }
             });
 
@@ -296,6 +302,25 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
             {
                 if (_boneNodes.TryGetValue(boneName, out var node))
                     node.Enable = _stateMachine.GetBoneVisibility(boneName);
+            }
+
+            foreach (var (boneName, bone) in _animBones)
+            {
+                if (_bonesAnimatedThisFrame.Contains(boneName)) continue;
+
+                float t = Math.Clamp(deltaTime / ResetSpeed, 0f, 1f);
+
+                if (_basePositions.TryGetValue(boneName, out var basePos))
+                    bone.Position = Vector3.Lerp(bone.Position, basePos, t);
+
+                if (_baseBoneEulers.TryGetValue(boneName, out var baseEuler))
+                {
+                    var targetQuat = AnimationService.CreateBlockbenchQuaternion(baseEuler);
+                    bone.RotationQuaternion = Quaternion.Normalize(
+                        Quaternion.Slerp(bone.RotationQuaternion, targetQuat, t));
+                }
+
+                bone.Scale = Vector3.Lerp(bone.Scale, Vector3.One, t);
             }
         }
         else

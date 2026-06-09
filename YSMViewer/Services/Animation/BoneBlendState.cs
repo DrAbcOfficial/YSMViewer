@@ -118,7 +118,8 @@ public sealed class BoneBlendState
                 Vector3 rotGltf = new Vector3(-rotBedrock.X, -rotBedrock.Y, rotBedrock.Z);
 
                 Quaternion rotQuat;
-                if (queue.PositionType != BoneAnimationQueue.PointType.None)
+                if (queue.PositionType != BoneAnimationQueue.PointType.None
+                    || queue.ScaleType != BoneAnimationQueue.PointType.None)
                     rotQuat = AnimationService.CreateBlockbenchQuaternion(rotGltf);
                 else
                     rotQuat = AnimationService.CreateBlockbenchQuaternion(baseEuler + rotGltf);

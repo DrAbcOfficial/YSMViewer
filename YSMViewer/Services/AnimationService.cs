@@ -169,7 +169,7 @@ public sealed class AnimationService(
                 var animDeltaGltf = new Vector3(-animDeltaBedrock.X, -animDeltaBedrock.Y, animDeltaBedrock.Z);
 
                 Vector3 combinedGltf;
-                if (boneAnim.Position is not null)
+                if (boneAnim.Position is not null || boneAnim.Scale is not null)
                 {
                     combinedGltf = animDeltaGltf;
                 }
