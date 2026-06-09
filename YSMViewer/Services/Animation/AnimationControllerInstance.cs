@@ -14,7 +14,7 @@ public enum AnimationResamplerState
 
 public sealed class AnimationControllerInstance
 {
-    private const float DefaultEndingTransitionDuration = 0.15f;
+    private const float DefaultEndingTransitionDuration = 3f;
 
     private readonly MinecraftAnimation _animation;
     private readonly AnimationContext _context;
@@ -24,9 +24,10 @@ public sealed class AnimationControllerInstance
     private AnimationResamplerState _state = AnimationResamplerState.Idle;
     private float _currentTick;
     private float _tickOffset;
-    private float _transitionProgress;
-    private float _transitionDuration;
-    private float _savedEndingTick;
+    private float _beginningTransitionElapsed;
+    private float _beginningTransitionDuration;
+    private float _endingTransitionElapsed;
+    private float _endingTransitionDuration = DefaultEndingTransitionDuration;
     private bool _isAnimationFinished = true;
 
     private readonly Dictionary<string, Vector3> _basePositions;
@@ -47,7 +48,9 @@ public sealed class AnimationControllerInstance
 
     public float EvaluateBlendWeight(MolangService molang)
     {
-        return _animation.BlendWeight;
+        if (_animation.BlendWeight <= 0f && _animation.Loop)
+            return 1f;
+        return _animation.BlendWeight > 0f ? _animation.BlendWeight : 1f;
     }
 
     public void InitializeBoneQueues(
@@ -68,9 +71,7 @@ public sealed class AnimationControllerInstance
             var queue = new BoneAnimationQueue(boneName, basePos, baseEuler);
 
             if (currentBoneStates.TryGetValue(boneName, out var state))
-            {
                 queue.CaptureSnapshot(state.pos, state.rot, state.scale);
-            }
 
             queue.ApplyAnimation(boneAnim);
             _boneQueues[boneName] = queue;
@@ -78,32 +79,24 @@ public sealed class AnimationControllerInstance
         }
     }
 
-    public void BeginStart(float blendTransitionDuration, float tick,
+    public void BeginStart(float blendTransitionDuration, float currentTick,
         IReadOnlyDictionary<string, (Vector3 pos, Quaternion rot, Vector3 scale)> currentBoneStates)
     {
-        _transitionDuration = blendTransitionDuration > 0f ? blendTransitionDuration : DefaultEndingTransitionDuration;
-        _tickOffset = tick;
+        _beginningTransitionDuration = blendTransitionDuration > 0f ? blendTransitionDuration : DefaultEndingTransitionDuration;
+        _tickOffset = currentTick;
         _currentTick = 0f;
-        _transitionProgress = 0f;
+        _beginningTransitionElapsed = 0f;
+        _endingTransitionElapsed = 0f;
         _isAnimationFinished = false;
+        _state = AnimationResamplerState.BeginningTransition;
 
         InitializeBoneQueues(currentBoneStates);
 
-        if (_transitionDuration <= 0f)
-        {
-            _state = AnimationResamplerState.Running;
-            foreach (var queue in _activeQueues)
-                queue.ProcessRunning(0f, _context.Molang);
-        }
-        else
-        {
-            _state = AnimationResamplerState.BeginningTransition;
-            foreach (var queue in _activeQueues)
-                queue.ProcessBeginningTransition(0f, 0f, _context.Molang);
-        }
+        foreach (var queue in _activeQueues)
+            queue.ProcessBeginningTransition(0f, 0f, _context.Molang);
     }
 
-    public void BeginEnd(float tick)
+    public void BeginEnd(float currentTick)
     {
         if (_state == AnimationResamplerState.Running ||
             _state == AnimationResamplerState.BeginningTransition)
@@ -111,21 +104,11 @@ public sealed class AnimationControllerInstance
             foreach (var queue in _activeQueues)
                 queue.CacheCurrentValues();
 
-            _tickOffset = tick;
-            float adjustedTick = MathF.Max(tick - _tickOffset, 0f);
-
-            if (_state == AnimationResamplerState.Running)
-            {
-                if (adjustedTick > _animation.AnimationLength && _animation.AnimationLength > 0f)
-                    adjustedTick = _animation.AnimationLength;
-                _savedEndingTick = adjustedTick;
-            }
-            else
-            {
-                _savedEndingTick = 0f;
-            }
-
-            _currentTick = 0f;
+            _tickOffset = currentTick;
+            _endingTransitionDuration = _beginningTransitionDuration > 0f
+                ? _beginningTransitionDuration
+                : DefaultEndingTransitionDuration;
+            _endingTransitionElapsed = 0f;
             _isAnimationFinished = true;
             _state = AnimationResamplerState.EndingTransition;
 
@@ -161,17 +144,19 @@ public sealed class AnimationControllerInstance
 
     private void ProcessBeginningTransition(float adjustedTick, MolangService molang)
     {
-        _transitionProgress += _context.DeltaTime;
-        float progress = _transitionDuration > 0f ? _transitionProgress / _transitionDuration : 1f;
+        _beginningTransitionElapsed += _context.DeltaTime;
+        float progress = _beginningTransitionDuration > 0f
+            ? _beginningTransitionElapsed / _beginningTransitionDuration
+            : 1f;
 
         if (progress >= 1f)
         {
             progress = 1f;
-            _currentTick = adjustedTick - _transitionDuration;
-            _tickOffset = adjustedTick - _currentTick;
-            float tick = MathF.Max(_currentTick, 0f);
+            float animationTick = adjustedTick - _beginningTransitionDuration;
+            _tickOffset += _beginningTransitionDuration;
+            _currentTick = MathF.Max(animationTick, 0f);
             _state = AnimationResamplerState.Running;
-            ProcessRunning(tick, molang);
+            ProcessRunning(_currentTick, molang);
             return;
         }
 
@@ -216,12 +201,13 @@ public sealed class AnimationControllerInstance
 
     private void ProcessEndingTransition()
     {
-        _currentTick += _context.DeltaTime;
-        float progress = _currentTick / DefaultEndingTransitionDuration;
+        _endingTransitionElapsed += _context.DeltaTime;
+        float progress = _endingTransitionDuration > 0f
+            ? _endingTransitionElapsed / _endingTransitionDuration
+            : 1f;
 
         if (progress >= 1f)
         {
-            progress = 1f;
             _state = AnimationResamplerState.Idle;
             foreach (var queue in _activeQueues)
                 queue.Clear();

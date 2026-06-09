@@ -6,14 +6,16 @@ namespace YSMViewer.Services.Animation;
 
 public sealed class AnimationStateMachine
 {
+    private const int MaxTransitionIterations = 64;
+
     private readonly AnimationControllerEntry _controller;
     private readonly AnimationContext _context;
     private readonly List<AnimationSlot> _activeSlots = [];
+    private readonly List<AnimationSlot> _fadingSlots = [];
     private readonly Dictionary<string, BoneBlendState> _blendStates = [];
     private string _currentState;
     private bool _isInitialized;
-
-    private readonly Dictionary<string, (Vector3 pos, Quaternion rot, Vector3 scale)> _boneStates = [];
+    private float _currentTick;
 
     public string CurrentState => _currentState ?? "";
     public bool IsInitialized => _isInitialized;
@@ -32,11 +34,6 @@ public sealed class AnimationStateMachine
         if (_isInitialized) return;
         _isInitialized = true;
 
-        foreach (var (boneName, bone) in _context.BoneNodes)
-        {
-            _boneStates[boneName] = (bone.Position, bone.RotationQuaternion, bone.Scale);
-        }
-
         foreach (var (boneName, _) in _context.BoneNodes)
         {
             if (!_blendStates.ContainsKey(boneName))
@@ -45,9 +42,9 @@ public sealed class AnimationStateMachine
 
         var initialState = _currentState;
         if (!string.IsNullOrEmpty(initialState) &&
-            _controller.States.TryGetValue(initialState, out var state))
+            _controller.States.TryGetValue(initialState, out _))
         {
-            TransitionToState(initialState, null);
+            TransitionToState(initialState, 0f);
         }
     }
 
@@ -55,7 +52,7 @@ public sealed class AnimationStateMachine
     {
         if (!_isInitialized) return;
 
-        CaptureBoneStates();
+        _currentTick = tick;
 
         _context.DeltaTime = deltaTime;
         _context.AnimTime = tick / 20f;
@@ -66,8 +63,13 @@ public sealed class AnimationStateMachine
         EvaluateTransitions();
 
         foreach (var slot in _activeSlots)
-        {
             slot.Process(_context, tick, _context.Molang, isMoving);
+
+        for (int i = _fadingSlots.Count - 1; i >= 0; i--)
+        {
+            _fadingSlots[i].Process(_context, tick, _context.Molang, isMoving);
+            if (!_fadingSlots[i].Instance.IsRunning)
+                _fadingSlots.RemoveAt(i);
         }
 
         foreach (var blendState in _blendStates.Values)
@@ -76,8 +78,17 @@ public sealed class AnimationStateMachine
         foreach (var slot in _activeSlots)
         {
             if (!slot.IsActive) continue;
-            var queues = slot.Instance.GetActiveQueues();
-            foreach (var queue in queues)
+            foreach (var queue in slot.Instance.GetActiveQueues())
+            {
+                if (_blendStates.TryGetValue(queue.BoneName, out var blendState))
+                    blendState.AddSource(queue);
+            }
+        }
+
+        foreach (var slot in _fadingSlots)
+        {
+            if (!slot.IsActive) continue;
+            foreach (var queue in slot.Instance.GetActiveQueues())
             {
                 if (_blendStates.TryGetValue(queue.BoneName, out var blendState))
                     blendState.AddSource(queue);
@@ -100,41 +111,42 @@ public sealed class AnimationStateMachine
         foreach (var (boneName, blendState) in _blendStates)
         {
             if (!blendState.HasActiveSources) continue;
-
-            if (!_context.BoneNodes.TryGetValue(boneName, out var bone)) continue;
+            if (!_context.BoneNodes.TryGetValue(boneName, out _)) continue;
 
             applyTransform(boneName, blendState.BlendedPosition, blendState.BlendedRotation, blendState.BlendedScale);
         }
     }
 
-    private void CaptureBoneStates()
-    {
-        foreach (var (boneName, bone) in _context.BoneNodes)
-        {
-            _boneStates[boneName] = (bone.Position, bone.RotationQuaternion, bone.Scale);
-        }
-    }
-
     private void EvaluateTransitions()
     {
-        if (!_controller.States.TryGetValue(_currentState, out var state)) return;
-        if (state.Transitions is null) return;
-
-        foreach (var transition in state.Transitions)
+        int iterations = MaxTransitionIterations;
+        while (iterations-- > 0)
         {
-            foreach (var (targetState, condition) in transition)
+            if (!_controller.States.TryGetValue(_currentState, out var state)) return;
+            if (state.Transitions is null) return;
+
+            bool fired = false;
+            foreach (var transition in state.Transitions)
             {
-                float result = _context.Molang.EvaluateString(condition);
-                if (result > 0.5f)
+                foreach (var (targetState, condition) in transition)
                 {
-                    TransitionToState(targetState, condition);
-                    return;
+                    float result = _context.Molang.EvaluateString(condition);
+                    if (result > 0.5f)
+                    {
+                        TransitionToState(targetState, _currentTick);
+                        fired = true;
+                        break;
+                    }
                 }
+                if (fired) break;
             }
+            if (!fired) return;
+
+            if (_activeSlots.Count == 0 && _fadingSlots.Count == 0) return;
         }
     }
 
-    private void TransitionToState(string stateName, string? triggerCondition)
+    private void TransitionToState(string stateName, float currentTick)
     {
         if (!_controller.States.TryGetValue(stateName, out var newState)) return;
 
@@ -147,11 +159,10 @@ public sealed class AnimationStateMachine
         float blendTransitionDuration = newState.BlendTransition;
 
         foreach (var slot in _activeSlots)
-            slot.Instance.BeginEnd(0f);
-
+            slot.Instance.BeginEnd(currentTick);
+        _fadingSlots.AddRange(_activeSlots);
         _activeSlots.Clear();
 
-        var oldStateName = _currentState;
         _currentState = stateName;
 
         if (newState.Animations is not null)
@@ -165,16 +176,13 @@ public sealed class AnimationStateMachine
 
                 var instance = new AnimationControllerInstance(anim, _context);
                 var slot = new AnimationSlot(slotRef.AnimationName, instance, _context.Molang);
-
                 slot.SetCondition(slotRef.ConditionExpression);
 
                 var currentBoneStates = new Dictionary<string, (Vector3, Quaternion, Vector3)>();
                 foreach (var (boneName, bone) in _context.BoneNodes)
-                {
                     currentBoneStates[boneName] = (bone.Position, bone.RotationQuaternion, bone.Scale);
-                }
 
-                slot.Instance.BeginStart(blendTransitionDuration, 0f, currentBoneStates);
+                slot.Instance.BeginStart(blendTransitionDuration, currentTick, currentBoneStates);
                 _activeSlots.Add(slot);
             }
         }
@@ -185,7 +193,8 @@ public sealed class AnimationStateMachine
         {
             foreach (var sound in newState.SoundEffects)
             {
-                _context.Molang.AudioHost?.PlaySound(sound);
+                if (!string.IsNullOrWhiteSpace(sound))
+                    _context.Molang.AudioHost?.PlaySound(sound);
             }
         }
     }

@@ -23,23 +23,27 @@ public sealed class BoneAnimationQueue
     public Vector3 PositionValue { get; private set; }
     public Vector3 ScaleValue { get; private set; }
 
-    public Vector3 TransitionOffset { get; private set; }
-    public float TransitionLerpFactor { get; private set; }
+    public Vector3 RotationTransitionOffset { get; private set; }
+    public float RotationTransitionLerp { get; private set; }
+    public Vector3 PositionTransitionOffset { get; private set; }
+    public float PositionTransitionLerp { get; private set; }
+    public Vector3 ScaleTransitionOffset { get; private set; }
+    public float ScaleTransitionLerp { get; private set; }
 
     private BoneKeyFrame[] _rotationFrames = [];
     private BoneKeyFrame[] _positionFrames = [];
     private BoneKeyFrame[] _scaleFrames = [];
 
     private Vector3 _snapshotPos;
-    private Vector3 _snapshotEulerBedrock;
+    private Vector3 _snapshotRotBedrock;
     private Vector3 _snapshotScale;
 
     private Vector3 _cachedPosDelta;
     private Vector3 _cachedRotBedrock;
     private Vector3 _cachedScale;
 
-    private Vector3 _basePos;
-    private Vector3 _baseEulerGltf;
+    private readonly Vector3 _basePos;
+    private readonly Vector3 _baseEulerGltf;
 
     public BoneAnimationQueue(string boneName, Vector3 basePos, Vector3 baseEulerGltf)
     {
@@ -47,7 +51,7 @@ public sealed class BoneAnimationQueue
         _basePos = basePos;
         _baseEulerGltf = baseEulerGltf;
         _snapshotPos = basePos;
-        _snapshotEulerBedrock = Vector3.Zero;
+        _snapshotRotBedrock = Vector3.Zero;
         _snapshotScale = Vector3.One;
     }
 
@@ -55,7 +59,7 @@ public sealed class BoneAnimationQueue
     {
         _snapshotPos = currentPos;
         _snapshotScale = currentScale;
-        _snapshotEulerBedrock = QuaternionToBedrockDelta(currentRot, _baseEulerGltf);
+        _snapshotRotBedrock = QuaternionToBedrockDelta(currentRot, _baseEulerGltf);
     }
 
     private static Vector3 QuaternionToBedrockDelta(Quaternion q, Vector3 baseEulerGltf)
@@ -112,6 +116,9 @@ public sealed class BoneAnimationQueue
         RotationType = PointType.None;
         PositionType = PointType.None;
         ScaleType = PointType.None;
+        RotationTransitionLerp = 0f;
+        PositionTransitionLerp = 0f;
+        ScaleTransitionLerp = 0f;
     }
 
     public void CacheCurrentValues()
@@ -143,84 +150,93 @@ public sealed class BoneAnimationQueue
         }
     }
 
-    public void ProcessBeginningTransition(float progress, float tick, MolangService molang)
+    public void ProcessBeginningTransition(float progress, float adjustedTick, MolangService molang)
     {
         if (_rotationFrames.Length > 0)
         {
-            Vector3 firstFrame = EvaluateKeyFrames(_rotationFrames, 0f, molang);
-            Vector3 blendTo;
+            Vector3 destValue = adjustedTick > 0f
+                ? EvaluateKeyFrames(_rotationFrames, adjustedTick, molang)
+                : EvaluateKeyFrames(_rotationFrames, 0f, molang);
+
+            Vector3 result;
             if (progress >= 1f)
             {
-                blendTo = firstFrame;
+                result = destValue;
             }
             else
             {
-                Vector3 currentFrame;
-                if (tick <= 0f)
-                    currentFrame = _snapshotEulerBedrock;
-                else
-                    currentFrame = EvaluateKeyFrames(_rotationFrames, tick, molang);
-
-                blendTo = Vector3.Lerp(_snapshotEulerBedrock, currentFrame, progress);
+                result = Vector3.Lerp(_snapshotRotBedrock, destValue, progress);
             }
-            RotationValue = blendTo;
-            TransitionOffset = _snapshotEulerBedrock;
-            TransitionLerpFactor = progress;
+
+            RotationValue = result;
+            RotationTransitionOffset = _snapshotRotBedrock;
+            RotationTransitionLerp = progress;
             RotationType = PointType.Transition;
         }
         if (_positionFrames.Length > 0)
         {
-            Vector3 firstFrame = EvaluateKeyFrames(_positionFrames, 0f, molang);
-            Vector3 currentFrame;
+            Vector3 destValue = adjustedTick > 0f
+                ? EvaluateKeyFrames(_positionFrames, adjustedTick, molang)
+                : EvaluateKeyFrames(_positionFrames, 0f, molang);
+
+            Vector3 result;
             if (progress >= 1f)
             {
-                currentFrame = firstFrame;
+                result = destValue;
             }
             else
             {
-                currentFrame = tick <= 0f ? _snapshotPos : EvaluateKeyFrames(_positionFrames, tick, molang);
-                currentFrame = Vector3.Lerp(_snapshotPos, currentFrame, progress);
+                Vector3 snapshotDelta = _snapshotPos - _basePos;
+                result = Vector3.Lerp(snapshotDelta, destValue, progress);
             }
-            PositionValue = currentFrame;
+
+            PositionValue = result;
+            PositionTransitionOffset = _snapshotPos - _basePos;
+            PositionTransitionLerp = progress;
             PositionType = PointType.Transition;
         }
         if (_scaleFrames.Length > 0)
         {
-            Vector3 firstFrame = EvaluateKeyFrames(_scaleFrames, 0f, molang);
-            Vector3 currentFrame;
+            Vector3 destValue = adjustedTick > 0f
+                ? EvaluateKeyFrames(_scaleFrames, adjustedTick, molang)
+                : EvaluateKeyFrames(_scaleFrames, 0f, molang);
+
+            Vector3 result;
             if (progress >= 1f)
             {
-                currentFrame = firstFrame;
+                result = destValue;
             }
             else
             {
-                Vector3 dest = tick <= 0f ? _snapshotScale : EvaluateKeyFrames(_scaleFrames, tick, molang);
-                currentFrame = Vector3.Lerp(_snapshotScale, dest, progress);
+                result = Vector3.Lerp(_snapshotScale, destValue, progress);
             }
-            ScaleValue = currentFrame;
+
+            ScaleValue = result;
+            ScaleTransitionOffset = _snapshotScale;
+            ScaleTransitionLerp = progress;
             ScaleType = PointType.Transition;
         }
     }
 
     public void ProcessEndingTransition(float progress)
     {
-        if (RotationType != PointType.None || _rotationFrames.Length > 0)
+        if (_rotationFrames.Length > 0)
         {
-            Vector3 target = Vector3.Zero;
-            RotationValue = Vector3.Lerp(_cachedRotBedrock, target, progress);
-            TransitionLerpFactor = 1f - progress;
+            RotationValue = Vector3.Lerp(_cachedRotBedrock, Vector3.Zero, progress);
+            RotationTransitionLerp = 1f - progress;
             RotationType = PointType.Constant;
         }
-        if (PositionType != PointType.None || _positionFrames.Length > 0)
+        if (_positionFrames.Length > 0)
         {
-            Vector3 target = Vector3.Zero;
-            PositionValue = Vector3.Lerp(_cachedPosDelta, target, progress);
+            Vector3 zero = Vector3.Zero;
+            PositionValue = Vector3.Lerp(_cachedPosDelta, zero, progress);
+            PositionTransitionLerp = 1f - progress;
             PositionType = PointType.Constant;
         }
-        if (ScaleType != PointType.None || _scaleFrames.Length > 0)
+        if (_scaleFrames.Length > 0)
         {
-            Vector3 target = Vector3.One;
-            ScaleValue = Vector3.Lerp(_cachedScale, target, progress);
+            ScaleValue = Vector3.Lerp(_cachedScale, Vector3.One, progress);
+            ScaleTransitionLerp = 1f - progress;
             ScaleType = PointType.Constant;
         }
     }

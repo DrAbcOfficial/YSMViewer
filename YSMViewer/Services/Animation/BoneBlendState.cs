@@ -53,13 +53,14 @@ public sealed class BoneBlendState
 
         HasActiveSources = false;
 
-        Vector3 positionDelta = Vector3.Zero;
-        Vector3 rotationDelta = Vector3.Zero;
-        Vector3 scaleAccum = Vector3.Zero;
-        float totalWeight = 0f;
-
-        bool isFirstRotation = true;
+        Vector3 positionAccum = Vector3.Zero;
         Quaternion rotResult = Quaternion.Identity;
+        Vector3 scaleAccum = Vector3.One;
+        float totalPositionWeight = 0f;
+        bool isFirstRotation = true;
+        bool isRotationTransition = false;
+        Vector3 rotTransitionOffset = Vector3.Zero;
+        float rotTransitionLerp = 0f;
 
         foreach (var source in _sources)
         {
@@ -69,42 +70,35 @@ public sealed class BoneBlendState
             if (weight <= 0f) continue;
 
             HasActiveSources = true;
-            totalWeight += weight;
 
             if (queue.PositionType != BoneAnimationQueue.PointType.None)
             {
                 float effectiveWeight = weight;
                 if (queue.PositionType == BoneAnimationQueue.PointType.Constant)
-                {
-                    effectiveWeight *= MathF.Max(0f, 1f - queue.TransitionLerpFactor);
-                }
-                positionDelta += queue.PositionValue * effectiveWeight;
+                    effectiveWeight *= MathF.Max(0f, 1f - queue.PositionTransitionLerp);
+
+                Vector3 posBedrock = queue.PositionValue;
+                Vector3 posGltf = new Vector3(-posBedrock.X, posBedrock.Y, posBedrock.Z) / 16f;
+                positionAccum += posGltf * effectiveWeight;
+                totalPositionWeight += effectiveWeight;
             }
 
             if (queue.ScaleType != BoneAnimationQueue.PointType.None)
             {
                 float effectiveWeight = weight;
                 if (queue.ScaleType == BoneAnimationQueue.PointType.Constant)
-                {
-                    effectiveWeight *= MathF.Max(0f, 1f - queue.TransitionLerpFactor);
-                }
-                if (effectiveWeight >= 1f)
-                {
-                    scaleAccum = queue.ScaleValue;
-                }
-                else
-                {
-                    scaleAccum = Vector3.Lerp(scaleAccum, queue.ScaleValue, effectiveWeight);
-                }
+                    effectiveWeight *= MathF.Max(0f, 1f - queue.ScaleTransitionLerp);
+
+                Vector3 s = queue.ScaleValue;
+                float t = MathF.Min(effectiveWeight, 1f);
+                scaleAccum = Vector3.Lerp(scaleAccum, s, t);
             }
 
             if (queue.RotationType != BoneAnimationQueue.PointType.None)
             {
                 float effectiveWeight = weight;
                 if (queue.RotationType == BoneAnimationQueue.PointType.Constant)
-                {
-                    effectiveWeight *= MathF.Max(0f, 1f - queue.TransitionLerpFactor);
-                }
+                    effectiveWeight *= MathF.Max(0f, 1f - queue.RotationTransitionLerp);
 
                 Vector3 rotBedrock = queue.RotationValue;
                 Vector3 rotGltf = new Vector3(-rotBedrock.X, -rotBedrock.Y, rotBedrock.Z);
@@ -121,31 +115,46 @@ public sealed class BoneBlendState
 
                 if (isFirstRotation)
                 {
+                    if (queue.RotationType == BoneAnimationQueue.PointType.Transition)
+                    {
+                        isRotationTransition = true;
+                        Vector3 offsetGltf = new Vector3(-queue.RotationTransitionOffset.X, -queue.RotationTransitionOffset.Y, queue.RotationTransitionOffset.Z);
+                        rotTransitionOffset = baseEuler + offsetGltf;
+                        rotTransitionLerp = queue.RotationTransitionLerp;
+
+                        if (MathF.Abs(rotTransitionLerp) < 1E-5f)
+                        {
+                            rotResult = AnimationService.CreateBlockbenchQuaternion(rotTransitionOffset);
+                            isFirstRotation = false;
+                            continue;
+                        }
+                    }
                     rotResult = rotQuat;
                     isFirstRotation = false;
                 }
                 else
                 {
-                    float t = effectiveWeight / (totalWeight);
+                    float t = MathF.Min(effectiveWeight, 1f);
                     rotResult = Quaternion.Normalize(Quaternion.Slerp(rotResult, rotQuat, t));
-                }
-
-                if (queue.RotationType == BoneAnimationQueue.PointType.Transition)
-                {
-                    if (MathF.Abs(queue.TransitionLerpFactor) < 1E-5f)
-                    {
-                        rotResult = AnimationService.CreateBlockbenchQuaternion(baseEuler + new Vector3(-queue.TransitionOffset.X, -queue.TransitionOffset.Y, queue.TransitionOffset.Z));
-                    }
                 }
             }
         }
 
-        if (totalWeight > 0f)
+        if (totalPositionWeight > 0f)
         {
-            positionDelta /= totalWeight;
+            BlendedPosition = basePosition + positionAccum;
+        }
+        else
+        {
+            BlendedPosition = basePosition;
         }
 
-        BlendedPosition = basePosition + positionDelta;
+        if (isRotationTransition)
+        {
+            Quaternion snapshotQuat = AnimationService.CreateBlockbenchQuaternion(rotTransitionOffset);
+            rotResult = Quaternion.Normalize(Quaternion.Slerp(snapshotQuat, rotResult, rotTransitionLerp));
+        }
+
         BlendedRotation = rotResult;
         BlendedScale = scaleAccum;
     }
