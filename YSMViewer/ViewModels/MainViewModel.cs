@@ -554,7 +554,11 @@ public sealed partial class MainViewModel : ViewModelBase
         {
             case JsonValueKind.String:
                 var s = element.GetString();
-                if (!string.IsNullOrEmpty(s) && s.Contains("query.", StringComparison.OrdinalIgnoreCase))
+                if (!string.IsNullOrEmpty(s) &&
+                    (s.Contains("query.", StringComparison.OrdinalIgnoreCase) ||
+                     s.Contains("q.", StringComparison.OrdinalIgnoreCase) ||
+                     s.Contains("variable.", StringComparison.OrdinalIgnoreCase) ||
+                     s.Contains("v.", StringComparison.OrdinalIgnoreCase)))
                     result.Add(s);
                 break;
             case JsonValueKind.Array:

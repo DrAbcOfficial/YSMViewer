@@ -34,7 +34,16 @@ public sealed partial class MolangPanelViewModel : ObservableObject
         ["query.is_using_item"] = (0f, 1f, 0f, 1f),
         ["query.is_sleeping"] = (0f, 1f, 0f, 1f),
         ["query.is_in_water"] = (0f, 1f, 0f, 1f),
+        ["query.is_in_water_or_rain"] = (0f, 1f, 0f, 1f),
+        ["query.is_on_fire"] = (0f, 1f, 0f, 1f),
         ["query.is_riding"] = (0f, 1f, 0f, 1f),
+        ["query.is_spectator"] = (0f, 1f, 0f, 1f),
+        ["query.is_first_person"] = (0f, 1f, 0f, 1f),
+        ["query.is_jumping"] = (0f, 1f, 0f, 1f),
+        ["query.is_eating"] = (0f, 1f, 0f, 1f),
+        ["query.is_playing_dead"] = (0f, 1f, 0f, 1f),
+        ["query.has_rider"] = (0f, 1f, 0f, 1f),
+        ["query.has_cape"] = (0f, 1f, 0f, 1f),
         ["query.has_helmet"] = (0f, 1f, 0f, 1f),
         ["query.has_chestplate"] = (0f, 1f, 0f, 1f),
         ["query.has_leggings"] = (0f, 1f, 0f, 1f),
@@ -50,10 +59,23 @@ public sealed partial class MolangPanelViewModel : ObservableObject
         ["query.head_y_rotation"] = (-180f, 180f, 0f, 1f),
         ["query.body_x_rotation"] = (-180f, 180f, 0f, 1f),
         ["query.body_y_rotation"] = (-180f, 180f, 0f, 1f),
+        ["query.eye_target_x_rotation"] = (-90f, 90f, 0f, 1f),
+        ["query.eye_target_y_rotation"] = (-180f, 180f, 0f, 1f),
         ["query.input_vertical"] = (-1f, 1f, 0f, 0.1f),
         ["query.input_horizontal"] = (-1f, 1f, 0f, 0.1f),
         ["query.vertical_speed"] = (-10f, 10f, 0f, 0.1f),
+        ["query.yaw_speed"] = (-50f, 50f, 0f, 1f),
         ["query.modified_move_speed"] = (0f, 10f, 1f, 0.1f),
+        ["query.modified_distance_moved"] = (0f, 100f, 0f, 1f),
+        ["query.walk_distance"] = (0f, 100f, 0f, 1f),
+        ["query.distance_from_camera"] = (0f, 50f, 0f, 0.5f),
+        ["query.time_of_day"] = (0f, 1f, 0f, 0.01f),
+        ["query.moon_phase"] = (0f, 7f, 0f, 1f),
+        ["query.player_level"] = (0f, 100f, 0f, 1f),
+        ["query.item_in_use_duration"] = (0f, 10f, 0f, 0.1f),
+        ["query.item_max_use_duration"] = (0f, 100f, 32f, 1f),
+        ["query.item_remaining_use_duration"] = (0f, 100f, 0f, 1f),
+        ["query.cape_flap_amount"] = (0f, 1f, 0f, 0.1f),
     };
 
     public void DiscoverVariables(IEnumerable<string> molangExpressions)
@@ -78,15 +100,27 @@ public sealed partial class MolangPanelViewModel : ObservableObject
 
     private static void FindQueryVariables(string expression, HashSet<string> found)
     {
-        var matches = Regex.Matches(
+        var queryMatches = Regex.Matches(
             expression, @"\b(?:query|q)\.\w+(?:\.\w+)*\b",
             RegexOptions.IgnoreCase);
 
-        foreach (Match m in matches)
+        foreach (Match m in queryMatches)
         {
             var val = m.Value.ToLowerInvariant();
             if (val.StartsWith("q."))
                 val = "query." + val[2..];
+            found.Add(val);
+        }
+
+        var varMatches = Regex.Matches(
+            expression, @"\b(?:variable|v)\.\w+(?:\.\w+)*\b",
+            RegexOptions.IgnoreCase);
+
+        foreach (Match m in varMatches)
+        {
+            var val = m.Value.ToLowerInvariant();
+            if (val.StartsWith("v."))
+                val = "variable." + val[2..];
             found.Add(val);
         }
     }

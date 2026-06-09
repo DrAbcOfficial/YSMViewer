@@ -37,6 +37,7 @@ public sealed class MolangService
     public PhysicsSimulator Physics { get; } = new();
 
     private readonly LazyFunctionStruct _fnStruct;
+    private readonly MolangTempStruct _tempStruct = new();
 
     public MolangService()
     {
@@ -50,6 +51,9 @@ public sealed class MolangService
         _fnStruct = FnBindings.CreateFnStruct(this);
         env.Structs["fn"] = _fnStruct;
 
+        env.Structs["variable"] = new MolangVariableStruct(_userVariables, _animVariables);
+        env.Structs["temp"] = _tempStruct;
+
         _runtime = new MoLangRuntime(env);
 
         MoLangParser.Factory = iterator =>
@@ -61,7 +65,7 @@ public sealed class MolangService
 
     public void SetUserVariable(string name, float value)
     {
-        _userVariables[name] = new DoubleValue(value);
+        _userVariables[StripPrefix(name)] = new DoubleValue(value);
         _contextDirty = true;
     }
 
@@ -69,7 +73,7 @@ public sealed class MolangService
 
     public void SetAnimVariable(string name, float value)
     {
-        _animVariables[name] = new DoubleValue(value);
+        _animVariables[StripPrefix(name)] = new DoubleValue(value);
         _contextDirty = true;
     }
 
@@ -159,5 +163,26 @@ public sealed class MolangService
         if (_userVariables.TryGetValue(name, out var v2))
             return v2.AsDouble();
         return defaultValue;
+    }
+
+    private static string StripPrefix(string name)
+    {
+        var dotIdx = name.IndexOf('.');
+        if (dotIdx <= 0) return name;
+
+        var prefix = name.AsSpan(0, dotIdx);
+        if (prefix.Equals("query", StringComparison.OrdinalIgnoreCase) ||
+            prefix.Equals("q", StringComparison.OrdinalIgnoreCase) ||
+            prefix.Equals("variable", StringComparison.OrdinalIgnoreCase) ||
+            prefix.Equals("v", StringComparison.OrdinalIgnoreCase) ||
+            prefix.Equals("context", StringComparison.OrdinalIgnoreCase) ||
+            prefix.Equals("c", StringComparison.OrdinalIgnoreCase) ||
+            prefix.Equals("temp", StringComparison.OrdinalIgnoreCase) ||
+            prefix.Equals("t", StringComparison.OrdinalIgnoreCase))
+        {
+            return name[(dotIdx + 1)..];
+        }
+
+        return name;
     }
 }
