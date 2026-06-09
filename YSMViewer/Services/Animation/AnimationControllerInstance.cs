@@ -23,6 +23,10 @@ public sealed class AnimationControllerInstance(
     private readonly Dictionary<string, BoneAnimationQueue> _boneQueues = [];
     private readonly List<BoneAnimationQueue> _activeQueues = [];
 
+    public AnimationLoopMode? LoopModeOverride { get; set; }
+
+    private AnimationLoopMode EffectiveLoopMode => LoopModeOverride ?? _animation.LoopMode;
+
     private AnimationResamplerState _state = AnimationResamplerState.Idle;
     private float _currentTick;
     private float _tickOffset;
@@ -167,11 +171,11 @@ public sealed class AnimationControllerInstance(
 
         if (adjustedTick >= length)
         {
-            if (_animation.LoopMode == AnimationLoopMode.HoldOnLastFrame)
+            if (EffectiveLoopMode == AnimationLoopMode.HoldOnLastFrame)
             {
                 _currentTick = length;
             }
-            else if (_animation.LoopMode == AnimationLoopMode.Loop)
+            else if (EffectiveLoopMode == AnimationLoopMode.Loop)
             {
                 _currentTick = adjustedTick % length;
             }

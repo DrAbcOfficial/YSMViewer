@@ -1,5 +1,6 @@
 using ConcreteMC.MolangSharp.Parser;
 using System.Numerics;
+using YSMViewer.Models;
 using YSMViewer.Models.AnimationController;
 using YSMViewer.Services.Molang;
 
@@ -165,7 +166,7 @@ public sealed class AnimationStateMachine(
                     else
                         result = _context.Molang.EvaluateString(condition);
 
-                    if (result > 0f)
+                    if (result != 0f)
                     {
                         if (_visitedStates.Contains(targetState))
                             return;
@@ -259,6 +260,16 @@ public sealed class AnimationStateMachine(
                 currentBoneStates[boneName] = (bone.Position, bone.RotationQuaternion, bone.Scale);
 
             var instance = new AnimationControllerInstance(anim, _context);
+            if (loopType == 10 || loopType == 11 || loopType == 12)
+            {
+                instance.LoopModeOverride = loopType switch
+                {
+                    10 => AnimationLoopMode.Loop,
+                    11 => AnimationLoopMode.PlayOnce,
+                    12 => AnimationLoopMode.HoldOnLastFrame,
+                    _ => (AnimationLoopMode?)null
+                };
+            }
             var slot = new AnimationSlot(name, instance, _context.Molang);
             slot.Instance.BeginStart(0f, _currentTick, currentBoneStates);
             _activeSlots.Add(slot);

@@ -22,23 +22,41 @@ public static class FixedMoLangMath
             ["cos"] = p => Math.Cos(p.GetDouble(0) * Math.PI / 180.0),
             ["die_roll"] = p => MoLangMath.DieRoll(p.GetDouble(0), p.GetDouble(1), p.GetDouble(2)),
             ["die_roll_integer"] = p => (double)MoLangMath.DieRollInt(p.GetInt(0), p.GetInt(1), p.GetInt(2)),
+            ["e"] = _ => Math.E,
             ["exp"] = p => Math.Exp(p.GetDouble(0)),
-            ["mod"] = p => p.GetDouble(0) % p.GetDouble(1),
             ["floor"] = p => Math.Floor(p.GetDouble(0)),
             ["hermite_blend"] = p =>
             {
                 double v = p.GetDouble(0);
                 return 3.0 * v * v - 2.0 * v * v * v;
             },
+            ["hermite"] = p =>
+            {
+                double v = p.GetDouble(0);
+                return 3.0 * v * v - 2.0 * v * v * v;
+            },
             ["lerp"] = p => MoLangMath.Lerp(p.GetDouble(0), p.GetDouble(1), p.GetDouble(2)),
             ["lerp_rotate"] = p => MoLangMath.LerpRotate(p.GetDouble(0), p.GetDouble(1), p.GetDouble(2)),
+            ["lerprotate"] = p => MoLangMath.LerpRotate(p.GetDouble(0), p.GetDouble(1), p.GetDouble(2)),
             ["ln"] = p => Math.Log(p.GetDouble(0)),
             ["max"] = p => Math.Max(p.GetDouble(0), p.GetDouble(1)),
             ["min"] = p => Math.Min(p.GetDouble(0), p.GetDouble(1)),
+            ["min_angle"] = p =>
+            {
+                double a = p.GetDouble(0);
+                a %= 360.0;
+                if (a > 180.0) a -= 360.0;
+                if (a < -180.0) a += 360.0;
+                return a;
+            },
+            ["mod"] = p => p.GetDouble(0) % p.GetDouble(1),
             ["pi"] = _ => Math.PI,
             ["pow"] = p => Math.Pow(p.GetDouble(0), p.GetDouble(1)),
             ["random"] = p => MoLangMath.Random(p.GetDouble(0), p.GetDouble(1)),
             ["random_integer"] = p => MoLangMath.RandomInt(p.GetInt(0), p.GetInt(1)),
+            ["randomi"] = p => MoLangMath.RandomInt(p.GetInt(0), p.GetInt(1)),
+            ["roll"] = p => MoLangMath.DieRoll(p.GetDouble(0), p.GetDouble(1), p.GetDouble(2)),
+            ["rolli"] = p => (double)MoLangMath.DieRollInt(p.GetInt(0), p.GetInt(1), p.GetInt(2)),
             ["round"] = p => Math.Round(p.GetDouble(0)),
             ["sqrt"] = p => Math.Sqrt(p.GetDouble(0)),
             ["trunc"] = p => Math.Truncate(p.GetDouble(0)),

@@ -41,14 +41,18 @@ public sealed class BoneAnimationQueue(string boneName, Vector3 basePos, Vector3
     private Vector3 _cachedRotBedrock;
     private Vector3 _cachedScale;
 
+    private readonly Vector3 _basePos = basePos;
+    private readonly Vector3 _baseEulerGltf = baseEulerGltf;
+    private Vector3 _snapshotPos = basePos;
+
     public bool IsVisible { get; private set; } = true;
     public bool HasVisibilityControl { get; private set; }
 
     public void CaptureSnapshot(Vector3 currentPos, Quaternion currentRot, Vector3 currentScale)
     {
-        basePos = currentPos;
+        _snapshotPos = currentPos;
         _snapshotScale = currentScale;
-        _snapshotRotBedrock = QuaternionToBedrockDelta(currentRot, baseEulerGltf);
+        _snapshotRotBedrock = QuaternionToBedrockDelta(currentRot, _baseEulerGltf);
     }
 
     private static Vector3 QuaternionToBedrockDelta(Quaternion q, Vector3 baseEulerGltf)
@@ -174,7 +178,7 @@ public sealed class BoneAnimationQueue(string boneName, Vector3 basePos, Vector3
             }
             else
             {
-                Vector3 snapshotDeltaGltf = basePos - basePos;
+                Vector3 snapshotDeltaGltf = _snapshotPos - _basePos;
                 Vector3 snapshotDeltaBedrock = new(
                     snapshotDeltaGltf.X * -16f,
                     snapshotDeltaGltf.Y * 16f,
@@ -183,7 +187,7 @@ public sealed class BoneAnimationQueue(string boneName, Vector3 basePos, Vector3
             }
 
             PositionValue = result;
-            PositionTransitionOffset = basePos - basePos;
+            PositionTransitionOffset = _snapshotPos - _basePos;
             PositionTransitionLerp = progress;
             PositionType = PointType.Transition;
         }

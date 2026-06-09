@@ -34,7 +34,7 @@ public sealed class AnimationSlot(string name, AnimationControllerInstance insta
         if (_conditionExpr is not null)
         {
             float result = molang.Evaluate(_conditionExpr);
-            _conditionActive = result > 0.5f;
+            _conditionActive = result != 0f;
         }
         else
         {
