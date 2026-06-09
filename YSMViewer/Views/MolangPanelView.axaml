@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:YSMViewer.ViewModels"
+             x:DataType="vm:MolangPanelViewModel"
+             x:Class="YSMViewer.Views.MolangPanelView">
+
+    <UserControl.Resources>
+        <vm:FloatToBoolConverter x:Key="FloatToBoolConverter" />
+        <vm:BoolToFloatConverter x:Key="BoolToFloatConverter" />
+    </UserControl.Resources>
+
+    <Border Padding="8">
+        <Grid RowDefinitions="Auto,*">
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8" Spacing="8">
+                <TextBlock Text="Molang Variables" FontWeight="Bold" FontSize="13"
+                           Foreground="{DynamicResource ThemeTextPrimary}"
+                           VerticalAlignment="Center"/>
+                <Button Content="Reset" Command="{Binding ResetAllToDefaultsCommand}"
+                        FontSize="11" Padding="8,3" CornerRadius="4"/>
+            </StackPanel>
+
+            <ScrollViewer Grid.Row="1">
+                <ItemsControl ItemsSource="{Binding Variables}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:MolangVariableItem">
+                            <Border CornerRadius="4" Margin="0,1"
+                                    Padding="6,4"
+                                    Background="{DynamicResource ThemeBgElevated}">
+                                <Grid ColumnDefinitions="120,*,50" Margin="0,2" MinHeight="28">
+                                    <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
+                                               VerticalAlignment="Center" TextWrapping="NoWrap"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource ThemeTextPrimary}"
+                                               TextTrimming="CharacterEllipsis"/>
+
+                                    <ToggleSwitch Grid.Column="1" IsVisible="{Binding IsBoolean}"
+                                                  IsChecked="{Binding Value, Converter={StaticResource FloatToBoolConverter}, Mode=TwoWay}"
+                                                  VerticalAlignment="Center"/>
+
+                                    <Slider Grid.Column="1" IsVisible="{Binding !IsBoolean}"
+                                            Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}"
+                                            Value="{Binding Value}" TickFrequency="{Binding Step}"
+                                            VerticalAlignment="Center"/>
+
+                                    <NumericUpDown Grid.Column="2" Value="{Binding Value}"
+                                                   Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}"
+                                                   Increment="{Binding Step}" Width="50"
+                                                   FontSize="11" Padding="2,0"
+                                                   HorizontalAlignment="Right"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>

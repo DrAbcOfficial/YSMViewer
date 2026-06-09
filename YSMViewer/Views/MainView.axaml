@@ -508,6 +508,16 @@
                             </StackPanel>
                         </Expander>
 
+                        <!-- Molang Variables Section -->
+                        <Expander IsExpanded="False" Padding="0"
+                                  IsVisible="{Binding HasMolangVariables}">
+                            <Expander.Header>
+                                <TextBlock Text="Molang Variables" FontWeight="SemiBold" FontSize="13"
+                                           Foreground="{DynamicResource ThemeTextPrimary}" />
+                            </Expander.Header>
+                            <v:MolangPanelView DataContext="{Binding MolangPanel}" />
+                        </Expander>
+
                     </StackPanel>
                 </ScrollViewer>
             </Grid>

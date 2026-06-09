@@ -2,9 +2,11 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using System.Text.Json;
 using YSMViewer.Models.Document;
 using YSMViewer.Rendering;
 using YSMViewer.Services;
+using YSMViewer.Services.Molang;
 
 namespace YSMViewer.ViewModels;
 
@@ -34,6 +36,8 @@ public sealed partial class MainViewModel : ViewModelBase
 
     public string? StartupFilePath { get; set; }
     public string? StartupFileUrl { get; set; }
+
+    public MolangService MolangService { get; } = new();
 
     public MainViewModel(IRenderer renderer)
     {
@@ -231,6 +235,12 @@ public sealed partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial TextureItemViewModel? SelectedTexture { get; set; }
+
+    [ObservableProperty]
+    public partial MolangPanelViewModel? MolangPanel { get; set; }
+
+    [ObservableProperty]
+    public partial bool HasMolangVariables { get; set; }
 
     // Panel layout
     [ObservableProperty]
@@ -440,6 +450,11 @@ public sealed partial class MainViewModel : ViewModelBase
 
         PopulateAnimationData(document);
 
+        MolangPanel = new MolangPanelViewModel(MolangService);
+        var expressions = CollectAllMolangExpressions(document);
+        MolangPanel.DiscoverVariables(expressions);
+        HasMolangVariables = MolangPanel.Variables.Count > 0;
+
         StatusText = $"Loaded: {ModelName} (V{ModelVersion})";
         Notifications.Show($"Loaded {ModelDisplayName}", NotificationType.Success);
     }
@@ -479,5 +494,52 @@ public sealed partial class MainViewModel : ViewModelBase
             Height = height,
             Thumbnail = thumbnail,
         });
+    }
+
+    private static IEnumerable<string> CollectAllMolangExpressions(YsmModelDocument document)
+    {
+        var expressions = new List<string>();
+
+        foreach (var anim in document.Animations)
+        {
+            try
+            {
+                var json = JsonDocument.Parse(anim.Data);
+                CollectStringsRecursive(json.RootElement, expressions);
+            }
+            catch { }
+        }
+
+        foreach (var ac in document.AnimControllers)
+        {
+            try
+            {
+                var json = JsonDocument.Parse(ac.Data);
+                CollectStringsRecursive(json.RootElement, expressions);
+            }
+            catch { }
+        }
+
+        return expressions;
+    }
+
+    private static void CollectStringsRecursive(JsonElement element, List<string> result)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.String:
+                var s = element.GetString();
+                if (!string.IsNullOrEmpty(s) && s.Contains("query.", StringComparison.OrdinalIgnoreCase))
+                    result.Add(s);
+                break;
+            case JsonValueKind.Array:
+                foreach (var child in element.EnumerateArray())
+                    CollectStringsRecursive(child, result);
+                break;
+            case JsonValueKind.Object:
+                foreach (var prop in element.EnumerateObject())
+                    CollectStringsRecursive(prop.Value, result);
+                break;
+        }
     }
 }
