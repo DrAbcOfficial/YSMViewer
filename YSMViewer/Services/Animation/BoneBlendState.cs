@@ -60,7 +60,7 @@ public sealed class BoneBlendState
         Vector3 positionAccum = Vector3.Zero;
         float totalPositionWeight = 0f;
 
-        Vector3 scaleAccum = Vector3.Zero;
+        Vector3 scaleAccum = Vector3.One;
         float totalScaleWeight = 0f;
 
         Quaternion? firstRotQuat = null;
@@ -99,7 +99,12 @@ public sealed class BoneBlendState
                     effectiveWeight *= MathF.Max(0f, 1f - queue.ScaleTransitionLerp);
 
                 Vector3 s = queue.ScaleValue;
-                scaleAccum += s * effectiveWeight;
+                float t = Math.Clamp(effectiveWeight, 0f, 1f);
+                Vector3 lerped = new Vector3(
+                    1f + (s.X - 1f) * t,
+                    1f + (s.Y - 1f) * t,
+                    1f + (s.Z - 1f) * t);
+                scaleAccum *= lerped;
                 totalScaleWeight += effectiveWeight;
             }
 
@@ -148,7 +153,7 @@ public sealed class BoneBlendState
             BlendedPosition = basePosition;
 
         if (totalScaleWeight > 0f)
-            BlendedScale = scaleAccum / totalScaleWeight;
+            BlendedScale = scaleAccum;
         else
             BlendedScale = Vector3.One;
 
