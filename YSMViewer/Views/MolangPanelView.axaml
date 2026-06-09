@@ -11,11 +11,6 @@
     </UserControl.Resources>
 
     <UserControl.Styles>
-        <Style Selector="Slider">
-            <Setter Property="Minimum" Value="0" />
-            <Setter Property="Maximum" Value="1" />
-            <Setter Property="Height" Value="20" />
-        </Style>
         <Style Selector="ToggleSwitch">
             <Setter Property="OnContent" Value="" />
             <Setter Property="OffContent" Value="" />
@@ -47,14 +42,10 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:MolangVariableItem">
                         <Border CornerRadius="6" Margin="0,0,0,6"
-                                Padding="10,8"
+                                Padding="10,10"
+                                ClipToBounds="False"
                                 Background="{DynamicResource ThemeBgElevated}">
-                            <Border.Styles>
-                                <Style Selector="Border">
-                                    <Setter Property="Opacity" Value="1" />
-                                </Style>
-                            </Border.Styles>
-                            <StackPanel Spacing="6">
+                            <StackPanel Spacing="8">
 
                                 <Grid ColumnDefinitions="Auto,*,Auto">
                                     <Border Grid.Column="0"
@@ -98,21 +89,21 @@
                                                FontSize="9"
                                                Foreground="{DynamicResource ThemeTextMuted}"
                                                VerticalAlignment="Center"
-                                               Width="28" />
+                                               MinWidth="24" TextAlignment="Left" />
                                     <Slider Grid.Column="1"
                                             Minimum="{Binding MinValue}"
                                             Maximum="{Binding MaxValue}"
                                             Value="{Binding Value}"
                                             TickFrequency="{Binding Step}"
                                             VerticalAlignment="Center"
-                                            Margin="4,0" />
+                                            Margin="6,0" />
                                     <TextBlock Grid.Column="2"
                                                Text="{Binding MaxValue, Converter={StaticResource FloatToStringConverter}}"
                                                FontSize="9"
                                                Foreground="{DynamicResource ThemeTextMuted}"
                                                VerticalAlignment="Center"
-                                               HorizontalAlignment="Right"
-                                               Width="28" />
+                                               TextAlignment="Right"
+                                               MinWidth="24" />
                                 </Grid>
 
                             </StackPanel>
