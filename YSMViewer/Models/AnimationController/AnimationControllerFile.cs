@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace YSMViewer.Models.AnimationController;
@@ -41,6 +42,7 @@ public sealed class AnimationControllerStateModel
     public bool BlendViaShortestPath { get; set; }
 
     [JsonPropertyName("sound_effects")]
+    [JsonConverter(typeof(SoundEffectListConverter))]
     public List<string>? SoundEffects { get; set; }
 }
 
@@ -65,5 +67,63 @@ public sealed class AnimationSlotReference
             return new AnimationSlotReference(name, condition);
         }
         return new AnimationSlotReference(entry.Trim(), null);
+    }
+}
+
+public sealed class SoundEffectListConverter : JsonConverter<List<string>>
+{
+    public override List<string>? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+            return null;
+
+        if (reader.TokenType != JsonTokenType.StartArray)
+            throw new JsonException("Expected start of array for sound_effects");
+
+        var list = new List<string>();
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+        {
+            if (reader.TokenType == JsonTokenType.String)
+            {
+                list.Add(reader.GetString()!);
+            }
+            else if (reader.TokenType == JsonTokenType.StartObject)
+            {
+                string? effect = null;
+                while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+                {
+                    if (reader.TokenType == JsonTokenType.PropertyName)
+                    {
+                        var propName = reader.GetString();
+                        reader.Read();
+                        if (string.Equals(propName, "effect", StringComparison.OrdinalIgnoreCase)
+                            && reader.TokenType == JsonTokenType.String)
+                        {
+                            effect = reader.GetString();
+                        }
+                        else
+                        {
+                            reader.Skip();
+                        }
+                    }
+                }
+                if (effect is not null)
+                    list.Add(effect);
+            }
+            else
+            {
+                reader.Skip();
+            }
+        }
+
+        return list;
+    }
+
+    public override void Write(Utf8JsonWriter writer, List<string> value, JsonSerializerOptions options)
+    {
+        writer.WriteStartArray();
+        foreach (var item in value)
+            writer.WriteStringValue(item);
+        writer.WriteEndArray();
     }
 }
