@@ -6,7 +6,6 @@ using System.Text.Json;
 using YSMViewer.Models.Document;
 using YSMViewer.Rendering;
 using YSMViewer.Services;
-using YSMViewer.Services.Audio;
 using YSMViewer.Services.Molang;
 
 namespace YSMViewer.ViewModels;
@@ -35,12 +34,21 @@ public sealed partial class MainViewModel : ViewModelBase
     public ObservableCollection<TextureItemViewModel> TextureItems { get; } = [];
 
     private YsmModelDocument? _currentDocument;
-    private AnimationAudioService? _audioService;
 
     public string? StartupFilePath { get; set; }
     public string? StartupFileUrl { get; set; }
 
-    public MolangService MolangService { get; } = new();
+    [ObservableProperty]
+    public partial bool HasAnimationController { get; set; }
+
+    [ObservableProperty]
+    public partial bool UseAnimationController { get; set; }
+
+    partial void OnUseAnimationControllerChanged(bool value)
+    {
+        if (Renderer is IAnimationRenderer animRenderer)
+            animRenderer.UseAnimationController = value;
+    }
 
     public MainViewModel(IRenderer renderer)
     {
@@ -451,23 +459,27 @@ public sealed partial class MainViewModel : ViewModelBase
 
         Renderer.LoadModel(document);
 
-        _audioService?.Dispose();
-        _audioService = null;
-        MolangService.AudioHost = null;
-
-        if (IsDesktop && document.Sounds.Count > 0)
-        {
-            var player = new DesktopAudioPlayer();
-            _audioService = new AnimationAudioService(player, document.Sounds);
-            MolangService.AudioHost = _audioService;
-        }
-
         PopulateAnimationData(document);
 
-        MolangPanel = new MolangPanelViewModel(MolangService);
-        var expressions = CollectAllMolangExpressions(document);
-        MolangPanel.DiscoverVariables(expressions);
-        HasMolangVariables = MolangPanel.Variables.Count > 0;
+        HasAnimationController = Renderer is IAnimationRenderer animR && animR.HasAnimationController;
+        UseAnimationController = HasAnimationController;
+
+        if (Renderer is Rendering.Aura3D.Aura3DRenderer desktopRenderer)
+        {
+            var rendererMolang = desktopRenderer.MolangService;
+            if (rendererMolang is not null)
+            {
+                MolangPanel = new MolangPanelViewModel(rendererMolang);
+                var expressions = CollectAllMolangExpressions(document);
+                MolangPanel.DiscoverVariables(expressions);
+            }
+        }
+        else if (MolangPanel is not null)
+        {
+            MolangPanel = null;
+        }
+
+        HasMolangVariables = MolangPanel?.Variables.Count > 0;
 
         StatusText = $"Loaded: {ModelName} (V{ModelVersion})";
         Notifications.Show($"Loaded {ModelDisplayName}", NotificationType.Success);

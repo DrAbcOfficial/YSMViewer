@@ -56,7 +56,7 @@ public sealed partial class MainViewModel
     public void SelectAnimation(string name)
     {
         if (Renderer is not IAnimationRenderer animRenderer) return;
-        if (!animRenderer.AnimationNames.Contains(name)) return;
+        if (!animRenderer.AnimationNames.Contains(name) && !UseAnimationController) return;
 
         CurrentAnimationName = name;
         animRenderer.PlayAnimation(name);

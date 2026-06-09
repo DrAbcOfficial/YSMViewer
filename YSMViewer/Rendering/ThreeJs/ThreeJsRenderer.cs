@@ -36,6 +36,8 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimatio
 
     public IReadOnlyList<string> AnimationNames => _animationNames;
     public float AnimationDuration => _animationDuration;
+    public bool HasAnimationController => false;
+    public bool UseAnimationController { get; set; }
     public float AnimationCurrentTime
     {
         get

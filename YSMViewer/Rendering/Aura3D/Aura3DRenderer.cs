@@ -4,8 +4,14 @@ using Aura3D.Core.Renderers;
 using Aura3D.Core.Resources;
 using Avalonia.Controls;
 using System.Numerics;
+using System.Text.Json;
+using YSMViewer.Models;
+using YSMViewer.Models.AnimationController;
 using YSMViewer.Models.Document;
 using YSMViewer.Services;
+using YSMViewer.Services.Animation;
+using YSMViewer.Services.Audio;
+using YSMViewer.Services.Molang;
 
 namespace YSMViewer.Rendering.Aura3D;
 
@@ -17,10 +23,17 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
     private readonly Dictionary<string, Model> _componentModels = [];
     private readonly Dictionary<string, Node> _boneNodes = [];
     private readonly Dictionary<string, Vector3> _baseBoneEulers = [];
+    private readonly Dictionary<string, Vector3> _basePositions = [];
     private readonly List<Model> _sceneRoots = [];
     private readonly AnimationService _animService = new();
     private Dictionary<string, IAnimatableBone>? _animBones;
     private bool _sceneInitialized;
+
+    private MolangService? _molangService;
+    private AnimationStateMachine? _stateMachine;
+    private AnimationAudioService? _audioService;
+    private float _animTime;
+    private bool _useAnimationController;
 
     public Vector3 CameraOrbitTarget => _cameraOrbitTarget;
     public float CameraYaw => _cameraYaw;
@@ -49,6 +62,15 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
     public IReadOnlyList<string> AnimationNames => _animService.AnimationNames;
     public float AnimationDuration => _animService.AnimationLength;
     public float AnimationCurrentTime => _animService.CurrentTime;
+    public bool HasAnimationController { get; private set; }
+
+    public bool UseAnimationController
+    {
+        get => _useAnimationController;
+        set => _useAnimationController = value && HasAnimationController;
+    }
+
+    public MolangService? MolangService => _molangService;
 
     public void SetTheme(RenderTheme theme)
     {
@@ -94,19 +116,86 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
 
         _animBones = [];
         foreach (var kv in _boneNodes)
+        {
             _animBones[kv.Key] = new Aura3DBoneNode(kv.Value);
+            _basePositions[kv.Key] = kv.Value.Position;
+        }
         _animService.SetBoneNodes(_animBones, _baseBoneEulers);
+
+        _molangService = new MolangService();
+        _molangService.BoneNodes = _animBones;
+        _animService.MolangService = _molangService;
+
+        if (document.Sounds.Count > 0)
+        {
+            _audioService = new AnimationAudioService(new DesktopAudioPlayer(), document.Sounds);
+            _molangService.AudioHost = _audioService;
+        }
+
+        foreach (var fn in document.Functions)
+            _molangService.RegisterFunction(fn.Name, fn.Data);
 
         foreach (var anim in document.Animations)
             _animService.LoadAnimations(anim.Data);
+
+        HasAnimationController = false;
+        _stateMachine = null;
+
+        if (document.AnimControllers.Count > 0)
+        {
+            var controllerEntry = ParseFirstController(document.AnimControllers[0].Data);
+            if (controllerEntry is not null)
+            {
+                var context = CreateAnimationContext(document, controllerEntry);
+                _stateMachine = new AnimationStateMachine(controllerEntry, context);
+                _stateMachine.Initialize();
+                _molangService.StateMachineHost = _stateMachine;
+                HasAnimationController = true;
+                _useAnimationController = true;
+            }
+        }
+    }
+
+    private AnimationControllerEntry? ParseFirstController(byte[] data)
+    {
+        try
+        {
+            var text = System.Text.Encoding.UTF8.GetString(data);
+            var file = JsonSerializer.Deserialize(text, YsmJsonContext.Default.AnimationControllerFile);
+            return file?.Controllers.Values.FirstOrDefault();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private AnimationContext CreateAnimationContext(
+        YsmModelDocument document, AnimationControllerEntry controller)
+    {
+        var anims = new Dictionary<string, MinecraftAnimation>(StringComparer.OrdinalIgnoreCase);
+        foreach (var anim in _animService.GetAllAnimations())
+            anims[anim.Key] = anim.Value;
+
+        return new AnimationContext
+        {
+            ControllerName = controller.InitialState ?? "default",
+            Molang = _molangService!,
+            Animations = anims,
+            BoneNodes = _animBones!,
+            BasePositions = _basePositions,
+            BaseEulers = _baseBoneEulers,
+        };
     }
 
     public void Clear()
     {
         _animService.IsPlaying = false;
+        _animService.ResetBones();
         _componentModels.Clear();
         _boneNodes.Clear();
         _baseBoneEulers.Clear();
+        _basePositions.Clear();
 
         if (_view.Scene is not null)
         {
@@ -121,6 +210,14 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
         _sceneRoots.Clear();
         _animBones = null;
         _document = null;
+        _animTime = 0f;
+
+        _audioService?.Dispose();
+        _audioService = null;
+        _stateMachine = null;
+        _molangService = null;
+        HasAnimationController = false;
+        _useAnimationController = false;
     }
 
     public void SetCameraView(RenderCameraView view)
@@ -156,20 +253,50 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
 
     public void PlayAnimation(string name)
     {
-        _animService.ResetBones();
-        _animService.PlayAnimation(name);
-        _animService.IsPlaying = true;
+        if (_stateMachine is not null && _useAnimationController)
+        {
+            _animTime = 0f;
+            _animService.IsPlaying = true;
+        }
+        else
+        {
+            _animService.ResetBones();
+            _animService.PlayAnimation(name);
+            _animService.IsPlaying = true;
+        }
     }
 
     public void StopAnimation()
     {
         _animService.IsPlaying = false;
         _animService.ResetBones();
+        _animTime = 0f;
     }
 
     public void Update(float deltaTime)
     {
-        _animService.Update(deltaTime);
+        if (_stateMachine is not null && _useAnimationController)
+        {
+            _molangService?.ResetFrame();
+            _animTime += deltaTime;
+            float tick = _animTime * 20f;
+            bool isMoving = _molangService?.SafeGetUserVar("is_moving") > 0.5;
+            _stateMachine.Process(tick, deltaTime, isMoving);
+
+            _stateMachine.ForEachTransform((boneName, pos, rot, scale) =>
+            {
+                if (_animBones!.TryGetValue(boneName, out var bone))
+                {
+                    bone.Position = pos;
+                    bone.RotationQuaternion = rot;
+                    bone.Scale = scale;
+                }
+            });
+        }
+        else
+        {
+            _animService.Update(deltaTime);
+        }
     }
 
     public void OrbitCamera(float deltaYaw, float deltaPitch)

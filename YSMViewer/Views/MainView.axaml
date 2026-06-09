@@ -478,6 +478,16 @@
                                            Foreground="{DynamicResource ThemeTextPrimary}" />
                             </Expander.Header>
                             <StackPanel Spacing="6" Margin="12,8">
+                                <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasAnimationController}"
+                                      Margin="0,0,0,4">
+                                    <TextBlock Grid.Column="0" Text="Controller Mode"
+                                               FontSize="12" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource ThemeTextSecondary}" />
+                                    <ToggleSwitch Grid.Column="1"
+                                                  IsChecked="{Binding UseAnimationController}"
+                                                  OffContent="Manual" OnContent="Auto"
+                                                  FontSize="11" />
+                                </Grid>
                                 <ListBox x:Name="AnimationListBox"
                                          ItemsSource="{Binding AnimationNames}"
                                          SelectedItem="{Binding CurrentAnimationName}"

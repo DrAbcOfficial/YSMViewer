@@ -4,7 +4,7 @@ using YSMViewer.Services.Molang;
 
 namespace YSMViewer.Services.Animation;
 
-public sealed class AnimationStateMachine
+public sealed class AnimationStateMachine : IAnimationStateMachineHost
 {
     private const int MaxTransitionIterations = 64;
 
@@ -207,5 +207,32 @@ public sealed class AnimationStateMachine
             var expr = _context.Molang.Parse(script);
             _context.Molang.Evaluate(expr);
         }
+    }
+
+    public void SetAnimation(string name, int loopType)
+    {
+        if (_context.Animations.TryGetValue(name, out var anim))
+        {
+            var currentBoneStates = new Dictionary<string, (Vector3, Quaternion, Vector3)>();
+            foreach (var (boneName, bone) in _context.BoneNodes)
+                currentBoneStates[boneName] = (bone.Position, bone.RotationQuaternion, bone.Scale);
+
+            var instance = new AnimationControllerInstance(anim, _context);
+            var slot = new AnimationSlot(name, instance, _context.Molang);
+            slot.Instance.BeginStart(0f, _currentTick, currentBoneStates);
+            _activeSlots.Add(slot);
+        }
+    }
+
+    public void SetTransitionLength(float seconds)
+    {
+    }
+
+    void IAnimationStateMachineHost.Reset()
+    {
+        foreach (var slot in _activeSlots)
+            slot.Instance.BeginEnd(_currentTick);
+        _fadingSlots.AddRange(_activeSlots);
+        _activeSlots.Clear();
     }
 }

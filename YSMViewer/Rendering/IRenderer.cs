@@ -29,6 +29,8 @@ public interface IAnimationRenderer : IRenderer
     IReadOnlyList<string> AnimationNames { get; }
     float AnimationDuration { get; }
     float AnimationCurrentTime { get; }
+    bool HasAnimationController { get; }
+    bool UseAnimationController { get; set; }
     void PlayAnimation(string name);
     void StopAnimation();
     void Update(float deltaTime);

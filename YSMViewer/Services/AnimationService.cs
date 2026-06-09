@@ -22,6 +22,8 @@ public sealed class AnimationService(
 
     public MolangService? MolangService { get; set; }
 
+    public IReadOnlyDictionary<string, MinecraftAnimation> GetAllAnimations() => _allAnimations;
+
     public IReadOnlyList<string> AnimationNames =>
         _allAnimations.Where(kv => IsValidLength(kv.Value.AnimationLength))
                       .Select(kv => kv.Key)
