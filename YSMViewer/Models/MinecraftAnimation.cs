@@ -63,4 +63,15 @@ public sealed class MinecraftKeyframeSet
 
     public bool IsConstant { get; set; }
     public float ConstantValue { get; set; }
+
+    public Dictionary<float, KeyframeRawEntry> RawEntries { get; set; } = [];
+    public bool HasMolangExpressions { get; set; }
+    public bool HasAdvancedInterpolation { get; set; }
+}
+
+public sealed class KeyframeRawEntry
+{
+    public object?[]? Pre { get; set; }
+    public object?[] Post { get; set; } = [];
+    public string? LerpMode { get; set; }
 }

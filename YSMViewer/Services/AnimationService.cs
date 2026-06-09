@@ -2,6 +2,8 @@ using System.Numerics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using YSMViewer.Models;
+using YSMViewer.Models.Keyframes;
+using YSMViewer.Services.Molang;
 
 namespace YSMViewer.Services;
 
@@ -13,9 +15,12 @@ public sealed class AnimationService(
     private readonly Dictionary<string, Vector3> _basePositions = [];
     private readonly Dictionary<string, Vector3> _baseEulers = baseEulers;
     private readonly Dictionary<string, MinecraftAnimation> _allAnimations = [];
+    private readonly Dictionary<MinecraftKeyframeSet, BoneKeyFrame[]> _processedKeyframes = [];
     private MinecraftAnimation? _currentAnimation;
     private float _currentTime;
     private bool _isPlaying = true;
+
+    public MolangService? MolangService { get; set; }
 
     public IReadOnlyList<string> AnimationNames =>
         _allAnimations.Where(kv => IsValidLength(kv.Value.AnimationLength))
@@ -197,13 +202,18 @@ public sealed class AnimationService(
         return Quaternion.CreateFromRotationMatrix(m);
     }
 
-    private static Vector3 EvaluateKeyframeSet(MinecraftKeyframeSet kf, float time)
+    private Vector3 EvaluateKeyframeSet(MinecraftKeyframeSet kf, float time)
     {
         if (kf.IsConstant)
             return new Vector3(kf.ConstantValue);
 
         if (kf.Keyframes.Count == 0)
             return Vector3.Zero;
+
+        if (kf.HasMolangExpressions || kf.HasAdvancedInterpolation)
+        {
+            return EvaluateKeyframeSetAdvanced(kf, time);
+        }
 
         var sorted = kf.Keyframes.OrderBy(k => k.Key).ToList();
 
@@ -225,6 +235,102 @@ public sealed class AnimationService(
         }
 
         return ToVector3(sorted[^1].Value);
+    }
+
+    private Vector3 EvaluateKeyframeSetAdvanced(MinecraftKeyframeSet kf, float time)
+    {
+        if (!_processedKeyframes.TryGetValue(kf, out var frames))
+        {
+            frames = BuildKeyFrames(kf);
+            _processedKeyframes[kf] = frames;
+        }
+
+        if (frames.Length == 0)
+            return Vector3.Zero;
+
+        if (frames.Length == 1)
+        {
+            var molang = MolangService;
+            return molang is not null
+                ? frames[0].GetValue(molang, true)
+                : (frames[0].PreValue?.Evaluate(molang ?? new MolangService()) ?? Vector3.Zero);
+        }
+
+        if (time <= frames[0].StartTime)
+            return frames[0].GetValue(MolangService ?? new MolangService(), true);
+
+        if (time >= frames[^1].EndTime)
+            return frames[^1].GetValue(MolangService ?? new MolangService(), false);
+
+        for (int i = 0; i < frames.Length - 1; i++)
+        {
+            if (time >= frames[i].StartTime && time <= frames[i + 1].StartTime)
+            {
+                float progress = (time - frames[i].StartTime) / frames[i].Duration;
+                return frames[i + 1].Evaluate(MolangService ?? new MolangService(), progress);
+            }
+        }
+
+        return frames[^1].GetValue(MolangService ?? new MolangService(), false);
+    }
+
+    private static BoneKeyFrame[] BuildKeyFrames(MinecraftKeyframeSet kf)
+    {
+        var sortedKeys = kf.Keyframes.OrderBy(k => k.Key).ToList();
+
+        if (sortedKeys.Count == 0)
+            return [];
+
+        var rawFrames = new List<RawBoneKeyFrame>(sortedKeys.Count);
+
+        foreach (var (time, key) in sortedKeys.Select(kv => (kv.Key, kv.Value)))
+        {
+            var rawEntry = kf.RawEntries.TryGetValue(time, out var re) ? re : null;
+            var lerpMode = rawEntry?.LerpMode;
+            var easing = (string?)null;
+
+            object? postX, postY, postZ;
+            object? preX = null, preY = null, preZ = null;
+
+            if (rawEntry is not null)
+            {
+                postX = GetComponent(rawEntry.Post, 0);
+                postY = GetComponent(rawEntry.Post, 1);
+                postZ = GetComponent(rawEntry.Post, 2);
+
+                if (rawEntry.Pre is not null)
+                {
+                    preX = GetComponent(rawEntry.Pre, 0);
+                    preY = GetComponent(rawEntry.Pre, 1);
+                    preZ = GetComponent(rawEntry.Pre, 2);
+                }
+            }
+            else
+            {
+                postX = GetComponentFromFloat(key, 0);
+                postY = GetComponentFromFloat(key, 1);
+                postZ = GetComponentFromFloat(key, 2);
+            }
+
+            rawFrames.Add(new RawBoneKeyFrame(time, preX, preY, preZ, postX, postY, postZ, lerpMode, easing));
+        }
+
+        return BoneKeyFrameProcessor.Process([.. rawFrames]);
+    }
+
+    private static object? GetComponent(object?[] arr, int index)
+    {
+        if (index < arr.Length)
+            return arr[index];
+        return index < 1 ? arr.ElementAtOrDefault(0) : 0f;
+    }
+
+    private static object? GetComponentFromFloat(float[] arr, int index)
+    {
+        if (arr.Length == 0) return 0f;
+        if (arr.Length == 1) return arr[0];
+        if (arr.Length == 2) return index < 2 ? arr[index] : 0f;
+        return arr[index];
     }
 
     private static Vector3 ToVector3(float[] values)
@@ -276,6 +382,16 @@ public sealed class MinecraftBoneAnimationConverter : System.Text.Json.Serializa
                 kf.IsConstant = true;
                 kf.ConstantValue = f;
             }
+            else
+            {
+                kf.IsConstant = true;
+                kf.ConstantValue = 0f;
+                kf.HasMolangExpressions = true;
+                kf.RawEntries[0f] = new KeyframeRawEntry
+                {
+                    Post = [node.GetValue<string>()]
+                };
+            }
         }
         else if (node.GetValueKind() == JsonValueKind.Array)
         {
@@ -284,10 +400,13 @@ public sealed class MinecraftBoneAnimationConverter : System.Text.Json.Serializa
             {
                 kf.IsConstant = true;
                 kf.ConstantValue = 0f;
-                var vals = new float[arr.Count];
-                for (int i = 0; i < arr.Count; i++)
-                    vals[i] = JsonNodeToFloat(arr[i]);
+                var (vals, rawVals, hasExpr) = ParseArrayComponents(arr);
                 kf.Keyframes[0f] = vals;
+                if (hasExpr)
+                {
+                    kf.HasMolangExpressions = true;
+                    kf.RawEntries[0f] = new KeyframeRawEntry { Post = rawVals };
+                }
             }
         }
         else if (node.GetValueKind() == JsonValueKind.Object)
@@ -307,26 +426,183 @@ public sealed class MinecraftBoneAnimationConverter : System.Text.Json.Serializa
                 {
                     kf.Keyframes[time] = [JsonNodeToFloat(valNode)];
                 }
-                else if (valNode.GetValueKind() == JsonValueKind.Array)
-                {
-                    var arr = valNode.AsArray();
-                    var vals = new float[arr.Count];
-                    for (int i = 0; i < arr.Count; i++)
-                        vals[i] = JsonNodeToFloat(arr[i]);
-                    kf.Keyframes[time] = vals;
-                }
                 else if (valNode.GetValueKind() == JsonValueKind.String)
                 {
-                    if (float.TryParse(valNode.GetValue<string>(),
+                    var s = valNode.GetValue<string>();
+                    if (float.TryParse(s,
                             System.Globalization.NumberStyles.Float,
                             System.Globalization.CultureInfo.InvariantCulture,
                             out float f))
+                    {
                         kf.Keyframes[time] = [f];
+                    }
+                    else
+                    {
+                        kf.HasMolangExpressions = true;
+                        kf.Keyframes[time] = [0f];
+                        kf.RawEntries[time] = new KeyframeRawEntry { Post = [s] };
+                    }
+                }
+                else if (valNode.GetValueKind() == JsonValueKind.Array)
+                {
+                    var arr = valNode.AsArray();
+                    var (vals, rawVals, hasExpr) = ParseArrayComponents(arr);
+                    kf.Keyframes[time] = vals;
+                    if (hasExpr)
+                    {
+                        kf.HasMolangExpressions = true;
+                        kf.RawEntries[time] = new KeyframeRawEntry { Post = rawVals };
+                    }
+                }
+                else if (valNode.GetValueKind() == JsonValueKind.Object)
+                {
+                    ParseKeyframeObject(kf, time, valNode.AsObject());
                 }
             }
         }
 
         return kf;
+    }
+
+    private static void ParseKeyframeObject(MinecraftKeyframeSet kf, float time, JsonObject obj)
+    {
+        object?[]? preVals = null;
+        object?[]? postVals = null;
+        string? lerpMode = null;
+        bool hasExpr = false;
+
+        foreach (var prop in obj)
+        {
+            if (prop.Key == "lerp_mode" || prop.Key == "lerpmode")
+            {
+                if (prop.Value?.GetValueKind() == JsonValueKind.String)
+                {
+                    lerpMode = prop.Value.GetValue<string>();
+                    kf.HasAdvancedInterpolation = true;
+                }
+                continue;
+            }
+
+            if (prop.Key != "pre" && prop.Key != "post")
+                continue;
+
+            var targetArray = prop.Key == "pre";
+            var valNode = prop.Value;
+            if (valNode is null) continue;
+
+            if (valNode.GetValueKind() == JsonValueKind.Number)
+            {
+                var arr = targetArray ? preVals : postVals;
+                arr = new object?[] { valNode.GetValue<double>() };
+                if (targetArray) preVals = arr; else postVals = arr;
+            }
+            else if (valNode.GetValueKind() == JsonValueKind.String)
+            {
+                var s = valNode.GetValue<string>();
+                if (float.TryParse(s, System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out float f))
+                {
+                    var arr = new object?[] { f };
+                    if (targetArray) preVals = arr; else postVals = arr;
+                }
+                else
+                {
+                    hasExpr = true;
+                    var arr = new object?[] { s };
+                    if (targetArray) preVals = arr; else postVals = arr;
+                }
+            }
+            else if (valNode.GetValueKind() == JsonValueKind.Array)
+            {
+                var jsonArr = valNode.AsArray();
+                var (floats, raws, expr) = ParseArrayComponents(jsonArr);
+                var arr = new object?[raws.Length];
+                for (int i = 0; i < raws.Length; i++)
+                    arr[i] = raws[i] ?? floats[i];
+                if (targetArray) preVals = arr; else postVals = arr;
+                if (expr) hasExpr = true;
+            }
+        }
+
+        if (postVals is null && preVals is null)
+            return;
+
+        postVals ??= preVals;
+
+        if (postVals is not null)
+        {
+            var floatVals = new float[postVals.Length];
+            for (int i = 0; i < postVals.Length; i++)
+            {
+                floatVals[i] = postVals[i] switch
+                {
+                    float f => f,
+                    double d => (float)d,
+                    string s when float.TryParse(s, System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out float f) => f,
+                    _ => 0f
+                };
+            }
+            kf.Keyframes[time] = floatVals;
+        }
+
+        if (hasExpr || preVals is not null || lerpMode is not null)
+        {
+            if (hasExpr) kf.HasMolangExpressions = true;
+            kf.RawEntries[time] = new KeyframeRawEntry
+            {
+                Pre = preVals,
+                Post = postVals ?? [],
+                LerpMode = lerpMode
+            };
+        }
+    }
+
+    private static (float[] vals, object?[] rawVals, bool hasExpr) ParseArrayComponents(JsonArray arr)
+    {
+        var vals = new float[arr.Count];
+        var rawVals = new object?[arr.Count];
+        bool hasExpr = false;
+
+        for (int i = 0; i < arr.Count; i++)
+        {
+            var elem = arr[i];
+            if (elem is null)
+            {
+                vals[i] = 0f;
+                rawVals[i] = null;
+                continue;
+            }
+
+            if (elem.GetValueKind() == JsonValueKind.Number)
+            {
+                vals[i] = (float)elem.GetValue<double>();
+                rawVals[i] = null;
+            }
+            else if (elem.GetValueKind() == JsonValueKind.String)
+            {
+                var s = elem.GetValue<string>();
+                if (float.TryParse(s, System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out float f))
+                {
+                    vals[i] = f;
+                    rawVals[i] = null;
+                }
+                else
+                {
+                    vals[i] = 0f;
+                    rawVals[i] = s;
+                    hasExpr = true;
+                }
+            }
+            else
+            {
+                vals[i] = 0f;
+                rawVals[i] = null;
+            }
+        }
+
+        return (vals, rawVals, hasExpr);
     }
 
     public override void Write(Utf8JsonWriter writer, MinecraftBoneAnimation value, JsonSerializerOptions options)
