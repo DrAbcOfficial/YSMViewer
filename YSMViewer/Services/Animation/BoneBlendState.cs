@@ -13,6 +13,8 @@ public sealed class BoneBlendState
     public Quaternion BlendedRotation { get; private set; } = Quaternion.Identity;
     public Vector3 BlendedScale { get; private set; } = Vector3.One;
     public bool HasActiveSources { get; private set; }
+    public bool IsVisibilityControlled { get; private set; }
+    public bool VisibilityValue { get; private set; } = true;
 
     public BoneBlendState(string boneName)
     {
@@ -26,6 +28,8 @@ public sealed class BoneBlendState
         BlendedRotation = Quaternion.Identity;
         BlendedScale = Vector3.One;
         HasActiveSources = false;
+        IsVisibilityControlled = false;
+        VisibilityValue = true;
     }
 
     public void AddSource(BoneAnimationQueue queue)
@@ -54,13 +58,18 @@ public sealed class BoneBlendState
         HasActiveSources = false;
 
         Vector3 positionAccum = Vector3.Zero;
-        Quaternion rotResult = Quaternion.Identity;
-        Vector3 scaleAccum = Vector3.One;
         float totalPositionWeight = 0f;
-        bool isFirstRotation = true;
-        bool isRotationTransition = false;
-        Vector3 rotTransitionOffset = Vector3.Zero;
-        float rotTransitionLerp = 0f;
+
+        Vector3 scaleAccum = Vector3.Zero;
+        float totalScaleWeight = 0f;
+
+        Quaternion? firstRotQuat = null;
+        float rotWeightSum = 0f;
+        bool hasRotation = false;
+
+        Quaternion? snapshotQuat = null;
+        float snapshotLerp = 0f;
+        bool applySnapshot = false;
 
         foreach (var source in _sources)
         {
@@ -90,8 +99,8 @@ public sealed class BoneBlendState
                     effectiveWeight *= MathF.Max(0f, 1f - queue.ScaleTransitionLerp);
 
                 Vector3 s = queue.ScaleValue;
-                float t = MathF.Min(effectiveWeight, 1f);
-                scaleAccum = Vector3.Lerp(scaleAccum, s, t);
+                scaleAccum += s * effectiveWeight;
+                totalScaleWeight += effectiveWeight;
             }
 
             if (queue.RotationType != BoneAnimationQueue.PointType.None)
@@ -105,58 +114,72 @@ public sealed class BoneBlendState
 
                 Quaternion rotQuat;
                 if (queue.PositionType != BoneAnimationQueue.PointType.None)
-                {
                     rotQuat = AnimationService.CreateBlockbenchQuaternion(rotGltf);
-                }
                 else
-                {
                     rotQuat = AnimationService.CreateBlockbenchQuaternion(baseEuler + rotGltf);
+
+                if (queue.RotationType == BoneAnimationQueue.PointType.Transition)
+                {
+                    applySnapshot = true;
+                    Vector3 offsetGltf = new Vector3(-queue.RotationTransitionOffset.X, -queue.RotationTransitionOffset.Y, queue.RotationTransitionOffset.Z);
+                    Vector3 snapEuler = baseEuler + offsetGltf;
+                    snapshotQuat = AnimationService.CreateBlockbenchQuaternion(snapEuler);
+                    snapshotLerp = queue.RotationTransitionLerp;
                 }
 
-                if (isFirstRotation)
+                if (firstRotQuat is null)
                 {
-                    if (queue.RotationType == BoneAnimationQueue.PointType.Transition)
-                    {
-                        isRotationTransition = true;
-                        Vector3 offsetGltf = new Vector3(-queue.RotationTransitionOffset.X, -queue.RotationTransitionOffset.Y, queue.RotationTransitionOffset.Z);
-                        rotTransitionOffset = baseEuler + offsetGltf;
-                        rotTransitionLerp = queue.RotationTransitionLerp;
-
-                        if (MathF.Abs(rotTransitionLerp) < 1E-5f)
-                        {
-                            rotResult = AnimationService.CreateBlockbenchQuaternion(rotTransitionOffset);
-                            isFirstRotation = false;
-                            continue;
-                        }
-                    }
-                    rotResult = rotQuat;
-                    isFirstRotation = false;
+                    firstRotQuat = rotQuat;
+                    rotWeightSum = effectiveWeight;
+                    hasRotation = true;
                 }
                 else
                 {
-                    float t = MathF.Min(effectiveWeight, 1f);
-                    rotResult = Quaternion.Normalize(Quaternion.Slerp(rotResult, rotQuat, t));
+                    float t = effectiveWeight / (rotWeightSum + effectiveWeight);
+                    firstRotQuat = Quaternion.Normalize(Quaternion.Slerp(firstRotQuat.Value, rotQuat, t));
+                    rotWeightSum += effectiveWeight;
                 }
             }
         }
 
         if (totalPositionWeight > 0f)
+            BlendedPosition = basePosition + positionAccum / totalPositionWeight;
+        else
+            BlendedPosition = basePosition;
+
+        if (totalScaleWeight > 0f)
+            BlendedScale = scaleAccum / totalScaleWeight;
+        else
+            BlendedScale = Vector3.One;
+
+        if (hasRotation)
         {
-            BlendedPosition = basePosition + positionAccum;
+            BlendedRotation = firstRotQuat!.Value;
+            if (applySnapshot && snapshotQuat is not null && snapshotLerp > 1E-5f && snapshotLerp < 1f)
+                BlendedRotation = Quaternion.Normalize(Quaternion.Slerp(snapshotQuat.Value, BlendedRotation, snapshotLerp));
+            else if (applySnapshot && snapshotLerp <= 1E-5f)
+                BlendedRotation = snapshotQuat!.Value;
         }
         else
         {
-            BlendedPosition = basePosition;
+            BlendedRotation = Quaternion.Identity;
         }
 
-        if (isRotationTransition)
+        bool anyVisibilitySource = false;
+        bool anyVisible = false;
+        foreach (var source in _sources)
         {
-            Quaternion snapshotQuat = AnimationService.CreateBlockbenchQuaternion(rotTransitionOffset);
-            rotResult = Quaternion.Normalize(Quaternion.Slerp(snapshotQuat, rotResult, rotTransitionLerp));
+            if (!source.ConditionActive) continue;
+            var queue = source.Queue;
+            if (!queue.AnimationActive) continue;
+            if (queue.HasVisibilityControl)
+            {
+                anyVisibilitySource = true;
+                if (queue.IsVisible) anyVisible = true;
+            }
         }
-
-        BlendedRotation = rotResult;
-        BlendedScale = scaleAccum;
+        IsVisibilityControlled = anyVisibilitySource;
+        VisibilityValue = anyVisibilitySource ? anyVisible : true;
     }
 
     private struct BlendSource

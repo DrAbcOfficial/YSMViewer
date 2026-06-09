@@ -9,4 +9,6 @@ public interface IAudioInstance
 public interface IPlatformAudioPlayer : IDisposable
 {
     IAudioInstance Play(byte[] oggData, float volume);
+    IAudioInstance PlayPcm(string soundKey, float volume);
+    void PreDecode(byte[] oggData, string key);
 }

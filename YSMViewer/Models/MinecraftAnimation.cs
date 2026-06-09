@@ -55,6 +55,7 @@ public sealed class MinecraftBoneAnimation
     public MinecraftKeyframeSet? Rotation { get; set; }
     public MinecraftKeyframeSet? Position { get; set; }
     public MinecraftKeyframeSet? Scale { get; set; }
+    public MinecraftKeyframeSet? Visibility { get; set; }
 }
 
 public sealed class MinecraftKeyframeSet

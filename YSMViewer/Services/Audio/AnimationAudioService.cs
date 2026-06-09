@@ -20,6 +20,9 @@ public sealed class AnimationAudioService : IAnimationAudioHost, IDisposable
             if (!_soundFiles.ContainsKey(key))
                 _soundFiles[key] = snd.Data;
         }
+
+        foreach (var (key, data) in _soundFiles)
+            _player.PreDecode(data, key);
     }
 
     private static string NormalizeSoundName(string path)
@@ -39,15 +42,15 @@ public sealed class AnimationAudioService : IAnimationAudioHost, IDisposable
         if (_isMuted) return;
 
         var key = NormalizeSoundName(soundName);
-        if (!_soundFiles.TryGetValue(key, out var data))
+        if (!_soundFiles.TryGetValue(key, out _))
         {
             var match = _soundFiles.Keys.FirstOrDefault(
                 k => k.Contains(key, StringComparison.OrdinalIgnoreCase));
             if (match is null) return;
-            data = _soundFiles[match];
+            key = match;
         }
 
-        var instance = _player.Play(data, _volume);
+        var instance = _player.PlayPcm(key, _volume);
         _activeSounds[soundName] = instance;
     }
 

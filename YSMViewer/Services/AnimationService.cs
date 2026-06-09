@@ -250,7 +250,10 @@ public sealed class AnimationService(
         if (frames.Length == 0)
             return Vector3.Zero;
 
-        var molang = MolangService ?? new MolangService();
+        if (MolangService is null)
+            return EvaluateKeyframeSetSimple(kf, time);
+
+        var molang = MolangService;
 
         if (frames.Length == 1)
             return frames[0].Evaluate(molang, 1f);
@@ -278,6 +281,36 @@ public sealed class AnimationService(
         return BoneKeyFrameProcessor.FromKeyframeSet(kf);
     }
 
+    private static Vector3 EvaluateKeyframeSetSimple(MinecraftKeyframeSet kf, float time)
+    {
+        if (kf.IsConstant)
+            return new Vector3(kf.ConstantValue);
+
+        if (kf.Keyframes.Count == 0)
+            return Vector3.Zero;
+
+        var sorted = kf.Keyframes.OrderBy(k => k.Key).ToList();
+
+        if (time <= sorted[0].Key)
+            return ToVector3(sorted[0].Value);
+
+        if (time >= sorted[^1].Key)
+            return ToVector3(sorted[^1].Value);
+
+        for (int i = 0; i < sorted.Count - 1; i++)
+        {
+            if (time >= sorted[i].Key && time <= sorted[i + 1].Key)
+            {
+                float t = (time - sorted[i].Key) / (sorted[i + 1].Key - sorted[i].Key);
+                var a = ToVector3(sorted[i].Value);
+                var b = ToVector3(sorted[i + 1].Value);
+                return Vector3.Lerp(a, b, t);
+            }
+        }
+
+        return ToVector3(sorted[^1].Value);
+    }
+
     private static Vector3 ToVector3(float[] values)
     {
         if (values.Length == 0) return Vector3.Zero;
@@ -301,6 +334,7 @@ public sealed class MinecraftBoneAnimationConverter : System.Text.Json.Serializa
         result.Rotation = ParseChannel(json, "rotation");
         result.Position = ParseChannel(json, "position");
         result.Scale = ParseChannel(json, "scale");
+        result.Visibility = ParseChannel(json, "visibility");
 
         return result;
     }

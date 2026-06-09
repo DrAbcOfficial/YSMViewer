@@ -33,6 +33,7 @@ public sealed class BoneAnimationQueue
     private BoneKeyFrame[] _rotationFrames = [];
     private BoneKeyFrame[] _positionFrames = [];
     private BoneKeyFrame[] _scaleFrames = [];
+    private BoneKeyFrame[] _visibilityFrames = [];
 
     private Vector3 _snapshotPos;
     private Vector3 _snapshotRotBedrock;
@@ -44,6 +45,9 @@ public sealed class BoneAnimationQueue
 
     private readonly Vector3 _basePos;
     private readonly Vector3 _baseEulerGltf;
+
+    public bool IsVisible { get; private set; } = true;
+    public bool HasVisibilityControl { get; private set; }
 
     public BoneAnimationQueue(string boneName, Vector3 basePos, Vector3 baseEulerGltf)
     {
@@ -93,6 +97,8 @@ public sealed class BoneAnimationQueue
         _rotationFrames = BuildKeyFrames(boneAnim.Rotation);
         _positionFrames = BuildKeyFrames(boneAnim.Position);
         _scaleFrames = BuildKeyFrames(boneAnim.Scale);
+        _visibilityFrames = BuildKeyFrames(boneAnim.Visibility);
+        HasVisibilityControl = _visibilityFrames.Length > 0;
         AnimationActive = true;
         ResetQueues();
     }
@@ -102,6 +108,8 @@ public sealed class BoneAnimationQueue
         _rotationFrames = [];
         _positionFrames = [];
         _scaleFrames = [];
+        _visibilityFrames = [];
+        IsVisible = true;
         AnimationActive = false;
         ResetQueues();
     }
@@ -147,6 +155,11 @@ public sealed class BoneAnimationQueue
         {
             ScaleValue = EvaluateKeyFrames(_scaleFrames, tick, molang);
             ScaleType = PointType.KeyFrame;
+        }
+        if (_visibilityFrames.Length > 0)
+        {
+            var visValue = EvaluateKeyFrames(_visibilityFrames, tick, molang);
+            IsVisible = visValue.X > 0.5f;
         }
     }
 
@@ -251,17 +264,27 @@ public sealed class BoneAnimationQueue
         if (tick >= frames[^1].EndTime)
             return frames[^1].GetValue(molang, false);
 
-        for (int i = 0; i < frames.Length - 1; i++)
-        {
-            if (tick >= frames[i].StartTime && tick <= frames[i + 1].StartTime)
-            {
-                float duration = frames[i + 1].StartTime - frames[i].StartTime;
-                float progress = duration > 0f ? (tick - frames[i].StartTime) / duration : 1f;
-                return frames[i].Evaluate(molang, progress);
-            }
-        }
+        int idx = BinarySearchFrame(frames, tick);
+        if (idx < 0) return frames[0].GetValue(molang, true);
+        if (idx >= frames.Length - 1) return frames[^1].GetValue(molang, false);
 
-        return frames[^1].GetValue(molang, false);
+        float duration = frames[idx + 1].StartTime - frames[idx].StartTime;
+        float progress = duration > 0f ? (tick - frames[idx].StartTime) / duration : 1f;
+        return frames[idx].Evaluate(molang, progress);
+    }
+
+    private static int BinarySearchFrame(BoneKeyFrame[] frames, float tick)
+    {
+        int lo = 0, hi = frames.Length - 1;
+        while (lo < hi)
+        {
+            int mid = (lo + hi + 1) / 2;
+            if (frames[mid].StartTime <= tick)
+                lo = mid;
+            else
+                hi = mid - 1;
+        }
+        return lo;
     }
 
     private static BoneKeyFrame[] BuildKeyFrames(MinecraftKeyframeSet? kf)

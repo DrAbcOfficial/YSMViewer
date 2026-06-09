@@ -291,6 +291,12 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
                     bone.Scale = scale;
                 }
             });
+
+            foreach (var (boneName, bone) in _animBones!)
+            {
+                if (_boneNodes.TryGetValue(boneName, out var node))
+                    node.Enable = _stateMachine.GetBoneVisibility(boneName);
+            }
         }
         else
         {

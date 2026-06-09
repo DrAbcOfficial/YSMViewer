@@ -1,4 +1,5 @@
 using System.Numerics;
+using ConcreteMC.MolangSharp.Parser;
 using YSMViewer.Models.AnimationController;
 using YSMViewer.Services.Molang;
 
@@ -6,7 +7,7 @@ namespace YSMViewer.Services.Animation;
 
 public sealed class AnimationStateMachine : IAnimationStateMachineHost
 {
-    private const int MaxTransitionIterations = 64;
+    private const int MaxTransitionIterations = 8;
 
     private readonly AnimationControllerEntry _controller;
     private readonly AnimationContext _context;
@@ -16,6 +17,9 @@ public sealed class AnimationStateMachine : IAnimationStateMachineHost
     private string _currentState;
     private bool _isInitialized;
     private float _currentTick;
+
+    private readonly Dictionary<string, IExpression> _conditionCache = [];
+    private readonly HashSet<string> _visitedStates = [];
 
     public string CurrentState => _currentState ?? "";
     public bool IsInitialized => _isInitialized;
@@ -40,11 +44,29 @@ public sealed class AnimationStateMachine : IAnimationStateMachineHost
                 _blendStates[boneName] = new BoneBlendState(boneName);
         }
 
+        PrecacheConditions();
+
         var initialState = _currentState;
         if (!string.IsNullOrEmpty(initialState) &&
             _controller.States.TryGetValue(initialState, out _))
         {
             TransitionToState(initialState, 0f);
+        }
+    }
+
+    private void PrecacheConditions()
+    {
+        foreach (var (_, state) in _controller.States)
+        {
+            if (state.Transitions is null) continue;
+            foreach (var transition in state.Transitions)
+            {
+                foreach (var (_, condition) in transition)
+                {
+                    if (!string.IsNullOrEmpty(condition) && !_conditionCache.ContainsKey(condition))
+                        _conditionCache[condition] = _context.Molang.Parse(condition);
+                }
+            }
         }
     }
 
@@ -117,9 +139,22 @@ public sealed class AnimationStateMachine : IAnimationStateMachineHost
         }
     }
 
+    public bool GetBoneVisibility(string boneName)
+    {
+        if (_blendStates.TryGetValue(boneName, out var blendState))
+        {
+            if (blendState.IsVisibilityControlled)
+                return blendState.VisibilityValue;
+        }
+        return true;
+    }
+
     private void EvaluateTransitions()
     {
         int iterations = MaxTransitionIterations;
+        _visitedStates.Clear();
+        _visitedStates.Add(_currentState);
+
         while (iterations-- > 0)
         {
             if (!_controller.States.TryGetValue(_currentState, out var state)) return;
@@ -130,9 +165,18 @@ public sealed class AnimationStateMachine : IAnimationStateMachineHost
             {
                 foreach (var (targetState, condition) in transition)
                 {
-                    float result = _context.Molang.EvaluateString(condition);
+                    float result;
+                    if (_conditionCache.TryGetValue(condition, out var cachedExpr))
+                        result = _context.Molang.Evaluate(cachedExpr);
+                    else
+                        result = _context.Molang.EvaluateString(condition);
+
                     if (result > 0f)
                     {
+                        if (_visitedStates.Contains(targetState))
+                            return;
+
+                        _visitedStates.Add(targetState);
                         TransitionToState(targetState, _currentTick);
                         fired = true;
                         break;
