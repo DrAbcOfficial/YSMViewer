@@ -22,6 +22,7 @@ public sealed class AnimationStateMachine(
 
     private readonly Dictionary<string, IExpression> _conditionCache = [];
     private readonly HashSet<string> _visitedStates = [];
+    private float _dynamicTransitionLength;
 
     public string CurrentState => _currentState ?? "";
     public bool IsInitialized => _isInitialized;
@@ -193,7 +194,10 @@ public sealed class AnimationStateMachine(
             ExecuteScripts(oldState.OnExit);
         }
 
-        float blendTransitionDuration = newState.BlendTransition;
+        float blendTransitionDuration = _dynamicTransitionLength > 0f
+            ? _dynamicTransitionLength
+            : newState.BlendTransition;
+        _dynamicTransitionLength = 0f;
 
         foreach (var slot in _activeSlots)
             slot.Instance.BeginEnd(currentTick);
@@ -263,6 +267,7 @@ public sealed class AnimationStateMachine(
 
     public void SetTransitionLength(float seconds)
     {
+        _dynamicTransitionLength = seconds;
     }
 
     void IAnimationStateMachineHost.Reset()

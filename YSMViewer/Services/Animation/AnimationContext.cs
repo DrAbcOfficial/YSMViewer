@@ -5,13 +5,9 @@ namespace YSMViewer.Services.Animation;
 
 public sealed class AnimationContext
 {
-    public string ControllerName { get; set; } = "";
-
     public float AnimTime { get; set; }
 
     public float DeltaTime { get; set; }
-
-    public float AnimLength { get; set; }
 
     public bool IsMoving { get; set; }
 

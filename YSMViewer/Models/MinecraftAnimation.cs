@@ -3,6 +3,13 @@ using System.Text.Json.Serialization;
 
 namespace YSMViewer.Models;
 
+public enum AnimationLoopMode
+{
+    Loop,
+    PlayOnce,
+    HoldOnLastFrame
+}
+
 public sealed class MinecraftAnimationFile
 {
     [JsonPropertyName("format_version")]
@@ -31,9 +38,30 @@ public sealed class MinecraftAnimation
             if (raw.ValueKind == JsonValueKind.String)
             {
                 var s = raw.GetString();
-                return s == "true" || s == "True";
+                if (s is "true" or "True") return true;
+                if (s is "false" or "False") return false;
+                if (s is "hold_on_last_frame") return true;
             }
             return true;
+        }
+    }
+
+    [JsonIgnore]
+    public AnimationLoopMode LoopMode
+    {
+        get
+        {
+            if (LoopRaw is not { } raw) return AnimationLoopMode.Loop;
+            if (raw.ValueKind == JsonValueKind.True) return AnimationLoopMode.Loop;
+            if (raw.ValueKind == JsonValueKind.False) return AnimationLoopMode.PlayOnce;
+            if (raw.ValueKind == JsonValueKind.String)
+            {
+                var s = raw.GetString();
+                if (s is "true" or "True") return AnimationLoopMode.Loop;
+                if (s is "false" or "False") return AnimationLoopMode.PlayOnce;
+                if (s is "hold_on_last_frame") return AnimationLoopMode.HoldOnLastFrame;
+            }
+            return AnimationLoopMode.Loop;
         }
     }
 

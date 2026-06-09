@@ -146,7 +146,9 @@ public sealed class AnimationService(
 
         if (_currentTime >= length)
         {
-            if (_currentAnimation.Loop)
+            if (_currentAnimation.LoopMode == AnimationLoopMode.HoldOnLastFrame)
+                _currentTime = length;
+            else if (_currentAnimation.LoopMode == AnimationLoopMode.Loop)
                 _currentTime %= length;
             else
                 _currentTime = length;

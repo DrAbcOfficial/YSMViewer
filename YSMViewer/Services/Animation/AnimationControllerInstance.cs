@@ -167,7 +167,11 @@ public sealed class AnimationControllerInstance(
 
         if (adjustedTick >= length)
         {
-            if (_animation.Loop)
+            if (_animation.LoopMode == AnimationLoopMode.HoldOnLastFrame)
+            {
+                _currentTick = length;
+            }
+            else if (_animation.LoopMode == AnimationLoopMode.Loop)
             {
                 _currentTick = adjustedTick % length;
             }

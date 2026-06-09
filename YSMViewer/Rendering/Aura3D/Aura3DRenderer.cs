@@ -182,7 +182,6 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
 
         return new AnimationContext
         {
-            ControllerName = controller.InitialState ?? "default",
             Molang = _molangService!,
             Animations = anims,
             BoneNodes = _animBones!,
