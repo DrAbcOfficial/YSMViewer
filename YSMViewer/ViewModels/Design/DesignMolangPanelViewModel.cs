@@ -10,6 +10,8 @@ public static class DesignMolangPanelViewModel
             new() { Name = "query.is_on_ground", Value = 1f, IsBoolean = true, ControlType = MolangControlType.Toggle, DefaultValue = 1f, MinValue = 0, MaxValue = 1, Step = 1f },
             new() { Name = "query.is_sneaking",  Value = 0f, IsBoolean = true, ControlType = MolangControlType.Toggle, DefaultValue = 0f, MinValue = 0, MaxValue = 1, Step = 1f },
             new() { Name = "query.health",       Value = 20f, MinValue = 0, MaxValue = 20, Step = 1f, DefaultValue = 20f },
+            new() { Name = "variable.my_speed",  Value = 5f, MinValue = 0, MaxValue = 20, Step = 0.5f, DefaultValue = 0f },
+            new() { Name = "variable.is_running", Value = 1f, IsBoolean = true, ControlType = MolangControlType.Toggle, DefaultValue = 0f, MinValue = 0, MaxValue = 1, Step = 1f },
         ]
     };
 }

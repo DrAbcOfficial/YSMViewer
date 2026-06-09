@@ -6,53 +6,121 @@
 
     <UserControl.Resources>
         <vm:FloatToBoolConverter x:Key="FloatToBoolConverter" />
-        <vm:BoolToFloatConverter x:Key="BoolToFloatConverter" />
+        <vm:DomainToBadgeBrushConverter x:Key="DomainToBadgeBrushConverter" />
+        <vm:FloatToStringConverter x:Key="FloatToStringConverter" />
     </UserControl.Resources>
 
-    <Border Padding="8">
-        <Grid RowDefinitions="Auto,*">
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8" Spacing="8">
-                <TextBlock Text="Molang Variables" FontWeight="Bold" FontSize="13"
-                           Foreground="{DynamicResource ThemeTextPrimary}"
-                           VerticalAlignment="Center"/>
-                <Button Content="Reset" Command="{Binding ResetAllToDefaultsCommand}"
-                        FontSize="11" Padding="8,3" CornerRadius="4"/>
-            </StackPanel>
+    <UserControl.Styles>
+        <Style Selector="Slider">
+            <Setter Property="Minimum" Value="0" />
+            <Setter Property="Maximum" Value="1" />
+            <Setter Property="Height" Value="20" />
+        </Style>
+        <Style Selector="ToggleSwitch">
+            <Setter Property="OnContent" Value="" />
+            <Setter Property="OffContent" Value="" />
+        </Style>
+    </UserControl.Styles>
 
-            <ScrollViewer Grid.Row="1">
-                <ItemsControl ItemsSource="{Binding Variables}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:MolangVariableItem">
-                            <Border CornerRadius="4" Margin="0,1"
-                                    Padding="6,4"
-                                    Background="{DynamicResource ThemeBgElevated}">
-                                <Grid ColumnDefinitions="120,*,50" Margin="0,2" MinHeight="28">
-                                    <TextBlock Grid.Column="0" Text="{Binding DisplayName}"
-                                               VerticalAlignment="Center" TextWrapping="NoWrap"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource ThemeTextPrimary}"
-                                               TextTrimming="CharacterEllipsis"/>
+    <StackPanel Spacing="8" Margin="12,8">
 
-                                    <ToggleSwitch Grid.Column="1" IsVisible="{Binding IsBoolean}"
-                                                  IsChecked="{Binding Value, Converter={StaticResource FloatToBoolConverter}, Mode=TwoWay}"
-                                                  VerticalAlignment="Center"/>
-
-                                    <Slider Grid.Column="1" IsVisible="{Binding !IsBoolean}"
-                                            Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}"
-                                            Value="{Binding Value}" TickFrequency="{Binding Step}"
-                                            VerticalAlignment="Center"/>
-
-                                    <NumericUpDown Grid.Column="2" Value="{Binding Value}"
-                                                   Minimum="{Binding MinValue}" Maximum="{Binding MaxValue}"
-                                                   Increment="{Binding Step}" Width="50"
-                                                   FontSize="11" Padding="2,0"
-                                                   HorizontalAlignment="Right"/>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
+        <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0"
+                       Text="{Binding Variables.Count, StringFormat='{}{0} variables'}"
+                       FontSize="11"
+                       Foreground="{DynamicResource ThemeTextMuted}"
+                       VerticalAlignment="Center" />
+            <Button Grid.Column="1"
+                    Content="Reset All"
+                    Command="{Binding ResetAllToDefaultsCommand}"
+                    FontSize="10" Padding="8,3" CornerRadius="4"
+                    Background="{DynamicResource ThemeBgButton}"
+                    Foreground="{DynamicResource ThemeTextSecondary}" />
         </Grid>
-    </Border>
+
+        <Border Height="1" Background="{DynamicResource ThemeDivider}" />
+
+        <ScrollViewer MaxHeight="400"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Variables}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MolangVariableItem">
+                        <Border CornerRadius="6" Margin="0,0,0,6"
+                                Padding="10,8"
+                                Background="{DynamicResource ThemeBgElevated}">
+                            <Border.Styles>
+                                <Style Selector="Border">
+                                    <Setter Property="Opacity" Value="1" />
+                                </Style>
+                            </Border.Styles>
+                            <StackPanel Spacing="6">
+
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <Border Grid.Column="0"
+                                            CornerRadius="3" Padding="5,1"
+                                            VerticalAlignment="Center"
+                                            Background="{Binding Domain, Converter={StaticResource DomainToBadgeBrushConverter}}">
+                                        <TextBlock Text="{Binding Domain}"
+                                                   FontSize="9" FontWeight="Bold"
+                                                   Foreground="White" />
+                                    </Border>
+
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding DisplayName}"
+                                               VerticalAlignment="Center"
+                                               FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource ThemeTextPrimary}"
+                                               TextTrimming="CharacterEllipsis"
+                                               Margin="8,0,0,0" />
+
+                                    <Border Grid.Column="2"
+                                            IsVisible="{Binding !IsBoolean}"
+                                            CornerRadius="3" Padding="6,2"
+                                            VerticalAlignment="Center"
+                                            Background="{DynamicResource ThemeBgHover}">
+                                        <TextBlock Text="{Binding Value, Converter={StaticResource FloatToStringConverter}}"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource ThemeAccent}"
+                                                   HorizontalAlignment="Right" />
+                                    </Border>
+
+                                    <ToggleSwitch Grid.Column="2"
+                                                  IsVisible="{Binding IsBoolean}"
+                                                  IsChecked="{Binding Value, Converter={StaticResource FloatToBoolConverter}, Mode=TwoWay}"
+                                                  VerticalAlignment="Center" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="Auto,*,Auto"
+                                      IsVisible="{Binding !IsBoolean}">
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding MinValue, Converter={StaticResource FloatToStringConverter}}"
+                                               FontSize="9"
+                                               Foreground="{DynamicResource ThemeTextMuted}"
+                                               VerticalAlignment="Center"
+                                               Width="28" />
+                                    <Slider Grid.Column="1"
+                                            Minimum="{Binding MinValue}"
+                                            Maximum="{Binding MaxValue}"
+                                            Value="{Binding Value}"
+                                            TickFrequency="{Binding Step}"
+                                            VerticalAlignment="Center"
+                                            Margin="4,0" />
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding MaxValue, Converter={StaticResource FloatToStringConverter}}"
+                                               FontSize="9"
+                                               Foreground="{DynamicResource ThemeTextMuted}"
+                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Right"
+                                               Width="28" />
+                                </Grid>
+
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+    </StackPanel>
 </UserControl>

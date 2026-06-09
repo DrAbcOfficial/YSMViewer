@@ -14,9 +14,13 @@ public sealed partial class MolangVariableItem : ObservableObject
     [ObservableProperty]
     private string _name = string.Empty;
 
-    public string DisplayName => Name.StartsWith("query.", StringComparison.OrdinalIgnoreCase)
-        ? Name["query.".Length..]
-        : Name;
+    public string DisplayName => StripDomain(Name);
+
+    public string Domain => GetDomain(Name);
+
+    public bool IsQuery => Domain == "query";
+
+    public bool IsVariable => Domain == "variable";
 
     [ObservableProperty]
     private float _value;
@@ -38,5 +42,19 @@ public sealed partial class MolangVariableItem : ObservableObject
     partial void OnValueChanged(float value)
     {
         ValueChanged?.Invoke(this, value);
+    }
+
+    private static string StripDomain(string name)
+    {
+        var dotIdx = name.IndexOf('.');
+        return dotIdx > 0 ? name[(dotIdx + 1)..] : name;
+    }
+
+    private static string GetDomain(string name)
+    {
+        var dotIdx = name.IndexOf('.');
+        if (dotIdx <= 0) return "query";
+        var prefix = name[..dotIdx].ToLowerInvariant();
+        return prefix is "v" ? "variable" : prefix;
     }
 }
