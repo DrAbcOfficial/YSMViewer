@@ -3,25 +3,18 @@ using YSMViewer.Services.Molang;
 
 namespace YSMViewer.Services.Animation;
 
-public sealed class AnimationSlot
+public sealed class AnimationSlot(string name, AnimationControllerInstance instance, MolangService molang)
 {
-    private readonly AnimationControllerInstance _instance;
+    private readonly AnimationControllerInstance _instance = instance;
     private IExpression? _conditionExpr;
     private bool _conditionActive = true;
 
-    public string AnimationName { get; }
+    public string AnimationName { get; } = name;
     public AnimationControllerInstance Instance => _instance;
     public bool IsActive => _conditionActive && _instance.IsRunning;
     public float BlendWeight => _instance.IsRunning ? _instance.EvaluateBlendWeight(_molang) : 0f;
 
-    private readonly MolangService _molang;
-
-    public AnimationSlot(string name, AnimationControllerInstance instance, MolangService molang)
-    {
-        AnimationName = name;
-        _instance = instance;
-        _molang = molang;
-    }
+    private readonly MolangService _molang = molang;
 
     public void SetCondition(string? molangCondition)
     {

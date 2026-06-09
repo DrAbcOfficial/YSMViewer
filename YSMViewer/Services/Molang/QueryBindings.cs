@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using ConcreteMC.MolangSharp.Runtime;
 using ConcreteMC.MolangSharp.Runtime.Struct;
 

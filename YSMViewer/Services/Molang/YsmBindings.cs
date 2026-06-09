@@ -1,8 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Numerics;
 using ConcreteMC.MolangSharp.Runtime;
 using ConcreteMC.MolangSharp.Runtime.Struct;
+using System.Numerics;
 
 namespace YSMViewer.Services.Molang;
 
@@ -16,7 +14,7 @@ internal static class YsmBindings
             ["bone_pos"] = p => QueryBonePosition(service, p),
             ["bone_scale"] = p => QueryBoneScale(service, p),
             ["bone_pivot_abs"] = p => QueryBonePivotAbs(service, p),
-            ["perlin_noise"] = p => service.Physics.PerlinNoise(
+            ["perlin_noise"] = p => PhysicsSimulator.PerlinNoise(
                     p.GetDouble(0),
                     p.GetDouble(1),
                     p.Contains(2) ? p.GetDouble(2) : 0.0,
@@ -79,7 +77,10 @@ internal static class YsmBindings
 
     private static float GetAxis(Vector3 v, int axis) => axis switch
     {
-        0 => v.X, 1 => v.Y, 2 => v.Z, _ => 0f
+        0 => v.X,
+        1 => v.Y,
+        2 => v.Z,
+        _ => 0f
     };
 
     private static Vector3 ToEulerDegrees(Quaternion q)

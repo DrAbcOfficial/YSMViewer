@@ -1,16 +1,12 @@
-using global::Aura3D.Core.Renderers;
-using global::Aura3D.Core.Nodes;
-using global::Aura3D.Core.Resources;
+using Aura3D.Core.Nodes;
+using Aura3D.Core.Renderers;
+using Aura3D.Core.Resources;
 using Silk.NET.OpenGLES;
 
 namespace YSMViewer.Rendering.Aura3D;
 
-public sealed class NoLightTranslucentPass : YSMNoLightPass
+public sealed class NoLightTranslucentPass(RenderPipeline renderPipeline) : YSMNoLightPass(renderPipeline)
 {
-    public NoLightTranslucentPass(RenderPipeline renderPipeline) : base(renderPipeline)
-    {
-    }
-
     public override void BeforeRender(Camera camera)
     {
         BindOutPutRenderTarget(camera);

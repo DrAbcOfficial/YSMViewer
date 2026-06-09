@@ -46,16 +46,10 @@ public sealed class AnimationControllerStateModel
     public List<string>? SoundEffects { get; set; }
 }
 
-public sealed class AnimationSlotReference
+public sealed class AnimationSlotReference(string animationName, string? conditionExpression)
 {
-    public string AnimationName { get; }
-    public string? ConditionExpression { get; }
-
-    public AnimationSlotReference(string animationName, string? conditionExpression)
-    {
-        AnimationName = animationName;
-        ConditionExpression = conditionExpression;
-    }
+    public string AnimationName { get; } = animationName;
+    public string? ConditionExpression { get; } = conditionExpression;
 
     public static AnimationSlotReference Parse(string entry)
     {

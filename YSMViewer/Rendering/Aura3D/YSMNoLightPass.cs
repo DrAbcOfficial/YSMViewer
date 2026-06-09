@@ -29,7 +29,7 @@ public class YSMNoLightPass : NoLightPass
         FragmentShader = _FragmentShader;
     }
 
-private const string _VertexShader = @"#version 300 es
+    private const string _VertexShader = @"#version 300 es
 precision mediump float;
 
 #define BONE_NUMBER 150

@@ -1,24 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using ConcreteMC.MolangSharp.Parser;
 using ConcreteMC.MolangSharp.Runtime;
 using ConcreteMC.MolangSharp.Runtime.Struct;
 using ConcreteMC.MolangSharp.Runtime.Value;
 using ConcreteMC.MolangSharp.Utils;
+using System.Text;
 
 namespace YSMViewer.Services.Molang;
 
-internal sealed class LazyFunctionStruct : IMoStruct
+internal sealed class LazyFunctionStruct(MolangService service) : IMoStruct
 {
-    private readonly MolangService _service;
     private readonly Dictionary<string, IExpression?> _cache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, byte[]> _functionSources = new(StringComparer.OrdinalIgnoreCase);
-
-    public LazyFunctionStruct(MolangService service)
-    {
-        _service = service;
-    }
 
     public void RegisterFunction(string name, byte[] source)
     {
@@ -34,12 +26,12 @@ internal sealed class LazyFunctionStruct : IMoStruct
                 return DoubleValue.Zero;
 
             var sourceText = Encoding.UTF8.GetString(source);
-            expr = _service.Parse(sourceText);
+            expr = service.Parse(sourceText);
             _cache[name] = expr;
         }
 
-        var context = _service.BuildContext();
-        var result = _service.Evaluate(expr);
+        var context = service.BuildContext();
+        var result = service.Evaluate(expr);
         return new DoubleValue(result);
     }
 

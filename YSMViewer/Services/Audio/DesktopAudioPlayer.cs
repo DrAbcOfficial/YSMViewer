@@ -1,5 +1,5 @@
-using NAudio.Wave;
 using NAudio.Vorbis;
+using NAudio.Wave;
 
 namespace YSMViewer.Services.Audio;
 
@@ -7,7 +7,7 @@ public sealed class DesktopAudioPlayer : IPlatformAudioPlayer
 {
     private readonly List<DesktopAudioInstance> _instances = [];
     private readonly Dictionary<string, CachedPcm> _pcmCache = [];
-    private readonly object _cacheLock = new();
+    private readonly Lock _cacheLock = new();
 
     public IAudioInstance Play(byte[] oggData, float volume)
     {
@@ -110,9 +110,9 @@ public sealed class DesktopAudioPlayer : IPlatformAudioPlayer
 
 internal sealed class DesktopAudioInstance : IAudioInstance, IDisposable
 {
-    private WaveOutEvent? _output;
-    private WaveStream? _stream;
-    private MemoryStream? _memStream;
+    private readonly WaveOutEvent? _output;
+    private readonly WaveStream? _stream;
+    private readonly MemoryStream? _memStream;
 
     public DesktopAudioInstance(byte[] oggData, float volume)
     {
@@ -140,8 +140,7 @@ internal sealed class DesktopAudioInstance : IAudioInstance, IDisposable
 
     public void SetVolume(float volume)
     {
-        if (_output is not null)
-            _output.Volume = float.Clamp(volume, 0f, 1f);
+        _output?.Volume = float.Clamp(volume, 0f, 1f);
     }
 
     public void Dispose()

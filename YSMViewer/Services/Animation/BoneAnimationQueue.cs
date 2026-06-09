@@ -5,9 +5,9 @@ using YSMViewer.Services.Molang;
 
 namespace YSMViewer.Services.Animation;
 
-public sealed class BoneAnimationQueue
+public sealed class BoneAnimationQueue(string boneName, Vector3 basePos, Vector3 baseEulerGltf)
 {
-    public string BoneName { get; }
+    public string BoneName { get; } = boneName;
 
     public float BlendWeight { get; private set; } = 1f;
 
@@ -34,36 +34,21 @@ public sealed class BoneAnimationQueue
     private BoneKeyFrame[] _positionFrames = [];
     private BoneKeyFrame[] _scaleFrames = [];
     private BoneKeyFrame[] _visibilityFrames = [];
-
-    private Vector3 _snapshotPos;
-    private Vector3 _snapshotRotBedrock;
-    private Vector3 _snapshotScale;
+    private Vector3 _snapshotRotBedrock = Vector3.Zero;
+    private Vector3 _snapshotScale = Vector3.One;
 
     private Vector3 _cachedPosDelta;
     private Vector3 _cachedRotBedrock;
     private Vector3 _cachedScale;
 
-    private readonly Vector3 _basePos;
-    private readonly Vector3 _baseEulerGltf;
-
     public bool IsVisible { get; private set; } = true;
     public bool HasVisibilityControl { get; private set; }
 
-    public BoneAnimationQueue(string boneName, Vector3 basePos, Vector3 baseEulerGltf)
-    {
-        BoneName = boneName;
-        _basePos = basePos;
-        _baseEulerGltf = baseEulerGltf;
-        _snapshotPos = basePos;
-        _snapshotRotBedrock = Vector3.Zero;
-        _snapshotScale = Vector3.One;
-    }
-
     public void CaptureSnapshot(Vector3 currentPos, Quaternion currentRot, Vector3 currentScale)
     {
-        _snapshotPos = currentPos;
+        basePos = currentPos;
         _snapshotScale = currentScale;
-        _snapshotRotBedrock = QuaternionToBedrockDelta(currentRot, _baseEulerGltf);
+        _snapshotRotBedrock = QuaternionToBedrockDelta(currentRot, baseEulerGltf);
     }
 
     private static Vector3 QuaternionToBedrockDelta(Quaternion q, Vector3 baseEulerGltf)
@@ -189,8 +174,8 @@ public sealed class BoneAnimationQueue
             }
             else
             {
-                Vector3 snapshotDeltaGltf = _snapshotPos - _basePos;
-                Vector3 snapshotDeltaBedrock = new Vector3(
+                Vector3 snapshotDeltaGltf = basePos - basePos;
+                Vector3 snapshotDeltaBedrock = new(
                     snapshotDeltaGltf.X * -16f,
                     snapshotDeltaGltf.Y * 16f,
                     snapshotDeltaGltf.Z * 16f);
@@ -198,7 +183,7 @@ public sealed class BoneAnimationQueue
             }
 
             PositionValue = result;
-            PositionTransitionOffset = _snapshotPos - _basePos;
+            PositionTransitionOffset = basePos - basePos;
             PositionTransitionLerp = progress;
             PositionType = PointType.Transition;
         }

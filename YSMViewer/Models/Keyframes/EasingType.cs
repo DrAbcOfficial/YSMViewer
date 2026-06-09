@@ -56,12 +56,12 @@ public static class Easing
             case EasingType.InBack: { float s = 1.70158f; return t * t * ((s + 1f) * t - s); }
             case EasingType.OutBack: { float s = 1.70158f; float u = t - 1f; return u * u * ((s + 1f) * u + s) + 1f; }
             case EasingType.InOutBack:
-            {
-                float s = 1.70158f * 1.525f;
-                return t < 0.5f
-                    ? (2f * t) * (2f * t) * ((s + 1f) * 2f * t - s) / 2f
-                    : ((2f * t - 2f) * (2f * t - 2f) * ((s + 1f) * (2f * t - 2f) + s) + 2f) / 2f;
-            }
+                {
+                    float s = 1.70158f * 1.525f;
+                    return t < 0.5f
+                        ? (2f * t) * (2f * t) * ((s + 1f) * 2f * t - s) / 2f
+                        : ((2f * t - 2f) * (2f * t - 2f) * ((s + 1f) * (2f * t - 2f) + s) + 2f) / 2f;
+                }
             case EasingType.InElastic:
                 return t == 0f ? 0f : t == 1f ? 1f
                     : -MathF.Pow(2f, 10f * t - 10f) * MathF.Sin((t * 10f - 10.75f) * 2f * Pi / 3f);

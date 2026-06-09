@@ -1,6 +1,5 @@
 using Aura3D.Avalonia;
 using Aura3D.Core.Nodes;
-using Aura3D.Core.Renderers;
 using Aura3D.Core.Resources;
 using Avalonia.Controls;
 using System.Numerics;
@@ -125,8 +124,10 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
         }
         _animService.SetBoneNodes(_animBones, _baseBoneEulers);
 
-        _molangService = new MolangService();
-        _molangService.BoneNodes = _animBones;
+        _molangService = new MolangService
+        {
+            BoneNodes = _animBones
+        };
         _animService.MolangService = _molangService;
 
         if (document.Sounds.Count > 0)
@@ -149,7 +150,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
             var controllerEntry = ParseFirstController(document.AnimControllers[0].Data);
             if (controllerEntry is not null)
             {
-                var context = CreateAnimationContext(document, controllerEntry);
+                var context = CreateAnimationContext(controllerEntry);
                 _stateMachine = new AnimationStateMachine(controllerEntry, context);
                 _stateMachine.Initialize();
                 _molangService.StateMachineHost = _stateMachine;
@@ -159,7 +160,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
         }
     }
 
-    private AnimationControllerEntry? ParseFirstController(byte[] data)
+    private static AnimationControllerEntry? ParseFirstController(byte[] data)
     {
         try
         {
@@ -173,8 +174,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
         }
     }
 
-    private AnimationContext CreateAnimationContext(
-        YsmModelDocument document, AnimationControllerEntry controller)
+    private AnimationContext CreateAnimationContext(AnimationControllerEntry controller)
     {
         var anims = new Dictionary<string, MinecraftAnimation>(StringComparer.OrdinalIgnoreCase);
         foreach (var anim in _animService.GetAllAnimations())

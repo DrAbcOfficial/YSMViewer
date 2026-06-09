@@ -5,21 +5,13 @@ using System.Numerics;
 using System.Text.Json;
 using YSMViewer.Services.Molang;
 
-public readonly struct Vector3v
+public readonly struct Vector3v(object? x, object? y, object? z)
 {
-    private readonly object? _x;
-    private readonly object? _y;
-    private readonly object? _z;
+    private readonly object? _x = x;
+    private readonly object? _y = y;
+    private readonly object? _z = z;
 
-    public bool IsStatic { get; }
-
-    public Vector3v(object? x, object? y, object? z)
-    {
-        _x = x;
-        _y = y;
-        _z = z;
-        IsStatic = IsStaticComponent(x) && IsStaticComponent(y) && IsStaticComponent(z);
-    }
+    public bool IsStatic { get; } = IsStaticComponent(x) && IsStaticComponent(y) && IsStaticComponent(z);
 
     private static bool IsStaticComponent(object? c)
     {
@@ -78,7 +70,7 @@ public readonly struct Vector3v
             JsonValueKind.Number => new(element.GetDouble(), null, null),
             JsonValueKind.String => new(element.GetString(), null, null),
             JsonValueKind.Array =>
-                FromJsonArray(element.EnumerateArray().ToList()),
+                FromJsonArray([.. element.EnumerateArray()]),
             _ => default,
         };
     }

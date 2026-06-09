@@ -25,9 +25,7 @@ public sealed class AnimationService(
     public IReadOnlyDictionary<string, MinecraftAnimation> GetAllAnimations() => _allAnimations;
 
     public IReadOnlyList<string> AnimationNames =>
-        _allAnimations.Where(kv => IsValidLength(kv.Value.AnimationLength))
-                      .Select(kv => kv.Key)
-                      .ToList();
+        [.. _allAnimations.Where(kv => IsValidLength(kv.Value.AnimationLength)).Select(kv => kv.Key)];
 
     public float AnimationLength => _currentAnimation?.AnimationLength ?? 0f;
     public float CurrentTime => _currentTime;
@@ -472,7 +470,7 @@ public sealed class MinecraftBoneAnimationConverter : System.Text.Json.Serializa
             if (valNode.GetValueKind() == JsonValueKind.Number)
             {
                 var arr = targetArray ? preVals : postVals;
-                arr = new object?[] { valNode.GetValue<double>() };
+                arr = [valNode.GetValue<double>()];
                 if (targetArray) preVals = arr; else postVals = arr;
             }
             else if (valNode.GetValueKind() == JsonValueKind.String)

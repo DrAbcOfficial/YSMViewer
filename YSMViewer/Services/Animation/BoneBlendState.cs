@@ -3,11 +3,11 @@ using YSMViewer.Services.Molang;
 
 namespace YSMViewer.Services.Animation;
 
-public sealed class BoneBlendState
+public sealed class BoneBlendState(string boneName)
 {
     private readonly List<BlendSource> _sources = [];
 
-    public string BoneName { get; }
+    public string BoneName { get; } = boneName;
 
     public Vector3 BlendedPosition { get; private set; }
     public Quaternion BlendedRotation { get; private set; } = Quaternion.Identity;
@@ -15,11 +15,6 @@ public sealed class BoneBlendState
     public bool HasActiveSources { get; private set; }
     public bool IsVisibilityControlled { get; private set; }
     public bool VisibilityValue { get; private set; } = true;
-
-    public BoneBlendState(string boneName)
-    {
-        BoneName = boneName;
-    }
 
     public void Reset()
     {
@@ -100,7 +95,7 @@ public sealed class BoneBlendState
 
                 Vector3 s = queue.ScaleValue;
                 float t = Math.Clamp(effectiveWeight, 0f, 1f);
-                Vector3 lerped = new Vector3(
+                Vector3 lerped = new(
                     1f + (s.X - 1f) * t,
                     1f + (s.Y - 1f) * t,
                     1f + (s.Z - 1f) * t);
@@ -115,7 +110,7 @@ public sealed class BoneBlendState
                     effectiveWeight *= MathF.Max(0f, 1f - queue.RotationTransitionLerp);
 
                 Vector3 rotBedrock = queue.RotationValue;
-                Vector3 rotGltf = new Vector3(-rotBedrock.X, -rotBedrock.Y, rotBedrock.Z);
+                Vector3 rotGltf = new(-rotBedrock.X, -rotBedrock.Y, rotBedrock.Z);
 
                 Quaternion rotQuat;
                 if (queue.PositionType != BoneAnimationQueue.PointType.None
@@ -127,7 +122,7 @@ public sealed class BoneBlendState
                 if (queue.RotationType == BoneAnimationQueue.PointType.Transition)
                 {
                     applySnapshot = true;
-                    Vector3 offsetGltf = new Vector3(-queue.RotationTransitionOffset.X, -queue.RotationTransitionOffset.Y, queue.RotationTransitionOffset.Z);
+                    Vector3 offsetGltf = new(-queue.RotationTransitionOffset.X, -queue.RotationTransitionOffset.Y, queue.RotationTransitionOffset.Z);
                     Vector3 snapEuler = baseEuler + offsetGltf;
                     snapshotQuat = AnimationService.CreateBlockbenchQuaternion(snapEuler);
                     snapshotLerp = queue.RotationTransitionLerp;
@@ -185,7 +180,7 @@ public sealed class BoneBlendState
             }
         }
         IsVisibilityControlled = anyVisibilitySource;
-        VisibilityValue = anyVisibilitySource ? anyVisible : true;
+        VisibilityValue = !anyVisibilitySource || anyVisible;
     }
 
     private struct BlendSource

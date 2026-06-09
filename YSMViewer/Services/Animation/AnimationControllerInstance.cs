@@ -12,12 +12,14 @@ public enum AnimationResamplerState
     EndingTransition
 }
 
-public sealed class AnimationControllerInstance
+public sealed class AnimationControllerInstance(
+    MinecraftAnimation animation,
+    AnimationContext context)
 {
     private const float DefaultEndingTransitionDuration = 0.15f;
 
-    private readonly MinecraftAnimation _animation;
-    private readonly AnimationContext _context;
+    private readonly MinecraftAnimation _animation = animation;
+    private readonly AnimationContext _context = context;
     private readonly Dictionary<string, BoneAnimationQueue> _boneQueues = [];
     private readonly List<BoneAnimationQueue> _activeQueues = [];
 
@@ -30,21 +32,11 @@ public sealed class AnimationControllerInstance
     private float _endingTransitionDuration = DefaultEndingTransitionDuration;
     private bool _isAnimationFinished = true;
 
-    private readonly Dictionary<string, Vector3> _basePositions;
-    private readonly Dictionary<string, Vector3> _baseEulers;
+    private readonly Dictionary<string, Vector3> _basePositions = new(context.BasePositions);
+    private readonly Dictionary<string, Vector3> _baseEulers = new(context.BaseEulers);
 
     public bool IsRunning => _state != AnimationResamplerState.Idle;
     public bool IsAnimationFinished => _isAnimationFinished;
-
-    public AnimationControllerInstance(
-        MinecraftAnimation animation,
-        AnimationContext context)
-    {
-        _animation = animation;
-        _context = context;
-        _basePositions = new Dictionary<string, Vector3>(context.BasePositions);
-        _baseEulers = new Dictionary<string, Vector3>(context.BaseEulers);
-    }
 
     public float EvaluateBlendWeight(MolangService molang)
     {
@@ -151,7 +143,6 @@ public sealed class AnimationControllerInstance
 
         if (progress >= 1f)
         {
-            progress = 1f;
             float animationTick = adjustedTick - _beginningTransitionDuration;
             _tickOffset += _beginningTransitionDuration;
             _currentTick = MathF.Max(animationTick, 0f);
@@ -179,7 +170,6 @@ public sealed class AnimationControllerInstance
             if (_animation.Loop)
             {
                 _currentTick = adjustedTick % length;
-                adjustedTick = _currentTick;
             }
             else
             {

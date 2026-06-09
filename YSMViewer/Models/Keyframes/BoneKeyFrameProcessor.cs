@@ -131,7 +131,8 @@ public static class BoneKeyFrameProcessor
                         : post;
 
                     frames.Add(new CatmullRomKeyFrame(
-                        startTime, duration, pre, post, preControl, postControl) { EasingMode = easing });
+                        startTime, duration, pre, post, preControl, postControl)
+                    { EasingMode = easing });
                 }
                 else
                 {

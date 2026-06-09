@@ -7,7 +7,7 @@ public sealed class AnimationAudioService : IAnimationAudioHost, IDisposable
 {
     private readonly Dictionary<string, byte[]> _soundFiles = new(StringComparer.OrdinalIgnoreCase);
     private readonly IPlatformAudioPlayer _player;
-    private readonly Dictionary<string, IAudioInstance> _activeSounds = new();
+    private readonly Dictionary<string, IAudioInstance> _activeSounds = [];
     private float _volume = 1f;
     private bool _isMuted;
 

@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
 using ConcreteMC.MolangSharp.Parser;
 using ConcreteMC.MolangSharp.Parser.Exceptions;
 using ConcreteMC.MolangSharp.Parser.Expressions;
 using ConcreteMC.MolangSharp.Runtime;
-using ConcreteMC.MolangSharp.Runtime.Struct;
 using ConcreteMC.MolangSharp.Runtime.Value;
 
 namespace YSMViewer.Services.Molang;
@@ -145,7 +142,7 @@ public sealed class MolangService
     {
         _animVariables.Clear();
         _contextDirty = true;
-        Physics.UpdateAll();
+        PhysicsSimulator.UpdateAll();
     }
 
     internal double SafeGetUserVar(string name, double defaultValue = 0.0)

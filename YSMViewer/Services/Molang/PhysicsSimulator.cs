@@ -1,11 +1,9 @@
-using System;
-
 namespace YSMViewer.Services.Molang;
 
 public sealed class PhysicsSimulator
 {
-    private readonly Dictionary<string, FirstOrderState> _firstOrderStates = new();
-    private readonly Dictionary<string, SecondOrderState> _secondOrderStates = new();
+    private readonly Dictionary<string, FirstOrderState> _firstOrderStates = [];
+    private readonly Dictionary<string, SecondOrderState> _secondOrderStates = [];
 
     private static readonly int[] PerlinPerm = BuildPermutationTable();
 
@@ -96,7 +94,7 @@ public sealed class PhysicsSimulator
         return state.Value;
     }
 
-    public double PerlinNoise(double seed, double x, double y = 0.0, double z = 0.0)
+    public static double PerlinNoise(double seed, double x, double y = 0.0, double z = 0.0)
     {
         int s = (int)seed & 255;
         int xi = (int)Math.Floor(x) & 255;
@@ -130,7 +128,7 @@ public sealed class PhysicsSimulator
         return Lerp(y1, y2, w);
     }
 
-    public void UpdateAll()
+    public static void UpdateAll()
     {
     }
 

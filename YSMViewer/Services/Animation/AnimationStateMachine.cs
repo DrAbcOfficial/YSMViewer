@@ -1,20 +1,22 @@
-using System.Numerics;
 using ConcreteMC.MolangSharp.Parser;
+using System.Numerics;
 using YSMViewer.Models.AnimationController;
 using YSMViewer.Services.Molang;
 
 namespace YSMViewer.Services.Animation;
 
-public sealed class AnimationStateMachine : IAnimationStateMachineHost
+public sealed class AnimationStateMachine(
+    AnimationControllerEntry controller,
+    AnimationContext context) : IAnimationStateMachineHost
 {
     private const int MaxTransitionIterations = 8;
 
-    private readonly AnimationControllerEntry _controller;
-    private readonly AnimationContext _context;
+    private readonly AnimationControllerEntry _controller = controller;
+    private readonly AnimationContext _context = context;
     private readonly List<AnimationSlot> _activeSlots = [];
     private readonly List<AnimationSlot> _fadingSlots = [];
     private readonly Dictionary<string, BoneBlendState> _blendStates = [];
-    private string _currentState;
+    private string _currentState = controller.InitialState ?? "default";
     private bool _isInitialized;
     private float _currentTick;
 
@@ -23,15 +25,6 @@ public sealed class AnimationStateMachine : IAnimationStateMachineHost
 
     public string CurrentState => _currentState ?? "";
     public bool IsInitialized => _isInitialized;
-
-    public AnimationStateMachine(
-        AnimationControllerEntry controller,
-        AnimationContext context)
-    {
-        _controller = controller;
-        _context = context;
-        _currentState = controller.InitialState ?? "default";
-    }
 
     public void Initialize()
     {
