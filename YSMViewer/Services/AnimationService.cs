@@ -165,7 +165,7 @@ public sealed class AnimationService(
 
             if (boneAnim.Rotation is not null)
             {
-                var animDeltaBedrock = EvaluateKeyframeSet(boneAnim.Rotation, _currentTime);
+                var animDeltaBedrock = Sanitize(EvaluateKeyframeSet(boneAnim.Rotation, _currentTime));
                 var animDeltaGltf = new Vector3(-animDeltaBedrock.X, -animDeltaBedrock.Y, animDeltaBedrock.Z);
 
                 Vector3 combinedGltf;
@@ -181,13 +181,13 @@ public sealed class AnimationService(
             }
             if (boneAnim.Position is not null)
             {
-                var animDeltaBedrock = EvaluateKeyframeSet(boneAnim.Position, _currentTime);
+                var animDeltaBedrock = Sanitize(EvaluateKeyframeSet(boneAnim.Position, _currentTime));
                 var animDeltaGltf = new Vector3(-animDeltaBedrock.X, animDeltaBedrock.Y, animDeltaBedrock.Z) / 16f;
-                node.Position = basePos + animDeltaGltf;
+                node.Position = Sanitize(basePos + animDeltaGltf);
             }
             if (boneAnim.Scale is not null)
             {
-                var animScale = EvaluateKeyframeSet(boneAnim.Scale, _currentTime);
+                var animScale = Sanitize(EvaluateKeyframeSet(boneAnim.Scale, _currentTime));
                 node.Scale = animScale;
             }
         }
@@ -195,6 +195,10 @@ public sealed class AnimationService(
 
     internal static Quaternion CreateBlockbenchQuaternion(Vector3 eulerDegrees)
     {
+        if (float.IsNaN(eulerDegrees.X) || float.IsNaN(eulerDegrees.Y) || float.IsNaN(eulerDegrees.Z)
+            || float.IsInfinity(eulerDegrees.X) || float.IsInfinity(eulerDegrees.Y) || float.IsInfinity(eulerDegrees.Z))
+            return Quaternion.Identity;
+
         float rx = eulerDegrees.X * MathF.PI / 180f;
         float ry = eulerDegrees.Y * MathF.PI / 180f;
         float rz = eulerDegrees.Z * MathF.PI / 180f;
@@ -202,6 +206,14 @@ public sealed class AnimationService(
               * Matrix4x4.CreateRotationY(ry)
               * Matrix4x4.CreateRotationZ(rz);
         return Quaternion.CreateFromRotationMatrix(m);
+    }
+
+    private static Vector3 Sanitize(Vector3 v)
+    {
+        return new Vector3(
+            float.IsNaN(v.X) || float.IsInfinity(v.X) ? 0f : v.X,
+            float.IsNaN(v.Y) || float.IsInfinity(v.Y) ? 0f : v.Y,
+            float.IsNaN(v.Z) || float.IsInfinity(v.Z) ? 0f : v.Z);
     }
 
     private Vector3 EvaluateKeyframeSet(MinecraftKeyframeSet kf, float time)
@@ -214,16 +226,16 @@ public sealed class AnimationService(
 
         if (kf.HasMolangExpressions || kf.HasAdvancedInterpolation)
         {
-            return EvaluateKeyframeSetAdvanced(kf, time);
+            return Sanitize(EvaluateKeyframeSetAdvanced(kf, time));
         }
 
         var sorted = kf.Keyframes.OrderBy(k => k.Key).ToList();
 
         if (time <= sorted[0].Key)
-            return ToVector3(sorted[0].Value);
+            return Sanitize(ToVector3(sorted[0].Value));
 
         if (time >= sorted[^1].Key)
-            return ToVector3(sorted[^1].Value);
+            return Sanitize(ToVector3(sorted[^1].Value));
 
         for (int i = 0; i < sorted.Count - 1; i++)
         {
@@ -232,11 +244,11 @@ public sealed class AnimationService(
                 float t = (time - sorted[i].Key) / (sorted[i + 1].Key - sorted[i].Key);
                 var a = ToVector3(sorted[i].Value);
                 var b = ToVector3(sorted[i + 1].Value);
-                return Vector3.Lerp(a, b, t);
+                return Sanitize(Vector3.Lerp(a, b, t));
             }
         }
 
-        return ToVector3(sorted[^1].Value);
+        return Sanitize(ToVector3(sorted[^1].Value));
     }
 
     private Vector3 EvaluateKeyframeSetAdvanced(MinecraftKeyframeSet kf, float time)
@@ -256,24 +268,24 @@ public sealed class AnimationService(
         var molang = MolangService;
 
         if (frames.Length == 1)
-            return frames[0].Evaluate(molang, 1f);
+            return Sanitize(frames[0].Evaluate(molang, 1f));
 
         if (time <= frames[0].StartTime)
-            return frames[0].GetValue(molang, true);
+            return Sanitize(frames[0].GetValue(molang, true));
 
         if (time >= frames[^1].EndTime)
-            return frames[^1].GetValue(molang, false);
+            return Sanitize(frames[^1].GetValue(molang, false));
 
         for (int i = 0; i < frames.Length; i++)
         {
             if (time >= frames[i].StartTime && time <= frames[i].EndTime)
             {
                 float progress = (time - frames[i].StartTime) / frames[i].Duration;
-                return frames[i].Evaluate(molang, progress);
+                return Sanitize(frames[i].Evaluate(molang, progress));
             }
         }
 
-        return frames[^1].GetValue(molang, false);
+        return Sanitize(frames[^1].GetValue(molang, false));
     }
 
     private static BoneKeyFrame[] BuildKeyFrames(MinecraftKeyframeSet kf)
@@ -292,10 +304,10 @@ public sealed class AnimationService(
         var sorted = kf.Keyframes.OrderBy(k => k.Key).ToList();
 
         if (time <= sorted[0].Key)
-            return ToVector3(sorted[0].Value);
+            return Sanitize(ToVector3(sorted[0].Value));
 
         if (time >= sorted[^1].Key)
-            return ToVector3(sorted[^1].Value);
+            return Sanitize(ToVector3(sorted[^1].Value));
 
         for (int i = 0; i < sorted.Count - 1; i++)
         {
@@ -304,11 +316,11 @@ public sealed class AnimationService(
                 float t = (time - sorted[i].Key) / (sorted[i + 1].Key - sorted[i].Key);
                 var a = ToVector3(sorted[i].Value);
                 var b = ToVector3(sorted[i + 1].Value);
-                return Vector3.Lerp(a, b, t);
+                return Sanitize(Vector3.Lerp(a, b, t));
             }
         }
 
-        return ToVector3(sorted[^1].Value);
+        return Sanitize(ToVector3(sorted[^1].Value));
     }
 
     private static Vector3 ToVector3(float[] values)

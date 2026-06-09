@@ -240,20 +240,28 @@ public sealed class BoneAnimationQueue(string boneName, Vector3 basePos, Vector3
     private static Vector3 EvaluateKeyFrames(BoneKeyFrame[] frames, float tick, MolangService molang)
     {
         if (frames.Length == 0) return Vector3.Zero;
-        if (frames.Length == 1) return frames[0].Evaluate(molang, 1f);
+        if (frames.Length == 1) return Sanitize(frames[0].Evaluate(molang, 1f));
 
         if (tick <= frames[0].StartTime)
-            return frames[0].GetValue(molang, true);
+            return Sanitize(frames[0].GetValue(molang, true));
         if (tick >= frames[^1].EndTime)
-            return frames[^1].GetValue(molang, false);
+            return Sanitize(frames[^1].GetValue(molang, false));
 
         int idx = BinarySearchFrame(frames, tick);
-        if (idx < 0) return frames[0].GetValue(molang, true);
-        if (idx >= frames.Length - 1) return frames[^1].GetValue(molang, false);
+        if (idx < 0) return Sanitize(frames[0].GetValue(molang, true));
+        if (idx >= frames.Length - 1) return Sanitize(frames[^1].GetValue(molang, false));
 
         float duration = frames[idx + 1].StartTime - frames[idx].StartTime;
         float progress = duration > 0f ? (tick - frames[idx].StartTime) / duration : 1f;
-        return frames[idx].Evaluate(molang, progress);
+        return Sanitize(frames[idx].Evaluate(molang, progress));
+    }
+
+    private static Vector3 Sanitize(Vector3 v)
+    {
+        return new Vector3(
+            float.IsNaN(v.X) || float.IsInfinity(v.X) ? 0f : v.X,
+            float.IsNaN(v.Y) || float.IsInfinity(v.Y) ? 0f : v.Y,
+            float.IsNaN(v.Z) || float.IsInfinity(v.Z) ? 0f : v.Z);
     }
 
     private static int BinarySearchFrame(BoneKeyFrame[] frames, float tick)
