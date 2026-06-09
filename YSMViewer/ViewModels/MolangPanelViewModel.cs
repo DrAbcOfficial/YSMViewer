@@ -30,13 +30,30 @@ public sealed partial class MolangPanelViewModel : ObservableObject
         ["query.is_flying"]         = (0f, 1f, 0f, 1f),
         ["query.is_sprinting"]      = (0f, 1f, 0f, 1f),
         ["query.is_gliding"]        = (0f, 1f, 0f, 1f),
+        ["query.is_blocking"]       = (0f, 1f, 0f, 1f),
+        ["query.is_using_item"]     = (0f, 1f, 0f, 1f),
+        ["query.is_sleeping"]       = (0f, 1f, 0f, 1f),
+        ["query.is_in_water"]       = (0f, 1f, 0f, 1f),
+        ["query.is_riding"]         = (0f, 1f, 0f, 1f),
+        ["query.has_helmet"]        = (0f, 1f, 0f, 1f),
+        ["query.has_chestplate"]    = (0f, 1f, 0f, 1f),
+        ["query.has_leggings"]      = (0f, 1f, 0f, 1f),
+        ["query.has_boots"]         = (0f, 1f, 0f, 1f),
+        ["query.has_elytra"]        = (0f, 1f, 0f, 1f),
+        ["query.has_offhand"]       = (0f, 1f, 0f, 1f),
         ["query.health"]            = (0f, 20f, 20f, 0.5f),
+        ["query.max_health"]        = (0f, 20f, 20f, 1f),
         ["query.hurt_time"]         = (0f, 10f, 0f, 1f),
         ["query.death_time"]        = (0f, 20f, 0f, 1f),
+        ["query.armor_value"]       = (0f, 20f, 0f, 1f),
         ["query.head_x_rotation"]   = (-90f, 90f, 0f, 1f),
         ["query.head_y_rotation"]   = (-180f, 180f, 0f, 1f),
+        ["query.body_x_rotation"]  = (-180f, 180f, 0f, 1f),
+        ["query.body_y_rotation"]  = (-180f, 180f, 0f, 1f),
         ["query.input_vertical"]    = (-1f, 1f, 0f, 0.1f),
         ["query.input_horizontal"]  = (-1f, 1f, 0f, 0.1f),
+        ["query.vertical_speed"]    = (-10f, 10f, 0f, 0.1f),
+        ["query.modified_move_speed"] = (0f, 10f, 1f, 0.1f),
     };
 
     public void DiscoverVariables(IEnumerable<string> molangExpressions)
@@ -62,11 +79,16 @@ public sealed partial class MolangPanelViewModel : ObservableObject
     private static void FindQueryVariables(string expression, HashSet<string> found)
     {
         var matches = Regex.Matches(
-            expression, @"\bquery\.\w+(?:\.\w+)*\b",
+            expression, @"\b(?:query|q)\.\w+(?:\.\w+)*\b",
             RegexOptions.IgnoreCase);
 
         foreach (Match m in matches)
-            found.Add(m.Value.ToLowerInvariant());
+        {
+            var val = m.Value.ToLowerInvariant();
+            if (val.StartsWith("q."))
+                val = "query." + val[2..];
+            found.Add(val);
+        }
     }
 
     private static MolangVariableItem CreateDefaultItem(string name)
@@ -90,7 +112,7 @@ public sealed partial class MolangPanelViewModel : ObservableObject
         var lower = name.ToLowerInvariant();
         return lower switch
         {
-            _ when lower.Contains("is_") => new MolangVariableItem
+            _ when lower.Contains("is_") || lower.Contains("has_") => new MolangVariableItem
             {
                 Name = name, DefaultValue = 0f, Value = 0f,
                 MinValue = 0f, MaxValue = 1f, Step = 1f,
