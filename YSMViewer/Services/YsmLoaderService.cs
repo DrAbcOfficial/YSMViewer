@@ -246,7 +246,19 @@ public sealed class YsmLoaderService
         if (models.Count == 0)
             throw new InvalidOperationException("No valid geometry models found in YSM file");
 
-        return new YsmModelDocument(info, models, textureResources, animationResources, imageResources);
+        var animControllerResources = new List<YsmAnimationControllerResource>();
+        foreach (var ac in resources.AnimationControllers)
+            animControllerResources.Add(new YsmAnimationControllerResource(ac.Name, ac.Data));
+
+        var soundResources = new List<YsmSoundResource>();
+        foreach (var snd in resources.Sounds)
+            soundResources.Add(new YsmSoundResource(snd.Name, snd.Data));
+
+        var functionResources = new List<YsmFunctionResource>();
+        foreach (var fn in resources.Functions)
+            functionResources.Add(new YsmFunctionResource(fn.Name, fn.Data));
+
+        return new YsmModelDocument(info, models, textureResources, animationResources, imageResources, animControllerResources, soundResources, functionResources);
     }
 
     private static List<YsmBoneInfo> ConvertBones(List<MinecraftBone> bones)

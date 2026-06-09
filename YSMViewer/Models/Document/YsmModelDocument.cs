@@ -14,7 +14,10 @@ public sealed record YsmModelDocument(
     IReadOnlyList<YsmGeometryModel> Models,
     IReadOnlyList<YsmTextureResource> Textures,
     IReadOnlyList<YsmAnimationResource> Animations,
-    IReadOnlyList<YsmImageResource> Images);
+    IReadOnlyList<YsmImageResource> Images,
+    IReadOnlyList<YsmAnimationControllerResource> AnimControllers,
+    IReadOnlyList<YsmSoundResource> Sounds,
+    IReadOnlyList<YsmFunctionResource> Functions);
 
 public sealed record YsmDocumentModelInfo(
     string Name,
