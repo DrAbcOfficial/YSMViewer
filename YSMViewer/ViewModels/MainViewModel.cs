@@ -6,6 +6,7 @@ using System.Text.Json;
 using YSMViewer.Models.Document;
 using YSMViewer.Rendering;
 using YSMViewer.Services;
+using YSMViewer.Services.Audio;
 using YSMViewer.Services.Molang;
 
 namespace YSMViewer.ViewModels;
@@ -25,6 +26,7 @@ public sealed partial class MainViewModel : ViewModelBase
     public bool SupportsComponentVisibility => Renderer.Capabilities.SupportsComponentVisibility;
     public bool SupportsBoneVisibility => Renderer.Capabilities.SupportsBoneVisibility;
     public bool SupportsAutoRotation => Renderer.Capabilities.SupportsAutoRotation;
+    public bool SupportsAudio => Renderer.Capabilities.SupportsAudio;
     public bool IsBrowserReadOnly => !SupportsComponentVisibility && !SupportsBoneVisibility;
 
     public ObservableCollection<string> AnimationNames { get; } = [];
@@ -33,6 +35,7 @@ public sealed partial class MainViewModel : ViewModelBase
     public ObservableCollection<TextureItemViewModel> TextureItems { get; } = [];
 
     private YsmModelDocument? _currentDocument;
+    private AnimationAudioService? _audioService;
 
     public string? StartupFilePath { get; set; }
     public string? StartupFileUrl { get; set; }
@@ -447,6 +450,17 @@ public sealed partial class MainViewModel : ViewModelBase
         BuildBoneTree();
 
         Renderer.LoadModel(document);
+
+        _audioService?.Dispose();
+        _audioService = null;
+        MolangService.AudioHost = null;
+
+        if (IsDesktop && document.Sounds.Count > 0)
+        {
+            var player = new DesktopAudioPlayer();
+            _audioService = new AnimationAudioService(player, document.Sounds);
+            MolangService.AudioHost = _audioService;
+        }
 
         PopulateAnimationData(document);
 

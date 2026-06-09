@@ -20,6 +20,9 @@ public interface IAnimationAudioHost
 {
     void PlaySound(string soundName);
     void StopSound(string soundName);
+    void StopAllSounds();
+    void SetVolume(float volume);
+    void SetMuted(bool muted);
 }
 
 public sealed class MolangService

@@ -18,7 +18,8 @@ public sealed record RendererCapabilities(
     bool SupportsTextureProjection,
     bool SupportsAutoRotation,
     bool SupportsFreeCamera,
-    bool SupportsGizmo)
+    bool SupportsGizmo,
+    bool SupportsAudio)
 {
     public static RendererCapabilities Desktop { get; } = new(
         SupportsAnimation: true,
@@ -27,7 +28,8 @@ public sealed record RendererCapabilities(
         SupportsTextureProjection: false,
         SupportsAutoRotation: false,
         SupportsFreeCamera: true,
-        SupportsGizmo: true);
+        SupportsGizmo: true,
+        SupportsAudio: true);
 
     public static RendererCapabilities Browser { get; } = new(
         SupportsAnimation: true,
@@ -36,5 +38,6 @@ public sealed record RendererCapabilities(
         SupportsTextureProjection: false,
         SupportsAutoRotation: false,
         SupportsFreeCamera: true,
-        SupportsGizmo: false);
+        SupportsGizmo: false,
+        SupportsAudio: false);
 }

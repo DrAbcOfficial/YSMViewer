@@ -31,7 +31,8 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimatio
         SupportsTextureProjection: false,
         SupportsAutoRotation: false,
         SupportsFreeCamera: true,
-        SupportsGizmo: false);
+        SupportsGizmo: false,
+        SupportsAudio: false);
 
     public IReadOnlyList<string> AnimationNames => _animationNames;
     public float AnimationDuration => _animationDuration;

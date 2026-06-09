@@ -36,5 +36,7 @@
     <PackageReference Include="Svg.Controls.Skia.Avalonia" />
     <PackageReference Include="YSMParser.Core" />
     <PackageReference Include="Alex.MoLang" />
+    <PackageReference Include="NAudio" />
+    <PackageReference Include="NAudio.Vorbis" />
   </ItemGroup>
 </Project>
