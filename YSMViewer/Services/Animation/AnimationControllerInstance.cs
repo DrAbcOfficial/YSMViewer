@@ -1,0 +1,242 @@
+using System.Numerics;
+using YSMViewer.Models;
+using YSMViewer.Services.Molang;
+
+namespace YSMViewer.Services.Animation;
+
+public enum AnimationResamplerState
+{
+    Idle,
+    BeginningTransition,
+    Running,
+    EndingTransition
+}
+
+public sealed class AnimationControllerInstance
+{
+    private const float DefaultEndingTransitionDuration = 0.15f;
+
+    private readonly MinecraftAnimation _animation;
+    private readonly AnimationContext _context;
+    private readonly Dictionary<string, BoneAnimationQueue> _boneQueues = [];
+    private readonly List<BoneAnimationQueue> _activeQueues = [];
+
+    private AnimationResamplerState _state = AnimationResamplerState.Idle;
+    private float _currentTick;
+    private float _tickOffset;
+    private float _transitionProgress;
+    private float _transitionDuration;
+    private float _savedEndingTick;
+    private bool _isAnimationFinished = true;
+
+    private readonly Dictionary<string, Vector3> _basePositions;
+    private readonly Dictionary<string, Vector3> _baseEulers;
+
+    public bool IsRunning => _state != AnimationResamplerState.Idle;
+    public bool IsAnimationFinished => _isAnimationFinished;
+
+    public AnimationControllerInstance(
+        MinecraftAnimation animation,
+        AnimationContext context)
+    {
+        _animation = animation;
+        _context = context;
+        _basePositions = new Dictionary<string, Vector3>(context.BasePositions);
+        _baseEulers = new Dictionary<string, Vector3>(context.BaseEulers);
+    }
+
+    public float EvaluateBlendWeight(MolangService molang)
+    {
+        return _animation.BlendWeight;
+    }
+
+    public void InitializeBoneQueues(
+        IReadOnlyDictionary<string, (Vector3 pos, Quaternion rot, Vector3 scale)> currentBoneStates)
+    {
+        _boneQueues.Clear();
+        _activeQueues.Clear();
+
+        if (_animation.Bones is null) return;
+
+        foreach (var (boneName, boneAnim) in _animation.Bones)
+        {
+            if (!_basePositions.TryGetValue(boneName, out var basePos))
+                basePos = Vector3.Zero;
+            if (!_baseEulers.TryGetValue(boneName, out var baseEuler))
+                baseEuler = Vector3.Zero;
+
+            var queue = new BoneAnimationQueue(boneName, basePos, baseEuler);
+
+            if (currentBoneStates.TryGetValue(boneName, out var state))
+            {
+                queue.CaptureSnapshot(state.pos, state.rot, state.scale);
+            }
+
+            queue.ApplyAnimation(boneAnim);
+            _boneQueues[boneName] = queue;
+            _activeQueues.Add(queue);
+        }
+    }
+
+    public void BeginStart(float blendTransitionDuration, float tick,
+        IReadOnlyDictionary<string, (Vector3 pos, Quaternion rot, Vector3 scale)> currentBoneStates)
+    {
+        _transitionDuration = blendTransitionDuration > 0f ? blendTransitionDuration : DefaultEndingTransitionDuration;
+        _tickOffset = tick;
+        _currentTick = 0f;
+        _transitionProgress = 0f;
+        _isAnimationFinished = false;
+
+        InitializeBoneQueues(currentBoneStates);
+
+        if (_transitionDuration <= 0f)
+        {
+            _state = AnimationResamplerState.Running;
+            foreach (var queue in _activeQueues)
+                queue.ProcessRunning(0f, _context.Molang);
+        }
+        else
+        {
+            _state = AnimationResamplerState.BeginningTransition;
+            foreach (var queue in _activeQueues)
+                queue.ProcessBeginningTransition(0f, 0f, _context.Molang);
+        }
+    }
+
+    public void BeginEnd(float tick)
+    {
+        if (_state == AnimationResamplerState.Running ||
+            _state == AnimationResamplerState.BeginningTransition)
+        {
+            foreach (var queue in _activeQueues)
+                queue.CacheCurrentValues();
+
+            _tickOffset = tick;
+            float adjustedTick = MathF.Max(tick - _tickOffset, 0f);
+
+            if (_state == AnimationResamplerState.Running)
+            {
+                if (adjustedTick > _animation.AnimationLength && _animation.AnimationLength > 0f)
+                    adjustedTick = _animation.AnimationLength;
+                _savedEndingTick = adjustedTick;
+            }
+            else
+            {
+                _savedEndingTick = 0f;
+            }
+
+            _currentTick = 0f;
+            _isAnimationFinished = true;
+            _state = AnimationResamplerState.EndingTransition;
+
+            foreach (var queue in _activeQueues)
+                queue.ProcessEndingTransition(0f);
+        }
+        else
+        {
+            _state = AnimationResamplerState.Idle;
+        }
+    }
+
+    public void Process(float tick, MolangService molang)
+    {
+        if (_state == AnimationResamplerState.Idle)
+            return;
+
+        float adjustedTick = MathF.Max(tick - _tickOffset, 0f);
+
+        switch (_state)
+        {
+            case AnimationResamplerState.BeginningTransition:
+                ProcessBeginningTransition(adjustedTick, molang);
+                break;
+            case AnimationResamplerState.Running:
+                ProcessRunning(adjustedTick, molang);
+                break;
+            case AnimationResamplerState.EndingTransition:
+                ProcessEndingTransition();
+                break;
+        }
+    }
+
+    private void ProcessBeginningTransition(float adjustedTick, MolangService molang)
+    {
+        _transitionProgress += _context.DeltaTime;
+        float progress = _transitionDuration > 0f ? _transitionProgress / _transitionDuration : 1f;
+
+        if (progress >= 1f)
+        {
+            progress = 1f;
+            _currentTick = adjustedTick - _transitionDuration;
+            _tickOffset = adjustedTick - _currentTick;
+            float tick = MathF.Max(_currentTick, 0f);
+            _state = AnimationResamplerState.Running;
+            ProcessRunning(tick, molang);
+            return;
+        }
+
+        foreach (var queue in _activeQueues)
+        {
+            queue.SetBlendWeight(EvaluateBlendWeight(molang));
+            queue.ProcessBeginningTransition(progress, adjustedTick, molang);
+        }
+    }
+
+    private void ProcessRunning(float adjustedTick, MolangService molang)
+    {
+        _currentTick = adjustedTick;
+        float length = _animation.AnimationLength;
+
+        if (length <= 0f) return;
+
+        if (adjustedTick >= length)
+        {
+            if (_animation.Loop)
+            {
+                _currentTick = adjustedTick % length;
+                adjustedTick = _currentTick;
+            }
+            else
+            {
+                _currentTick = length;
+                BeginEnd(adjustedTick + _tickOffset);
+                return;
+            }
+        }
+
+        float animTimeSeconds = _currentTick / 20f;
+        _context.Molang.SetAnimVariable("anim_time", animTimeSeconds);
+
+        foreach (var queue in _activeQueues)
+        {
+            queue.SetBlendWeight(EvaluateBlendWeight(molang));
+            queue.ProcessRunning(_currentTick, molang);
+        }
+    }
+
+    private void ProcessEndingTransition()
+    {
+        _currentTick += _context.DeltaTime;
+        float progress = _currentTick / DefaultEndingTransitionDuration;
+
+        if (progress >= 1f)
+        {
+            progress = 1f;
+            _state = AnimationResamplerState.Idle;
+            foreach (var queue in _activeQueues)
+                queue.Clear();
+            return;
+        }
+
+        foreach (var queue in _activeQueues)
+        {
+            queue.SetBlendWeight(EvaluateBlendWeight(_context.Molang));
+            queue.ProcessEndingTransition(progress);
+        }
+    }
+
+    public BoneAnimationQueue? GetBoneQueue(string boneName)
+        => _boneQueues.TryGetValue(boneName, out var q) ? q : null;
+
+    public IReadOnlyList<BoneAnimationQueue> GetActiveQueues() => _activeQueues;
+}

@@ -1,0 +1,60 @@
+using ConcreteMC.MolangSharp.Parser;
+using YSMViewer.Services.Molang;
+
+namespace YSMViewer.Services.Animation;
+
+public sealed class AnimationSlot
+{
+    private readonly AnimationControllerInstance _instance;
+    private IExpression? _conditionExpr;
+    private bool _conditionActive = true;
+
+    public string AnimationName { get; }
+    public AnimationControllerInstance Instance => _instance;
+    public bool IsActive => _conditionActive && _instance.IsRunning;
+    public float BlendWeight => _instance.IsRunning ? _instance.EvaluateBlendWeight(_molang) : 0f;
+
+    private readonly MolangService _molang;
+
+    public AnimationSlot(string name, AnimationControllerInstance instance, MolangService molang)
+    {
+        AnimationName = name;
+        _instance = instance;
+        _molang = molang;
+    }
+
+    public void SetCondition(string? molangCondition)
+    {
+        if (string.IsNullOrEmpty(molangCondition))
+        {
+            _conditionExpr = null;
+            _conditionActive = true;
+        }
+        else
+        {
+            _conditionExpr = _molang.Parse(molangCondition);
+        }
+    }
+
+    public void EvaluateCondition(MolangService molang)
+    {
+        if (_conditionExpr is not null)
+        {
+            float result = molang.Evaluate(_conditionExpr);
+            _conditionActive = result > 0.5f;
+        }
+        else
+        {
+            _conditionActive = true;
+        }
+    }
+
+    public void Process(AnimationContext context, float tick, MolangService molang, bool isMoving)
+    {
+        EvaluateCondition(molang);
+        _instance.Process(tick, molang);
+    }
+
+    public BoneAnimationQueue? GetBoneQueue(string boneName)
+        => _instance.GetBoneQueue(boneName);
+}

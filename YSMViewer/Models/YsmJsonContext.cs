@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using YSMViewer.Models.AnimationController;
 
 namespace YSMViewer.Models;
 
@@ -23,6 +24,13 @@ namespace YSMViewer.Models;
 [JsonSerializable(typeof(float[]))]
 [JsonSerializable(typeof(Dictionary<string, MinecraftBoneAnimation>))]
 [JsonSerializable(typeof(Dictionary<float, float[]>))]
+[JsonSerializable(typeof(AnimationControllerFile))]
+[JsonSerializable(typeof(AnimationControllerEntry))]
+[JsonSerializable(typeof(AnimationControllerStateModel))]
+[JsonSerializable(typeof(Dictionary<string, AnimationControllerEntry>))]
+[JsonSerializable(typeof(Dictionary<string, AnimationControllerStateModel>))]
+[JsonSerializable(typeof(List<Dictionary<string, string>>))]
+[JsonSerializable(typeof(List<string>))]
 public sealed partial class YsmJsonContext : JsonSerializerContext
 {
 }
