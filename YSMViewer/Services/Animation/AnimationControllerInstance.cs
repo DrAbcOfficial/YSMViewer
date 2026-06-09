@@ -189,7 +189,7 @@ public sealed class AnimationControllerInstance
             }
         }
 
-        float animTimeSeconds = _currentTick / 20f;
+        float animTimeSeconds = _currentTick;
         _context.Molang.SetAnimVariable("anim_time", animTimeSeconds);
 
         foreach (var queue in _activeQueues)

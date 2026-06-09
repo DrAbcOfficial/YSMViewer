@@ -267,49 +267,6 @@ public sealed class BoneAnimationQueue
     private static BoneKeyFrame[] BuildKeyFrames(MinecraftKeyframeSet? kf)
     {
         if (kf is null) return [];
-        if (kf.IsConstant) return [];
-        if (kf.Keyframes.Count == 0) return [];
-
-        var sorted = kf.Keyframes.OrderBy(k => k.Key).ToList();
-
-        var rawFrames = new List<RawBoneKeyFrame>(sorted.Count);
-        foreach (var (time, values) in sorted.Select(kv => (kv.Key, kv.Value)))
-        {
-            kf.RawEntries.TryGetValue(time, out var rawEntry);
-            string? lerpMode = rawEntry?.LerpMode;
-            string? easing = null;
-
-            object?[]? preVals = rawEntry?.Pre;
-            object?[] postVals;
-
-            if (rawEntry is not null && rawEntry.Post.Length > 0)
-            {
-                postVals = rawEntry.Post;
-                if (preVals is null && rawEntry.Pre is not null)
-                    preVals = rawEntry.Pre;
-            }
-            else
-            {
-                postVals = new object?[values.Length];
-                for (int i = 0; i < values.Length; i++)
-                    postVals[i] = values[i];
-            }
-
-            object? preX = null, preY = null, preZ = null;
-            if (preVals is not null && preVals.Length >= 3)
-            {
-                preX = preVals[0];
-                preY = preVals[1];
-                preZ = preVals[2];
-            }
-
-            object? postX = postVals.Length > 0 ? postVals[0] : 0f;
-            object? postY = postVals.Length > 1 ? postVals[1] : 0f;
-            object? postZ = postVals.Length > 2 ? postVals[2] : 0f;
-
-            rawFrames.Add(new RawBoneKeyFrame(time, preX, preY, preZ, postX, postY, postZ, lerpMode, easing));
-        }
-
-        return BoneKeyFrameProcessor.Process([.. rawFrames]);
+        return BoneKeyFrameProcessor.FromKeyframeSet(kf);
     }
 }

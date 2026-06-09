@@ -1,7 +1,50 @@
 namespace YSMViewer.Models.Keyframes;
 
+using YSMViewer.Models;
+
 public static class BoneKeyFrameProcessor
 {
+    public static BoneKeyFrame[] FromKeyframeSet(MinecraftKeyframeSet kf)
+    {
+        if (kf.IsConstant) return [];
+        if (kf.Keyframes.Count == 0) return [];
+
+        var sorted = kf.Keyframes.OrderBy(k => k.Key).ToList();
+        var rawFrames = new List<RawBoneKeyFrame>(sorted.Count);
+
+        foreach (var (time, values) in sorted.Select(kv => (kv.Key, kv.Value)))
+        {
+            kf.RawEntries.TryGetValue(time, out var rawEntry);
+            string? lerpMode = rawEntry?.LerpMode;
+
+            object? postX, postY, postZ;
+            object? preX = null, preY = null, preZ = null;
+
+            if (rawEntry is not null && rawEntry.Post.Length > 0)
+            {
+                postX = rawEntry.Post.Length > 0 ? rawEntry.Post[0] : 0f;
+                postY = rawEntry.Post.Length > 1 ? rawEntry.Post[1] : 0f;
+                postZ = rawEntry.Post.Length > 2 ? rawEntry.Post[2] : 0f;
+
+                if (rawEntry.Pre is not null && rawEntry.Pre.Length >= 3)
+                {
+                    preX = rawEntry.Pre[0];
+                    preY = rawEntry.Pre[1];
+                    preZ = rawEntry.Pre[2];
+                }
+            }
+            else
+            {
+                postX = values.Length > 0 ? values[0] : 0f;
+                postY = values.Length > 1 ? values[1] : 0f;
+                postZ = values.Length > 2 ? values[2] : 0f;
+            }
+
+            rawFrames.Add(new RawBoneKeyFrame(time, preX, preY, preZ, postX, postY, postZ, lerpMode, null));
+        }
+
+        return Process([.. rawFrames]);
+    }
     public static BoneKeyFrame[] Process(RawBoneKeyFrame[] rawFrames)
     {
         if (rawFrames.Length == 0) return [];

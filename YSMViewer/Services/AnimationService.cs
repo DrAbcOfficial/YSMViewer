@@ -275,61 +275,7 @@ public sealed class AnimationService(
 
     private static BoneKeyFrame[] BuildKeyFrames(MinecraftKeyframeSet kf)
     {
-        var sortedKeys = kf.Keyframes.OrderBy(k => k.Key).ToList();
-
-        if (sortedKeys.Count == 0)
-            return [];
-
-        var rawFrames = new List<RawBoneKeyFrame>(sortedKeys.Count);
-
-        foreach (var (time, key) in sortedKeys.Select(kv => (kv.Key, kv.Value)))
-        {
-            var rawEntry = kf.RawEntries.TryGetValue(time, out var re) ? re : null;
-            var lerpMode = rawEntry?.LerpMode;
-            var easing = (string?)null;
-
-            object? postX, postY, postZ;
-            object? preX = null, preY = null, preZ = null;
-
-            if (rawEntry is not null)
-            {
-                postX = GetComponent(rawEntry.Post, 0);
-                postY = GetComponent(rawEntry.Post, 1);
-                postZ = GetComponent(rawEntry.Post, 2);
-
-                if (rawEntry.Pre is not null)
-                {
-                    preX = GetComponent(rawEntry.Pre, 0);
-                    preY = GetComponent(rawEntry.Pre, 1);
-                    preZ = GetComponent(rawEntry.Pre, 2);
-                }
-            }
-            else
-            {
-                postX = GetComponentFromFloat(key, 0);
-                postY = GetComponentFromFloat(key, 1);
-                postZ = GetComponentFromFloat(key, 2);
-            }
-
-            rawFrames.Add(new RawBoneKeyFrame(time, preX, preY, preZ, postX, postY, postZ, lerpMode, easing));
-        }
-
-        return BoneKeyFrameProcessor.Process([.. rawFrames]);
-    }
-
-    private static object? GetComponent(object?[] arr, int index)
-    {
-        if (index < arr.Length)
-            return arr[index];
-        return index < 1 ? arr.ElementAtOrDefault(0) : 0f;
-    }
-
-    private static object? GetComponentFromFloat(float[] arr, int index)
-    {
-        if (arr.Length == 0) return 0f;
-        if (arr.Length == 1) return arr[0];
-        if (arr.Length == 2) return index < 2 ? arr[index] : 0f;
-        return arr[index];
+        return BoneKeyFrameProcessor.FromKeyframeSet(kf);
     }
 
     private static Vector3 ToVector3(float[] values)

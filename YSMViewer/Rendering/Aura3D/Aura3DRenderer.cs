@@ -279,9 +279,8 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
         {
             _molangService?.ResetFrame();
             _animTime += deltaTime;
-            float tick = _animTime * 20f;
             bool isMoving = _molangService?.SafeGetUserVar("is_moving") > 0.5;
-            _stateMachine.Process(tick, deltaTime, isMoving);
+            _stateMachine.Process(_animTime, deltaTime, isMoving);
 
             _stateMachine.ForEachTransform((boneName, pos, rot, scale) =>
             {

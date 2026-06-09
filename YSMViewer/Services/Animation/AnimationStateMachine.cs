@@ -55,9 +55,9 @@ public sealed class AnimationStateMachine : IAnimationStateMachineHost
         _currentTick = tick;
 
         _context.DeltaTime = deltaTime;
-        _context.AnimTime = tick / 20f;
+        _context.AnimTime = tick;
         _context.IsMoving = isMoving;
-        _context.Molang.SetAnimVariable("anim_time", tick / 20f);
+        _context.Molang.SetAnimVariable("anim_time", tick);
         _context.Molang.SetAnimVariable("delta_time", deltaTime);
 
         EvaluateTransitions();
@@ -131,7 +131,7 @@ public sealed class AnimationStateMachine : IAnimationStateMachineHost
                 foreach (var (targetState, condition) in transition)
                 {
                     float result = _context.Molang.EvaluateString(condition);
-                    if (result > 0.5f)
+                    if (result > 0f)
                     {
                         TransitionToState(targetState, _currentTick);
                         fired = true;
