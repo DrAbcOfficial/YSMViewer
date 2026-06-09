@@ -248,30 +248,27 @@ public sealed class AnimationService(
         if (frames.Length == 0)
             return Vector3.Zero;
 
+        var molang = MolangService ?? new MolangService();
+
         if (frames.Length == 1)
-        {
-            var molang = MolangService;
-            return molang is not null
-                ? frames[0].GetValue(molang, true)
-                : (frames[0].PreValue?.Evaluate(molang ?? new MolangService()) ?? Vector3.Zero);
-        }
+            return frames[0].Evaluate(molang, 1f);
 
         if (time <= frames[0].StartTime)
-            return frames[0].GetValue(MolangService ?? new MolangService(), true);
+            return frames[0].GetValue(molang, true);
 
         if (time >= frames[^1].EndTime)
-            return frames[^1].GetValue(MolangService ?? new MolangService(), false);
+            return frames[^1].GetValue(molang, false);
 
-        for (int i = 0; i < frames.Length - 1; i++)
+        for (int i = 0; i < frames.Length; i++)
         {
-            if (time >= frames[i].StartTime && time <= frames[i + 1].StartTime)
+            if (time >= frames[i].StartTime && time <= frames[i].EndTime)
             {
                 float progress = (time - frames[i].StartTime) / frames[i].Duration;
-                return frames[i + 1].Evaluate(MolangService ?? new MolangService(), progress);
+                return frames[i].Evaluate(molang, progress);
             }
         }
 
-        return frames[^1].GetValue(MolangService ?? new MolangService(), false);
+        return frames[^1].GetValue(molang, false);
     }
 
     private static BoneKeyFrame[] BuildKeyFrames(MinecraftKeyframeSet kf)

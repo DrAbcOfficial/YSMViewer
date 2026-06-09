@@ -14,7 +14,8 @@ public static class BoneKeyFrameProcessor
             var post = new Vector3v(r.PostX, r.PostY, r.PostZ);
             var pre = HasPreValues(r) ? new Vector3v(r.PreX, r.PreY, r.PreZ) : post;
             var easing = Easing.ParseEasingType(r.Easing);
-            return [new LinearKeyFrame(r.Time, float.MaxValue, pre, post) { EasingMode = easing }];
+            float duration = r.Time > 0f ? r.Time : 1f;
+            return [new LinearKeyFrame(0f, duration, pre, post) { EasingMode = easing }];
         }
 
         var frames = new List<BoneKeyFrame>(sorted.Length);
@@ -47,8 +48,8 @@ public static class BoneKeyFrameProcessor
 
             if (i == 0)
             {
-                startTime = end.Time;
-                duration = sorted[1].Time - end.Time;
+                startTime = 0f;
+                duration = end.Time > 0f ? end.Time : 0.001f;
             }
             else
             {
