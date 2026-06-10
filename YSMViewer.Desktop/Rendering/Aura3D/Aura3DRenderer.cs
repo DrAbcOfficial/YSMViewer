@@ -1,9 +1,7 @@
 using Aura3D.Avalonia;
-using Aura3D.Core.Geometries;
 using Aura3D.Core.Nodes;
 using Aura3D.Core.Renderers;
 using Aura3D.Core.Resources;
-using Avalonia;
 using Avalonia.Controls;
 using System.Drawing;
 using System.Numerics;
@@ -15,7 +13,6 @@ using YSMViewer.Services;
 using YSMViewer.Services.Animation;
 using YSMViewer.Services.Audio;
 using YSMViewer.Services.Molang;
-using YSMViewer.Views;
 
 namespace YSMViewer.Rendering.Aura3D;
 

@@ -7,7 +7,6 @@ using YSMViewer.Rendering;
 using YSMViewer.Rendering.ThreeJs;
 using YSMViewer.Services;
 using YSMViewer.ViewModels;
-using YSMViewer.Views.Shared;
 
 namespace YSMViewer.Browser.Views;
 

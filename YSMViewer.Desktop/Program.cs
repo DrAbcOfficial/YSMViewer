@@ -1,11 +1,8 @@
 ﻿using Avalonia;
-using Avalonia.Controls;
 using Microsoft.Extensions.DependencyInjection;
-using System;
 using System.Diagnostics;
-using YSMViewer.Rendering.Aura3D;
 using YSMViewer.Desktop.Views;
-using YSMViewer.ViewModels;
+using YSMViewer.Rendering.Aura3D;
 
 namespace YSMViewer.Desktop;
 

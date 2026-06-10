@@ -1,13 +1,9 @@
 ﻿using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Browser;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Threading.Tasks;
 using YSMViewer;
 using YSMViewer.Browser.Views;
 using YSMViewer.Rendering.ThreeJs;
-using YSMViewer.ViewModels;
 
 internal sealed partial class Program
 {
