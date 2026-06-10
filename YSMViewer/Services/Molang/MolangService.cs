@@ -155,7 +155,7 @@ public sealed class MolangService
         PhysicsSimulator.UpdateAll();
     }
 
-    internal double SafeGetUserVar(string name, double defaultValue = 0.0)
+    public double SafeGetUserVar(string name, double defaultValue = 0.0)
     {
         if (_userVariables.TryGetValue(name, out var v))
             return v.AsDouble();

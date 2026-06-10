@@ -5,8 +5,9 @@ using Avalonia.Platform.Storage;
 using System.Runtime.Versioning;
 using YSMViewer.Rendering.ThreeJs;
 using YSMViewer.ViewModels;
+using YSMViewer.Views.Shared;
 
-namespace YSMViewer.Views;
+namespace YSMViewer.Browser.Views;
 
 [SupportedOSPlatform("browser")]
 public partial class BrowserMainView : UserControl

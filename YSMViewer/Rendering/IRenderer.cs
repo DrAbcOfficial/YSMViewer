@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using YSMViewer.Models.Document;
+using YSMViewer.Services.Molang;
 
 namespace YSMViewer.Rendering;
 
@@ -22,6 +23,8 @@ public interface IInteractiveRenderer : IRenderer
     void ZoomCamera(float delta);
     void ResetCamera();
     (float Pitch, float Yaw) GetCameraOrbit();
+    Control? GizmoControl { get; }
+    void SyncGizmo();
 }
 
 public interface IAnimationRenderer : IRenderer
@@ -34,4 +37,5 @@ public interface IAnimationRenderer : IRenderer
     void PlayAnimation(string name);
     void StopAnimation();
     void Update(float deltaTime);
+    MolangService? MolangService { get; }
 }

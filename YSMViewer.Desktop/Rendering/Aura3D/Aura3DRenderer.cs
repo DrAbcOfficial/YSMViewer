@@ -1,7 +1,11 @@
 using Aura3D.Avalonia;
+using Aura3D.Core.Geometries;
 using Aura3D.Core.Nodes;
+using Aura3D.Core.Renderers;
 using Aura3D.Core.Resources;
+using Avalonia;
 using Avalonia.Controls;
+using System.Drawing;
 using System.Numerics;
 using System.Text.Json;
 using YSMViewer.Models;
@@ -11,12 +15,14 @@ using YSMViewer.Services;
 using YSMViewer.Services.Animation;
 using YSMViewer.Services.Audio;
 using YSMViewer.Services.Molang;
+using YSMViewer.Views;
 
 namespace YSMViewer.Rendering.Aura3D;
 
 public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
 {
     private readonly Aura3DView _view;
+    private readonly Aura3DView _gizmoView;
     private Model? _loadedModel;
     private YsmModelDocument? _document;
     private readonly Dictionary<string, Model> _componentModels = [];
@@ -57,9 +63,17 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
         };
         _view.SceneInitialized += OnSceneInitialized;
         _view.SceneUpdated += OnSceneUpdated;
+
+        _gizmoView = new Aura3DView
+        {
+            IsHitTestVisible = false,
+            CreateRenderPipeline = scene => new NoLightPipeline(scene)
+        };
+        _gizmoView.SceneInitialized += OnGizmoSceneInitialized;
     }
 
     public Control View => _view;
+    public Control? GizmoControl => _gizmoView;
     public RendererCapabilities Capabilities => RendererCapabilities.Desktop;
     public IReadOnlyList<string> AnimationNames => _animService.AnimationNames;
     public float AnimationDuration => _animService.AnimationLength;
@@ -73,6 +87,51 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
     }
 
     public MolangService? MolangService => _molangService;
+
+    private void OnGizmoSceneInitialized(object? sender, InitializedRoutedEventArgs args)
+    {
+        var scene = args.Scene;
+        if (scene is null) return;
+
+        try
+        {
+            var rgba = ThemeService.Instance.GetViewportBackgroundColor();
+            scene.Background = Texture.CreateFromColor(
+                Color.FromArgb(rgba[0], rgba[1], rgba[2], rgba[3]));
+            scene.RenderPipeline.EnableFrustumCulling = true;
+
+            var camera = _gizmoView.MainCamera;
+            camera.FieldOfView = 40f;
+            camera.NearPlane = 0.01f;
+            camera.FarPlane = 100f;
+
+            var gizmo = new SphericalGizmo();
+            _gizmoView.AddNode(gizmo);
+        }
+        catch { }
+    }
+
+    public void SyncGizmoCamera()
+    {
+        if (_gizmoView.Scene is null) return;
+
+        const float gizmoCamDist = 2.5f;
+        float pitchRad = _cameraPitch * MathF.PI / 180f;
+        float yawRad = _cameraYaw * MathF.PI / 180f;
+
+        float x = gizmoCamDist * MathF.Cos(pitchRad) * MathF.Sin(yawRad);
+        float y = gizmoCamDist * MathF.Sin(pitchRad);
+        float z = gizmoCamDist * MathF.Cos(pitchRad) * MathF.Cos(yawRad);
+
+        var cam = _gizmoView.MainCamera;
+        cam.Position = new Vector3(x, -y, z);
+        cam.LookAt(Vector3.Zero);
+    }
+
+    public void SyncGizmo()
+    {
+        SyncGizmoCamera();
+    }
 
     public void SetTheme(RenderTheme theme)
     {

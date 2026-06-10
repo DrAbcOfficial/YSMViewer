@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using YSMViewer.Models.Document;
+using YSMViewer.Services.Molang;
 
 #pragma warning disable CA1416 // browser-only calls are intentional
 
@@ -23,6 +24,7 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimatio
     }
 
     public Control View => _viewHost;
+    public Control? GizmoControl => null;
 
     public RendererCapabilities Capabilities { get; } = new(
         SupportsAnimation: false,
@@ -38,6 +40,7 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimatio
     public float AnimationDuration => _animationDuration;
     public bool HasAnimationController => false;
     public bool UseAnimationController { get; set; }
+    public MolangService? MolangService => null;
     public float AnimationCurrentTime
     {
         get
@@ -171,6 +174,7 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimatio
             ThreeJsInterop.ResetCamera();
     }
     public (float Pitch, float Yaw) GetCameraOrbit() => (0f, 0f);
+    public void SyncGizmo() { }
 
     public void PlayAnimation(string name)
     {

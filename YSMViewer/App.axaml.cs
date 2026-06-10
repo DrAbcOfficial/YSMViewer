@@ -4,12 +4,10 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
-using YSMViewer.Rendering.Aura3D;
-using YSMViewer.Rendering.ThreeJs;
 using YSMViewer.Services;
 using YSMViewer.ViewModels;
-using YSMViewer.Views;
 
 namespace YSMViewer;
 
@@ -19,6 +17,11 @@ public partial class App : Application
     public static string? StartupFilePath { get; set; }
 
     public static string? StartupFileUrl { get; set; }
+
+    public static IServiceProvider Services { get; set; } = null!;
+
+    public static Func<MainViewModel, Control>? CreateDesktopMainView { get; set; }
+    public static Func<MainViewModel, Control>? CreateBrowserMainView { get; set; }
 
     public override void Initialize()
     {
@@ -43,37 +46,22 @@ public partial class App : Application
 
         ThemeService.Instance.ApplyTheme();
 
+        var renderer = Services.GetRequiredService<Rendering.IRenderer>();
+        var vm = new MainViewModel(renderer);
+
+        if (StartupFilePath is not null)
+            vm.StartupFilePath = StartupFilePath;
+
+        if (StartupFileUrl is not null)
+            vm.StartupFileUrl = StartupFileUrl;
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var renderer = new Aura3DRenderer();
-            var vm = new MainViewModel(renderer);
-
-            if (StartupFilePath is not null)
-                vm.StartupFilePath = StartupFilePath;
-
-            if (StartupFileUrl is not null)
-                vm.StartupFileUrl = StartupFileUrl;
-
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = vm,
-            };
+            desktop.MainWindow = CreateDesktopMainView!(vm) as Window;
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime single)
         {
-            var renderer = new ThreeJsRenderer();
-            var vm = new MainViewModel(renderer);
-
-            if (StartupFilePath is not null)
-                vm.StartupFilePath = StartupFilePath;
-
-            if (StartupFileUrl is not null)
-                vm.StartupFileUrl = StartupFileUrl;
-
-            single.MainView = new BrowserMainView
-            {
-                DataContext = vm,
-            };
+            single.MainView = CreateBrowserMainView!(vm);
         }
 
         base.OnFrameworkInitializationCompleted();

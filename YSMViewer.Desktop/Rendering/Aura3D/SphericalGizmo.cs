@@ -4,7 +4,7 @@ using Aura3D.Core.Resources;
 using System.Drawing;
 using System.Numerics;
 
-namespace YSMViewer.Views;
+namespace YSMViewer.Rendering.Aura3D;
 
 public class SphericalGizmo : Node
 {

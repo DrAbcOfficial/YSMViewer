@@ -463,15 +463,12 @@ public sealed partial class MainViewModel : ViewModelBase
         HasAnimationController = Renderer is IAnimationRenderer animR && animR.HasAnimationController;
         UseAnimationController = HasAnimationController;
 
-        if (Renderer is Rendering.Aura3D.Aura3DRenderer desktopRenderer)
+        if (Renderer is IAnimationRenderer rendererWithMolang && rendererWithMolang.MolangService is not null)
         {
-            var rendererMolang = desktopRenderer.MolangService;
-            if (rendererMolang is not null)
-            {
-                MolangPanel = new MolangPanelViewModel(rendererMolang);
-                var expressions = CollectAllMolangExpressions(document);
-                MolangPanel.DiscoverVariables(expressions);
-            }
+            var rendererMolang = rendererWithMolang.MolangService;
+            MolangPanel = new MolangPanelViewModel(rendererMolang);
+            var expressions = CollectAllMolangExpressions(document);
+            MolangPanel.DiscoverVariables(expressions);
         }
         else if (MolangPanel is not null)
         {

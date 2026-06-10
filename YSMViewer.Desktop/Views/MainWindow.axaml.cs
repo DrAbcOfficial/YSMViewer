@@ -2,7 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 
-namespace YSMViewer.Views;
+namespace YSMViewer.Desktop.Views;
 
 public partial class MainWindow : Window
 {

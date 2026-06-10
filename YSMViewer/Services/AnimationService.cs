@@ -192,7 +192,7 @@ public sealed class AnimationService(
         }
     }
 
-    internal static Quaternion CreateBlockbenchQuaternion(Vector3 eulerDegrees)
+    public static Quaternion CreateBlockbenchQuaternion(Vector3 eulerDegrees)
     {
         if (float.IsNaN(eulerDegrees.X) || float.IsNaN(eulerDegrees.Y) || float.IsNaN(eulerDegrees.Z)
             || float.IsInfinity(eulerDegrees.X) || float.IsInfinity(eulerDegrees.Y) || float.IsInfinity(eulerDegrees.Z))

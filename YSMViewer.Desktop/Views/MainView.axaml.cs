@@ -1,22 +1,17 @@
-using Aura3D.Avalonia;
-using Aura3D.Core.Renderers;
-using Aura3D.Core.Resources;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
-using System.Numerics;
 using YSMViewer.Rendering;
 using YSMViewer.Services;
 using YSMViewer.ViewModels;
 
-namespace YSMViewer.Views;
+namespace YSMViewer.Desktop.Views;
 
 public partial class MainView : UserControl
 {
-    private SphericalGizmo? _gizmo;
     private bool _isDragging;
     private bool _isPanning;
     private bool _isZooming;
@@ -62,7 +57,23 @@ public partial class MainView : UserControl
         UpdateSceneAppearance();
 
         if (DataContext is MainViewModel vm)
+        {
+            SetupGizmo(vm);
             _ = vm.LoadStartupFileIfNeeded();
+        }
+    }
+
+    private void SetupGizmo(MainViewModel vm)
+    {
+        if (vm.Renderer is IInteractiveRenderer interactive && interactive.GizmoControl is { } gizmoControl)
+        {
+            var gizmoHost = this.FindControl<ContentControl>("GizmoHost");
+            if (gizmoHost is not null)
+            {
+                gizmoHost.Content = gizmoControl;
+                gizmoHost.IsVisible = true;
+            }
+        }
     }
 
     private void UpdateSceneAppearance()
@@ -135,14 +146,14 @@ public partial class MainView : UserControl
         if (e.DataTransfer.Formats.Contains(DataFormat.File))
         {
             var overlay = this.FindControl<Border>("DragOverlay");
-            overlay?.IsVisible = true;
+            overlay?.SetCurrentValue(Border.IsVisibleProperty, true);
         }
     }
 
     private void OnDragLeaveHandler(object? sender, DragEventArgs e)
     {
         var overlay = this.FindControl<Border>("DragOverlay");
-        overlay?.IsVisible = false;
+        overlay?.SetCurrentValue(Border.IsVisibleProperty, false);
     }
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -179,24 +190,21 @@ public partial class MainView : UserControl
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
+        if (DataContext is not MainViewModel vm) return;
+        if (vm.Renderer is not IInteractiveRenderer interactive) return;
+
         if (_isDragging)
         {
-            if (DataContext is not MainViewModel vm) return;
-            if (vm.Renderer is not IInteractiveRenderer interactive) return;
-
             var pos = e.GetPosition(this);
             float dx = (float)(pos.X - _lastMousePos.X);
             float dy = (float)(pos.Y - _lastMousePos.Y);
             _lastMousePos = pos;
 
             interactive.OrbitCamera(dx * 0.3f, dy * 0.3f);
-            SyncGizmoCamera();
+            SyncGizmoCamera(interactive);
         }
         else if (_isPanning)
         {
-            if (DataContext is not MainViewModel vm) return;
-            if (vm.Renderer is not IInteractiveRenderer interactive) return;
-
             var pos = e.GetPosition(this);
             float dx = (float)(pos.X - _lastMousePos.X);
             float dy = (float)(pos.Y - _lastMousePos.Y);
@@ -206,9 +214,6 @@ public partial class MainView : UserControl
         }
         else if (_isZooming)
         {
-            if (DataContext is not MainViewModel vm) return;
-            if (vm.Renderer is not IInteractiveRenderer interactive) return;
-
             var pos = e.GetPosition(this);
             float dy = (float)(pos.Y - _lastMousePos.Y);
             _lastMousePos = pos;
@@ -217,16 +222,13 @@ public partial class MainView : UserControl
         }
         else if (_gizmoIsDragging)
         {
-            if (DataContext is not MainViewModel vm) return;
-            if (vm.Renderer is not IInteractiveRenderer interactive) return;
-
             var pos = e.GetPosition(this);
             float dx = (float)(pos.X - _gizmoLastPos.X);
             float dy = (float)(pos.Y - _gizmoLastPos.Y);
             _gizmoLastPos = pos;
 
             interactive.OrbitCamera(dx * 0.3f, dy * 0.3f);
-            SyncGizmoCamera();
+            SyncGizmoCamera(interactive);
         }
     }
 
@@ -293,65 +295,23 @@ public partial class MainView : UserControl
             vm.SelectAnimation(name);
     }
 
-    private void OnGizmoSetupPipeline(object? sender, RoutedEventArgs args)
+    private void SyncGizmoCamera(IInteractiveRenderer interactive)
     {
-        if (sender is Aura3DView view)
-            view.CreateRenderPipeline = s => new NoLightPipeline(s);
-    }
-
-    private void OnGizmoSceneInitialized(object sender, InitializedRoutedEventArgs args)
-    {
-        var view = (Aura3DView)sender;
-        var scene = args.Scene;
-
-        try
-        {
-            var rgba = ThemeService.Instance.GetViewportBackgroundColor();
-            scene.Background = Texture.CreateFromColor(
-                System.Drawing.Color.FromArgb(rgba[0], rgba[1], rgba[2], rgba[3]));
-            scene.RenderPipeline.EnableFrustumCulling = true;
-
-            var camera = view.MainCamera;
-            camera.FieldOfView = 40f;
-            camera.NearPlane = 0.01f;
-            camera.FarPlane = 100f;
-
-            _gizmo = new SphericalGizmo();
-            view.AddNode(_gizmo);
-
-            SyncGizmoCamera();
-        }
-        catch { }
-    }
-
-    private void SyncGizmoCamera()
-    {
-        if (GizmoView.Scene is null) return;
-        if (DataContext is not MainViewModel vm) return;
-        if (vm.Renderer is not IInteractiveRenderer interactive) return;
-
-        const float gizmoCamDist = 2.5f;
-        var (pitch, yaw) = interactive.GetCameraOrbit();
-        float pitchRad = pitch * MathF.PI / 180f;
-        float yawRad = yaw * MathF.PI / 180f;
-
-        float x = gizmoCamDist * MathF.Cos(pitchRad) * MathF.Sin(yawRad);
-        float y = gizmoCamDist * MathF.Sin(pitchRad);
-        float z = gizmoCamDist * MathF.Cos(pitchRad) * MathF.Cos(yawRad);
-
-        var cam = GizmoView.MainCamera;
-        cam.Position = new Vector3(x, -y, z);
-        cam.LookAt(Vector3.Zero);
+        interactive.SyncGizmo();
     }
 
     private void OnGizmoPointerEntered(object? sender, PointerEventArgs e)
     {
-        GizmoBorder.Background = new SolidColorBrush(Color.FromArgb(128, 0, 0, 0));
+        var gizmoBorder = this.FindControl<Border>("GizmoBorder");
+        if (gizmoBorder is not null)
+            gizmoBorder.Background = new SolidColorBrush(Color.FromArgb(128, 0, 0, 0));
     }
 
     private void OnGizmoPointerExited(object? sender, PointerEventArgs e)
     {
-        GizmoBorder.Background = Brushes.Transparent;
+        var gizmoBorder = this.FindControl<Border>("GizmoBorder");
+        if (gizmoBorder is not null)
+            gizmoBorder.Background = Brushes.Transparent;
     }
 
     private void OnGizmoPointerPressed(object? sender, PointerPressedEventArgs e)
