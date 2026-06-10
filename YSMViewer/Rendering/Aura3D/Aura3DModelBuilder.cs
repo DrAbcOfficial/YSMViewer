@@ -14,7 +14,8 @@ public static class Aura3DModelBuilder
     public sealed record BuildResult(
         Model RootModel,
         Dictionary<string, Node> BoneNodes,
-        Dictionary<string, Vector3> BaseBoneEulers);
+        Dictionary<string, Vector3> BaseBoneEulers,
+        Dictionary<string, Vector3> BonePivots);
 
     public static BuildResult BuildFromDocument(YsmGeometryModel geoModel, YsmTextureResource? texture)
     {
@@ -154,7 +155,7 @@ public static class Aura3DModelBuilder
             }
         }
 
-        return new BuildResult(model, boneNodes, baseEulers);
+        return new BuildResult(model, boneNodes, baseEulers, bonePivots);
     }
 
     private static (Vector3 From, Vector3 To) ConvertCubeBoundsDoc(YsmCubeInfo cube)

@@ -31,6 +31,7 @@ internal static class YsmBindings
                     p.GetDouble(1)),
             ["play_sound"] = p => { service.AudioHost?.PlaySound(p.GetString(0)); return 0.0; },
             ["stop_sound"] = p => { service.AudioHost?.StopSound(p.GetString(0)); return 0.0; },
+            ["stop_all_sounds"] = _ => { service.AudioHost?.StopAllSounds(); return 0.0; },
             ["keyboard"] = p => service.SafeGetUserVar($"keyboard_{p.GetString(0)}"),
             ["mouse"] = p => service.SafeGetUserVar($"mouse_{p.GetString(0)}"),
         };
@@ -72,7 +73,12 @@ internal static class YsmBindings
 
     private static double QueryBonePivotAbs(MolangService service, MoParams p)
     {
-        return 0.0;
+        if (service.BoneNodes is null) return 0.0;
+        var boneName = p.GetString(0);
+        if (!service.BoneNodes.TryGetValue(boneName, out var bone)) return 0.0;
+
+        Vector3 pivot = bone.PivotPosition;
+        return p.Contains(1) ? GetAxis(pivot, p.GetInt(1)) : pivot.Length();
     }
 
     private static float GetAxis(Vector3 v, int axis) => axis switch

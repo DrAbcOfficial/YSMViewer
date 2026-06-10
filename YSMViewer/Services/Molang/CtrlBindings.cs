@@ -31,6 +31,11 @@ internal static class CtrlBindings
                 service.StateMachineHost?.Reset();
                 return 0.0;
             },
+            ["indicate_reload"] = _ =>
+            {
+                service.StateMachineHost?.IndicateReload();
+                return 0.0;
+            },
         };
 
         return new QueryStruct(functions);

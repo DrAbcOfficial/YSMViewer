@@ -32,7 +32,7 @@ internal sealed class MolangVariableStruct(
             return;
         }
 
-        userVars[key.Value] = value;
+        animVars[key.Value] = value;
     }
 
     public void Clear() { }

@@ -23,4 +23,6 @@ internal sealed class Aura3DBoneNode(Node node) : IAnimatableBone
         get => node.Scale;
         set => node.Scale = value;
     }
+
+    public Vector3 PivotPosition { get; set; }
 }

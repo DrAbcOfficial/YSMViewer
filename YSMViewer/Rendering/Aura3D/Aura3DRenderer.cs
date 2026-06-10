@@ -122,6 +122,16 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
             _animBones[kv.Key] = new Aura3DBoneNode(kv.Value);
             _basePositions[kv.Key] = kv.Value.Position;
         }
+
+        foreach (var geoModel in document.Models)
+        {
+            foreach (var bone in geoModel.Bones)
+            {
+                if (_animBones.TryGetValue(bone.Id, out var animBone))
+                    animBone.PivotPosition = bone.Pivot;
+            }
+        }
+
         _animService.SetBoneNodes(_animBones, _baseBoneEulers);
 
         _molangService = new MolangService
@@ -147,10 +157,10 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
 
         if (document.AnimControllers.Count > 0)
         {
-            var controllerEntry = ParseFirstController(document.AnimControllers[0].Data);
+            var (controllerKey, controllerEntry, allControllers) = ParseFirstController(document.AnimControllers[0].Data);
             if (controllerEntry is not null)
             {
-                var context = CreateAnimationContext(controllerEntry);
+                var context = CreateAnimationContext(controllerEntry, controllerKey, allControllers);
                 _stateMachine = new AnimationStateMachine(controllerEntry, context);
                 _stateMachine.Initialize();
                 _molangService.StateMachineHost = _stateMachine;
@@ -160,21 +170,24 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
         }
     }
 
-    private static AnimationControllerEntry? ParseFirstController(byte[] data)
+    private static (string? Key, AnimationControllerEntry? Entry, Dictionary<string, AnimationControllerEntry>? AllControllers) ParseFirstController(byte[] data)
     {
         try
         {
             var text = System.Text.Encoding.UTF8.GetString(data);
             var file = JsonSerializer.Deserialize(text, YsmJsonContext.Default.AnimationControllerFile);
-            return file?.Controllers.Values.FirstOrDefault();
+            if (file?.Controllers is null || file.Controllers.Count == 0)
+                return (null, null, null);
+            var first = file.Controllers.First();
+            return (first.Key, first.Value, file.Controllers);
         }
         catch
         {
-            return null;
+            return (null, null, null);
         }
     }
 
-    private AnimationContext CreateAnimationContext(AnimationControllerEntry controller)
+    private AnimationContext CreateAnimationContext(AnimationControllerEntry controller, string? controllerKey, Dictionary<string, AnimationControllerEntry>? allControllers)
     {
         var anims = new Dictionary<string, MinecraftAnimation>(StringComparer.OrdinalIgnoreCase);
         foreach (var anim in _animService.GetAllAnimations())
@@ -187,6 +200,8 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
             BoneNodes = _animBones!,
             BasePositions = _basePositions,
             BaseEulers = _baseBoneEulers,
+            AllControllers = allControllers,
+            ControllerNameHint = controllerKey ?? "",
         };
     }
 

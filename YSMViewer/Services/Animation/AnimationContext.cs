@@ -1,4 +1,5 @@
 using System.Numerics;
+using YSMViewer.Models.AnimationController;
 using YSMViewer.Services.Molang;
 
 namespace YSMViewer.Services.Animation;
@@ -19,4 +20,7 @@ public sealed class AnimationContext
 
     public required IReadOnlyDictionary<string, Vector3> BasePositions { get; init; }
     public required IReadOnlyDictionary<string, Vector3> BaseEulers { get; init; }
+
+    public IReadOnlyDictionary<string, AnimationControllerEntry>? AllControllers { get; init; }
+    public string ControllerNameHint { get; init; } = "";
 }

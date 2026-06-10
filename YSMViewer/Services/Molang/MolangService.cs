@@ -11,6 +11,7 @@ public interface IAnimationStateMachineHost
     void SetAnimation(string name, int loopType);
     void SetTransitionLength(float seconds);
     void Reset();
+    void IndicateReload();
 }
 
 public interface IAnimationAudioHost
@@ -38,6 +39,7 @@ public sealed class MolangService
 
     private readonly LazyFunctionStruct _fnStruct;
     private readonly MolangTempStruct _tempStruct = new();
+    private readonly MolangContextStruct _contextStruct = new();
 
     public MolangService()
     {
@@ -53,6 +55,8 @@ public sealed class MolangService
 
         env.Structs["variable"] = new MolangVariableStruct(_userVariables, _animVariables);
         env.Structs["temp"] = _tempStruct;
+        env.Structs["context"] = _contextStruct;
+        env.Structs["c"] = _contextStruct;
 
         _runtime = new MoLangRuntime(env);
 
@@ -145,6 +149,8 @@ public sealed class MolangService
     public void ResetFrame()
     {
         _animVariables.Clear();
+        _tempStruct.Clear();
+        _contextStruct.Clear();
         _contextDirty = true;
         PhysicsSimulator.UpdateAll();
     }

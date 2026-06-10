@@ -1,5 +1,6 @@
 using ConcreteMC.MolangSharp.Parser;
 using System.Numerics;
+using System.Linq;
 using YSMViewer.Models;
 using YSMViewer.Models.AnimationController;
 using YSMViewer.Services.Molang;
@@ -11,6 +12,8 @@ public sealed class AnimationStateMachine(
     AnimationContext context) : IAnimationStateMachineHost
 {
     private const int MaxTransitionIterations = 8;
+    private const int MaxSubControllerDepth = 5;
+    private const string EntryPrefix = "ysm-entry-";
 
     private readonly AnimationControllerEntry _controller = controller;
     private readonly AnimationContext _context = context;
@@ -25,8 +28,18 @@ public sealed class AnimationStateMachine(
     private readonly HashSet<string> _visitedStates = [];
     private float _dynamicTransitionLength;
 
+    private AnimationStateMachine? _childController;
+    private string _controllerName = "";
+    private int _depth;
+
     public string CurrentState => _currentState ?? "";
     public bool IsInitialized => _isInitialized;
+
+    public void SetParentInfo(string name, int depth)
+    {
+        _controllerName = name;
+        _depth = depth;
+    }
 
     public void Initialize()
     {
@@ -79,18 +92,36 @@ public sealed class AnimationStateMachine(
 
         EvaluateTransitions();
 
-        foreach (var slot in _activeSlots)
-            slot.Process(_context, tick, _context.Molang, isMoving);
-
-        for (int i = _fadingSlots.Count - 1; i >= 0; i--)
+        if (_childController is not null)
         {
-            _fadingSlots[i].Process(_context, tick, _context.Molang, isMoving);
-            if (!_fadingSlots[i].Instance.IsRunning)
-                _fadingSlots.RemoveAt(i);
+            _childController.Process(tick, deltaTime, isMoving);
+        }
+        else
+        {
+            foreach (var slot in _activeSlots)
+                slot.Process(_context, tick, _context.Molang, isMoving);
+
+            for (int i = _fadingSlots.Count - 1; i >= 0; i--)
+            {
+                _fadingSlots[i].Process(_context, tick, _context.Molang, isMoving);
+                if (!_fadingSlots[i].Instance.IsRunning)
+                    _fadingSlots.RemoveAt(i);
+            }
         }
 
         foreach (var blendState in _blendStates.Values)
             blendState.Reset();
+
+        if (_childController is not null)
+        {
+            _childController.ForEachTransform((boneName, pos, rot, scale) =>
+            {
+                if (_blendStates.TryGetValue(boneName, out var bs))
+                {
+                    bs.BlendViaShortestPath = true;
+                }
+            });
+        }
 
         foreach (var slot in _activeSlots)
         {
@@ -98,7 +129,10 @@ public sealed class AnimationStateMachine(
             foreach (var queue in slot.Instance.GetActiveQueues())
             {
                 if (_blendStates.TryGetValue(queue.BoneName, out var blendState))
-                    blendState.AddSource(queue);
+                {
+                    blendState.AddSource(queue, slot.BlendWeight > 0f ? 1f : 0f);
+                    blendState.BlendViaShortestPath = slot.BlendViaShortestPath;
+                }
             }
         }
 
@@ -108,7 +142,11 @@ public sealed class AnimationStateMachine(
             foreach (var queue in slot.Instance.GetActiveQueues())
             {
                 if (_blendStates.TryGetValue(queue.BoneName, out var blendState))
-                    blendState.AddSource(queue);
+                {
+                    blendState.AddSource(queue, slot.BlendWeight > 0f ? 1f : 0f);
+                    if (!blendState.BlendViaShortestPath)
+                        blendState.BlendViaShortestPath = slot.BlendViaShortestPath;
+                }
             }
         }
 
@@ -121,10 +159,21 @@ public sealed class AnimationStateMachine(
 
             blendState.Blend(basePos, baseEuler, _context.Molang);
         }
+
+        bool allFinished = _activeSlots.Count > 0 && _activeSlots.All(s => s.Instance.IsAnimationFinished);
+        bool anyFinished = _activeSlots.Any(s => s.Instance.IsAnimationFinished);
+        _context.Molang.SetAnimVariable("all_animations_finished", allFinished ? 1f : 0f);
+        _context.Molang.SetAnimVariable("any_animation_finished", anyFinished ? 1f : 0f);
     }
 
     public void ForEachTransform(Action<string, Vector3, Quaternion, Vector3> applyTransform)
     {
+        if (_childController is not null)
+        {
+            _childController.ForEachTransform(applyTransform);
+            return;
+        }
+
         foreach (var (boneName, blendState) in _blendStates)
         {
             if (!blendState.HasActiveSources) continue;
@@ -136,6 +185,9 @@ public sealed class AnimationStateMachine(
 
     public bool GetBoneVisibility(string boneName)
     {
+        if (_childController is not null)
+            return _childController.GetBoneVisibility(boneName);
+
         if (_blendStates.TryGetValue(boneName, out var blendState))
         {
             if (blendState.IsVisibilityControlled)
@@ -180,14 +232,17 @@ public sealed class AnimationStateMachine(
                 if (fired) break;
             }
             if (!fired) return;
-
-            if (_activeSlots.Count == 0 && _fadingSlots.Count == 0) return;
         }
     }
 
     private void TransitionToState(string stateName, float currentTick)
     {
-        if (!_controller.States.TryGetValue(stateName, out var newState)) return;
+        if (!_controller.States.TryGetValue(stateName, out var newState))
+        {
+            if ("ysm-builtin".Equals(stateName, StringComparison.OrdinalIgnoreCase))
+                System.Diagnostics.Debug.WriteLine($"[AnimationStateMachine] State 'ysm-builtin' has no equivalent in viewer (predicate-based controller not available). Skipping.");
+            return;
+        }
 
         if (_currentState is not null &&
             _controller.States.TryGetValue(_currentState, out var oldState))
@@ -197,7 +252,9 @@ public sealed class AnimationStateMachine(
 
         float blendTransitionDuration = _dynamicTransitionLength > 0f
             ? _dynamicTransitionLength
-            : newState.BlendTransition;
+            : newState.BlendTransition.Constant;
+        if (_dynamicTransitionLength <= 0f && !newState.BlendTransition.IsConstant && newState.BlendTransition.Curve is not null)
+            blendTransitionDuration = EvaluateBlendTransitionCurve(newState.BlendTransition.Curve);
         _dynamicTransitionLength = 0f;
 
         foreach (var slot in _activeSlots)
@@ -206,6 +263,32 @@ public sealed class AnimationStateMachine(
         _activeSlots.Clear();
 
         _currentState = stateName;
+
+        var subName = ExtractSubControllerName(stateName);
+        if (subName is not null && _depth < MaxSubControllerDepth && _context.AllControllers is not null)
+        {
+            string subControllerKey = _depth > 0
+                ? $"{_controllerName}.{subName}"
+                : subName;
+            string fullKey = $"{_context.ControllerNameHint}.{subControllerKey}";
+
+            if (_context.AllControllers.TryGetValue(fullKey, out var subController))
+            {
+                _childController = new AnimationStateMachine(subController, _context);
+                _childController.SetParentInfo(subControllerKey, _depth + 1);
+                _childController.Initialize();
+            }
+            else if (_context.AllControllers.TryGetValue(subControllerKey, out subController))
+            {
+                _childController = new AnimationStateMachine(subController, _context);
+                _childController.SetParentInfo(subControllerKey, _depth + 1);
+                _childController.Initialize();
+            }
+        }
+        else if (subName is null)
+        {
+            _childController = null;
+        }
 
         if (newState.Animations is not null)
         {
@@ -219,6 +302,7 @@ public sealed class AnimationStateMachine(
                 var instance = new AnimationControllerInstance(anim, _context);
                 var slot = new AnimationSlot(slotRef.AnimationName, instance, _context.Molang);
                 slot.SetCondition(slotRef.ConditionExpression);
+                slot.BlendViaShortestPath = newState.BlendViaShortestPath;
 
                 var currentBoneStates = new Dictionary<string, (Vector3, Quaternion, Vector3)>();
                 foreach (var (boneName, bone) in _context.BoneNodes)
@@ -287,5 +371,26 @@ public sealed class AnimationStateMachine(
             slot.Instance.BeginEnd(_currentTick);
         _fadingSlots.AddRange(_activeSlots);
         _activeSlots.Clear();
+    }
+
+    public void IndicateReload()
+    {
+        foreach (var slot in _fadingSlots)
+            slot.Instance.BeginEnd(_currentTick);
+    }
+
+    private static float EvaluateBlendTransitionCurve(Dictionary<float, float> curve)
+    {
+        if (curve.Count == 0) return 0f;
+        var sorted = curve.OrderBy(kv => kv.Key).ToList();
+        if (sorted.Count == 1) return sorted[0].Value;
+        return sorted[0].Value;
+    }
+
+    private static string? ExtractSubControllerName(string stateName)
+    {
+        if (stateName.StartsWith(EntryPrefix, StringComparison.OrdinalIgnoreCase))
+            return stateName[EntryPrefix.Length..];
+        return null;
     }
 }

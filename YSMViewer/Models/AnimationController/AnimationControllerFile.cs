@@ -36,7 +36,8 @@ public sealed class AnimationControllerStateModel
     public List<string>? OnExit { get; set; }
 
     [JsonPropertyName("blend_transition")]
-    public float BlendTransition { get; set; } = 0f;
+    [JsonConverter(typeof(BlendTransitionConverter))]
+    public BlendTransitionSpec BlendTransition { get; set; } = new();
 
     [JsonPropertyName("blend_via_shortest_path")]
     public bool BlendViaShortestPath { get; set; }
@@ -44,6 +45,67 @@ public sealed class AnimationControllerStateModel
     [JsonPropertyName("sound_effects")]
     [JsonConverter(typeof(SoundEffectListConverter))]
     public List<string>? SoundEffects { get; set; }
+}
+
+public sealed class BlendTransitionSpec
+{
+    public float Constant { get; set; }
+    public Dictionary<float, float>? Curve { get; set; }
+    public bool IsConstant => Curve is null;
+}
+
+public sealed class BlendTransitionConverter : JsonConverter<BlendTransitionSpec>
+{
+    public override BlendTransitionSpec? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Number)
+        {
+            return new BlendTransitionSpec { Constant = reader.GetSingle() };
+        }
+
+        if (reader.TokenType == JsonTokenType.StartObject)
+        {
+            var curve = new Dictionary<float, float>();
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                    break;
+                if (reader.TokenType == JsonTokenType.PropertyName)
+                {
+                    var keyStr = reader.GetString();
+                    reader.Read();
+                    if (float.TryParse(keyStr, System.Globalization.NumberStyles.Float, System.Globalization.NumberFormatInfo.InvariantInfo, out var key) &&
+                        reader.TokenType == JsonTokenType.Number)
+                    {
+                        curve[key] = reader.GetSingle();
+                    }
+                    else
+                    {
+                        reader.Skip();
+                    }
+                }
+            }
+            return new BlendTransitionSpec { Curve = curve };
+        }
+
+        reader.Skip();
+        return new BlendTransitionSpec();
+    }
+
+    public override void Write(Utf8JsonWriter writer, BlendTransitionSpec value, JsonSerializerOptions options)
+    {
+        if (value.IsConstant)
+        {
+            writer.WriteNumberValue(value.Constant);
+        }
+        else
+        {
+            writer.WriteStartObject();
+            foreach (var kv in value.Curve!)
+                writer.WriteNumber(kv.Key.ToString(System.Globalization.NumberFormatInfo.InvariantInfo), kv.Value);
+            writer.WriteEndObject();
+        }
+    }
 }
 
 public sealed class AnimationSlotReference(string animationName, string? conditionExpression)

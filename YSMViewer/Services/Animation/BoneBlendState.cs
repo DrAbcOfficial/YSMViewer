@@ -15,6 +15,7 @@ public sealed class BoneBlendState(string boneName)
     public bool HasActiveSources { get; private set; }
     public bool IsVisibilityControlled { get; private set; }
     public bool VisibilityValue { get; private set; } = true;
+    public bool BlendViaShortestPath { get; set; }
 
     public void Reset()
     {
@@ -27,15 +28,15 @@ public sealed class BoneBlendState(string boneName)
         VisibilityValue = true;
     }
 
-    public void AddSource(BoneAnimationQueue queue)
+    public void AddSource(BoneAnimationQueue queue, float conditionWeight)
     {
         if (!queue.AnimationActive) return;
 
         _sources.Add(new BlendSource
         {
             Queue = queue,
-            Weight = queue.BlendWeight,
-            ConditionActive = true,
+            Weight = queue.BlendWeight * conditionWeight,
+            ConditionActive = conditionWeight != 0f,
         });
     }
 
