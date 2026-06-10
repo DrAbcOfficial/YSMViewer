@@ -37,7 +37,7 @@ const { getAssemblyExports, getConfig, runMain } = await dotnet
     .create();
 
 // Wire up HTML overlay button click handlers to C#
-getAssemblyExports("YSMViewer.dll").then(exports => {
+getAssemblyExports("YSMViewer.Browser.dll").then(exports => {
     const interop = exports.YSMViewer.Rendering.ThreeJs.ThreeJsInterop;
     document.getElementById('ysm-restore-btn').addEventListener('click', () => {
         try { interop.OnRestoreButtonClicked(); } catch (e) { }

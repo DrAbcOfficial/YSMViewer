@@ -561,6 +561,8 @@ function getOrCreateMaterial(textureId) {
             map: cachedTex,
             side: THREE.FrontSide,
             transparent: true,
+            alphaTest: 0.1,
+            depthWrite: true,
         });
     }
     return new THREE.MeshBasicMaterial({
@@ -576,6 +578,8 @@ function applyTextureToMaterials(textureId, texture) {
         color: 0xffffff,
         side: THREE.FrontSide,
         transparent: true,
+        alphaTest: 0.1,
+        depthWrite: true,
     });
     scene.traverse((child) => {
         if (child.isMesh && child.material) {

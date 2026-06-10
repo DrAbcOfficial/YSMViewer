@@ -3,7 +3,9 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using System.Runtime.Versioning;
+using YSMViewer.Rendering;
 using YSMViewer.Rendering.ThreeJs;
+using YSMViewer.Services;
 using YSMViewer.ViewModels;
 using YSMViewer.Views.Shared;
 
@@ -27,6 +29,8 @@ public partial class BrowserMainView : UserControl
         DragDrop.AddDragLeaveHandler(this, OnDragLeaveHandler);
 
         ThreeJsInterop.RestoreButtonClicked += OnRestoreButtonFromHtml;
+
+        ThemeService.Instance.ModeChanged += _ => UpdateSceneAppearance();
     }
 
     private async void OnOpenButtonClick(object? sender, RoutedEventArgs e)
@@ -49,12 +53,21 @@ public partial class BrowserMainView : UserControl
 
     private void OnLoaded(object? sender, RoutedEventArgs e)
     {
+        UpdateSceneAppearance();
         if (DataContext is MainViewModel vm)
         {
             UpdateMobileState();
             SyncButtonVisibility();
             _ = vm.LoadStartupFileIfNeeded();
         }
+    }
+
+    private void UpdateSceneAppearance()
+    {
+        var rgba = ThemeService.Instance.GetViewportBackgroundColor();
+        if (DataContext is MainViewModel vm)
+            vm.Renderer.SetTheme(new RenderTheme(rgba[1], rgba[2], rgba[3], rgba[0],
+                ThemeService.Instance.IsDarkTheme()));
     }
 
     private void SyncButtonVisibility()
