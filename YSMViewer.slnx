@@ -1,5 +1,7 @@
 <Solution>
+  <Project Path="YSMViewer.Core/YSMViewer.Core.csproj" />
+  <Project Path="YSMViewer/YSMViewer.csproj" />
   <Project Path="YSMViewer.Browser/YSMViewer.Browser.csproj" />
   <Project Path="YSMViewer.Desktop/YSMViewer.Desktop.csproj" />
-  <Project Path="YSMViewer/YSMViewer.csproj" />
+  <Project Path="YSMViewer.ThumbnailProvider/YSMViewer.ThumbnailProvider.csproj" />
 </Solution>

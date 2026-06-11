@@ -1,4 +1,5 @@
-using Avalonia.Media.Imaging;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace YSMViewer.Services;
 
@@ -23,10 +24,11 @@ public static class YsmImageHelper
     {
         try
         {
-            using var bitmap = new Bitmap(new MemoryStream(imageData));
-            using var ms = new MemoryStream();
-            bitmap.Save(ms);
-            return ms.ToArray();
+            using var ms = new MemoryStream(imageData);
+            using var bitmap = new Bitmap(ms);
+            using var outMs = new MemoryStream();
+            bitmap.Save(outMs, ImageFormat.Png);
+            return outMs.ToArray();
         }
         catch
         {
