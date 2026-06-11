@@ -454,3 +454,6 @@ $RECYCLE.BIN/
 !.vscode/extensions.json
 
 temp/
+
+# C++ thumbnail provider build output
+YSMViewer.ThumbnailProvider.Cpp/build/

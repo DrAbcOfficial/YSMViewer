@@ -31,7 +31,7 @@ There are **no tests** in YSMViewer.
 
 - **Format**: `.slnx` (not `.sln`).
 - **Central package management**: `Directory.Packages.props` — add new NuGet deps there, not in individual `.csproj` files.
-- **Five projects**: `YSMViewer/` (shared UI), `YSMViewer.Core/` (shared parsing), `YSMViewer.Desktop/` (WinExe), `YSMViewer.Browser/` (WASM), `YSMViewer.ThumbnailProvider/` (COM thumbnail handler).
+- **Six projects**: `YSMViewer/` (shared UI), `YSMViewer.Core/` (shared parsing), `YSMViewer.Desktop/` (WinExe), `YSMViewer.Browser/` (WASM), `YSMViewer.ThumbnailProvider/` (C# COM thumbnail handler), `YSMViewer.ThumbnailProvider.Cpp/` (native C++ COM thumbnail handler).
 
 ## CI (`.github/workflows/build.yml`)
 
@@ -69,6 +69,21 @@ Windows COM shell extension (`net10.0-windows`) that generates Explorer thumbnai
 - `Scripts/Register.ps1` — COM registration/unregistration (requires admin).
 
 **NuGet (ThumbnailProvider only):** `System.Drawing.Common` (for `Bitmap.GetHbitmap()` COM interop), `SixLabors.ImageSharp` (via Core).
+
+### YSMViewer.ThumbnailProvider.Cpp
+
+Native C++ COM shell extension (`YSMViewer.ThumbnailProvider.Cpp/`) that replaces the .NET version with lower overhead. It co-locates the C# DLL in its build output to produce a single combined thumbnail provider.
+
+**Build:** Requires Visual Studio x64 Native Tools command prompt. Run `build.bat` to compile the C++ DLL, then `install.bat` (admin) to register.
+
+**Key files:**
+- `YsmThumbnailProvider.cpp` / `.h` — COM class factory + `IThumbnailProvider`/`IInitializeWithStream` implementation.
+- `DllMain.cpp` — DLL entry point.
+- `YsmThumbnailProvider.def` — module-definition file exporting `DllGetClassObject`, `DllCanUnloadNow`, `DllRegisterServer`, `DllUnregisterServer`.
+- `build.bat` — MSVC command-line build (copies C# DLL into `build/`).
+- `install.bat` / `uninstall.bat` — COM registration helpers.
+
+**Dependencies:** `shlwapi.lib`, `gdi32.lib`, `ole32.lib`, `advapi32.lib`, `user32.lib` — all Windows SDK, no MSVC redistributable required.
 
 ### Two rendering backends
 
@@ -115,6 +130,7 @@ An `IRenderer` abstraction (`Rendering/IRenderer.cs`) has two implementations:
 
 - `AllowUnsafeBlocks` is set in both `YSMViewer.csproj` and `YSMViewer.Browser.csproj`.
 - `AvaloniaUI.DiagnosticsSupport` (developer tools) is Debug-only, excluded in Release via `IncludeAssets`/`PrivateAssets` conditions.
+- The C++ project requires a Visual Studio x64 Native Tools command prompt; it does not participate in `dotnet build`.
 - `ViewLocator` has `[RequiresUnreferencedCode]` — trimming is aware of this.
 - `WasmBuildNative` is enabled for the Browser project.
 - No `Directory.Build.props` exists.
