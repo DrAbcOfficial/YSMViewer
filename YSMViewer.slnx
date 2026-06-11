@@ -4,4 +4,5 @@
   <Project Path="YSMViewer.Browser/YSMViewer.Browser.csproj" />
   <Project Path="YSMViewer.Desktop/YSMViewer.Desktop.csproj" />
   <Project Path="YSMViewer.ThumbnailProvider/YSMViewer.ThumbnailProvider.csproj" />
+  <Project Path="YSMViewer.ThumbnailProvider.Cpp/YSMViewer.ThumbnailProvider.Cpp.vcxproj" />
 </Solution>

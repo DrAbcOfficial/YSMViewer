@@ -71,7 +71,7 @@ jobs:
 
       - name: Build C++ COM wrapper DLL
         run: |
-          cl.exe /nologo /EHsc /std:c++17 /LD /Fe:"publish/thumbnail/YSMViewer.ThumbnailProvider.Cpp.dll" /Fo:"publish/thumbnail/" YSMViewer.ThumbnailProvider.Cpp/YsmThumbnailProvider.cpp YSMViewer.ThumbnailProvider.Cpp/DllMain.cpp /link /DEF:YSMViewer.ThumbnailProvider.Cpp/YsmThumbnailProvider.def shlwapi.lib gdi32.lib ole32.lib advapi32.lib user32.lib
+          msbuild YSMViewer.ThumbnailProvider.Cpp\YSMViewer.ThumbnailProvider.Cpp.vcxproj /p:Configuration=Release /p:OutDir="${{ github.workspace }}\publish\thumbnail\" /p:IntDir="${{ github.workspace }}\publish\thumbnail\obj\" /nologo
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
