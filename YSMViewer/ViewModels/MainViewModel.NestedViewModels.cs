@@ -13,11 +13,39 @@ public sealed partial class ComponentViewModel : ObservableObject
 
     public string ComponentId { get; set; } = string.Empty;
 
+    public ComponentBoneGroupViewModel? BoneGroup { get; set; }
+
     public Action<string, bool>? OnVisibilityToggled { get; set; }
 
     partial void OnIsVisibleChanged(bool value)
     {
         OnVisibilityToggled?.Invoke(ComponentId, value);
+        if (BoneGroup is not null)
+            BoneGroup.IsVisible = value;
+    }
+}
+
+public sealed partial class ComponentBoneGroupViewModel : ObservableObject
+{
+    [ObservableProperty]
+    public partial string Name { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool IsVisible { get; set; } = true;
+
+    public string ComponentId { get; set; } = string.Empty;
+    public ObservableCollection<BoneTreeItemViewModel> BoneRoots { get; } = [];
+
+    public void ExpandAll()
+    {
+        foreach (var root in BoneRoots)
+            root.SetExpandedRecursive(true);
+    }
+
+    public void CollapseAll()
+    {
+        foreach (var root in BoneRoots)
+            root.SetExpandedRecursive(false);
     }
 }
 

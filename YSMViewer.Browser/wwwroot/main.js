@@ -1,47 +1,53 @@
+// ── Imports ─────────────────────────────────────────────────────────────────
 import * as YsmRenderer from './ysm-three-renderer.js';
 import { dotnet } from './_framework/dotnet.js'
 
-const is_browser = typeof window != "undefined";
-if (!is_browser) throw new Error(`Expected to be running in a browser`);
+// ── DOM element references ──────────────────────────────────────────────────
+const RESTORE_BTN_ID = 'ysm-restore-btn';
+const restoreBtn = document.getElementById(RESTORE_BTN_ID);
 
-globalThis.ysmInit = YsmRenderer.init;
-globalThis.ysmSetViewportRect = YsmRenderer.setViewportRect;
-globalThis.ysmShowCanvas = YsmRenderer.showCanvas;
-globalThis.ysmHideCanvas = YsmRenderer.hideCanvas;
-globalThis.ysmLoadModelGeometry = YsmRenderer.loadModelGeometry;
-globalThis.ysmAddTextureData = YsmRenderer.addTextureData;
-globalThis.ysmClearScene = YsmRenderer.clearScene;
-globalThis.ysmResetCamera = YsmRenderer.resetCamera;
-globalThis.ysmSetCameraView = YsmRenderer.setCameraView;
-globalThis.ysmSetBackground = YsmRenderer.setBackground;
-globalThis.ysmSetComponentVisible = YsmRenderer.setComponentVisible;
-globalThis.ysmSetBoneVisible = YsmRenderer.setBoneVisible;
-globalThis.ysmLoadAnimationData = YsmRenderer.loadAnimationData;
-globalThis.ysmPlayAnimation = YsmRenderer.playAnimation;
-globalThis.ysmStopAnimation = YsmRenderer.stopAnimation;
+// ── Three.js renderer functions ─────────────────────────────────────────────
+globalThis.ysmInit                 = YsmRenderer.init;
+globalThis.ysmSetViewportRect      = YsmRenderer.setViewportRect;
+globalThis.ysmShowCanvas           = YsmRenderer.showCanvas;
+globalThis.ysmHideCanvas           = YsmRenderer.hideCanvas;
+globalThis.ysmLoadModelGeometry    = YsmRenderer.loadModelGeometry;
+globalThis.ysmAddTextureData       = YsmRenderer.addTextureData;
+globalThis.ysmClearScene           = YsmRenderer.clearScene;
+globalThis.ysmResetCamera          = YsmRenderer.resetCamera;
+globalThis.ysmSetCameraView        = YsmRenderer.setCameraView;
+globalThis.ysmSetBackground        = YsmRenderer.setBackground;
+globalThis.ysmSetComponentVisible  = YsmRenderer.setComponentVisible;
+globalThis.ysmSetBoneVisible       = YsmRenderer.setBoneVisible;
+globalThis.ysmLoadAnimationData    = YsmRenderer.loadAnimationData;
+globalThis.ysmPlayAnimation        = YsmRenderer.playAnimation;
+globalThis.ysmStopAnimation        = YsmRenderer.stopAnimation;
 globalThis.ysmGetAnimationProgress = YsmRenderer.getAnimationProgress;
-globalThis.ysmDispose = YsmRenderer.dispose;
+globalThis.ysmDispose              = YsmRenderer.dispose;
 
-// UI overlay button helpers
+// ── Restore button helpers ──────────────────────────────────────────────────
 globalThis.ysmShowRestoreBtn = () => {
-    const btn = document.getElementById('ysm-restore-btn');
-    if (btn) btn.style.display = 'block';
+    if (restoreBtn) restoreBtn.style.display = 'block';
 };
 globalThis.ysmHideRestoreBtn = () => {
-    const btn = document.getElementById('ysm-restore-btn');
-    if (btn) btn.style.display = 'none';
+    if (restoreBtn) restoreBtn.style.display = 'none';
 };
+
+// ── Dotnet WASM runtime ─────────────────────────────────────────────────────
 const { getAssemblyExports, getConfig, runMain } = await dotnet
     .withDiagnosticTracing(false)
     .withApplicationArgumentsFromQuery()
     .create();
 
-// Wire up HTML overlay button click handlers to C#
+// Wire up the restore button click to call back into C#
 getAssemblyExports("YSMViewer.Browser.dll").then(exports => {
     const interop = exports.YSMViewer.Rendering.ThreeJs.ThreeJsInterop;
-    document.getElementById('ysm-restore-btn').addEventListener('click', () => {
-        try { interop.OnRestoreButtonClicked(); } catch (e) { }
-    });
+    if (restoreBtn && interop) {
+        restoreBtn.addEventListener('click', () => {
+            try { interop.OnRestoreButtonClicked(); }
+            catch { /* button click failure is non-critical */ }
+        });
+    }
 });
 
 const config = getConfig();

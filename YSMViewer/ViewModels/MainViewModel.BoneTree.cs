@@ -6,35 +6,42 @@ public sealed partial class MainViewModel
 {
     private void BuildBoneTree()
     {
-        BoneTreeRoots.Clear();
+        BoneGroups.Clear();
         if (_currentDocument is null) return;
 
-        var boneParentMap = new Dictionary<string, string?>();
-        foreach (var model in _currentDocument.Models)
+        for (int i = 0; i < _currentDocument.Models.Count; i++)
         {
+            var model = _currentDocument.Models[i];
+            var componentVm = Components[i];
+
+            var boneParentMap = new Dictionary<string, string?>();
             foreach (var bone in model.Bones)
                 boneParentMap[bone.Id] = bone.ParentId;
-        }
 
-        var rootBones = new List<YsmBoneInfo>();
-        foreach (var model in _currentDocument.Models)
-        {
+            var group = new ComponentBoneGroupViewModel
+            {
+                Name = componentVm.Name,
+                IsVisible = componentVm.IsVisible,
+                ComponentId = componentVm.ComponentId,
+            };
+
+            var visited = new HashSet<string>();
             foreach (var bone in model.Bones)
             {
                 if (bone.ParentId is null || !boneParentMap.ContainsKey(bone.ParentId))
-                    rootBones.Add(bone);
+                {
+                    var item = BuildBoneTreeItem(bone, model.Bones, visited);
+                    if (item is not null)
+                        group.BoneRoots.Add(item);
+                }
             }
-        }
 
-        foreach (var bone in rootBones)
-        {
-            var item = BuildBoneTreeItem(bone, _currentDocument, []);
-            if (item is not null)
-                BoneTreeRoots.Add(item);
+            componentVm.BoneGroup = group;
+            BoneGroups.Add(group);
         }
     }
 
-    private BoneTreeItemViewModel? BuildBoneTreeItem(YsmBoneInfo bone, YsmModelDocument document, HashSet<string> visited)
+    private BoneTreeItemViewModel? BuildBoneTreeItem(YsmBoneInfo bone, IReadOnlyList<YsmBoneInfo> bones, HashSet<string> visited)
     {
         if (!visited.Add(bone.Id))
             return null;
@@ -47,23 +54,14 @@ public sealed partial class MainViewModel
             OnVisibilityToggled = (id, vis) => SetBoneVisible(id, vis),
         };
 
-        var childBones = new List<YsmBoneInfo>();
-        foreach (var model in document.Models)
+        foreach (var child in bones)
         {
-            foreach (var child in model.Bones)
+            if (child.ParentId == bone.Id && !visited.Contains(child.Id))
             {
-                if (child.ParentId == bone.Id)
-                    childBones.Add(child);
+                var childItem = BuildBoneTreeItem(child, bones, visited);
+                if (childItem is not null)
+                    item.Children.Add(childItem);
             }
-        }
-
-        foreach (var child in childBones)
-        {
-            if (visited.Contains(child.Id))
-                continue;
-            var childItem = BuildBoneTreeItem(child, document, visited);
-            if (childItem is not null)
-                item.Children.Add(childItem);
         }
 
         item.HasChildren = item.Children.Count > 0;
@@ -73,13 +71,13 @@ public sealed partial class MainViewModel
 
     public void ExpandAllBones()
     {
-        foreach (var root in BoneTreeRoots)
-            root.SetExpandedRecursive(true);
+        foreach (var group in BoneGroups)
+            group.ExpandAll();
     }
 
     public void CollapseAllBones()
     {
-        foreach (var root in BoneTreeRoots)
-            root.SetExpandedRecursive(false);
+        foreach (var group in BoneGroups)
+            group.CollapseAll();
     }
 }

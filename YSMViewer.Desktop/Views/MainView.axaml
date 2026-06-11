@@ -368,49 +368,60 @@
                                             Click="OnCollapseAllBonesClick"
                                             Padding="8,3" CornerRadius="4" />
                                 </StackPanel>
-                                <TreeView ItemsSource="{Binding BoneTreeRoots}"
-                                          Background="Transparent" BorderThickness="0"
-                                          Foreground="{DynamicResource ThemeTextPrimary}" FontSize="12">
-                                    <TreeView.Styles>
-                                        <Style Selector="TreeViewItem">
-                                            <Setter Property="Padding" Value="0" />
-                                            <Setter Property="Margin" Value="0" />
-                                        </Style>
-                                    </TreeView.Styles>
-                                    <TreeView.ItemTemplate>
-                                        <TreeDataTemplate ItemsSource="{Binding Children}"
-                                                          x:DataType="vm:BoneTreeItemViewModel">
-                                            <Grid ColumnDefinitions="Auto,*,Auto">
-                                                <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="12"
-                                                           VerticalAlignment="Center" Margin="0,0,4,0" />
-                                                <TextBlock Grid.Column="1" Text="{Binding Name}"
-                                                           Foreground="{DynamicResource ThemeTextPrimary}"
-                                                           FontSize="12" VerticalAlignment="Center"
-                                                           TextTrimming="CharacterEllipsis" />
-                                                <ToggleButton Grid.Column="2" Width="24" Height="24"
-                                                              IsChecked="{Binding IsVisible, Mode=TwoWay}"
-                                                              CornerRadius="4" Padding="0" Margin="4,0,0,0"
-                                                              HorizontalContentAlignment="Center"
-                                                              VerticalContentAlignment="Center">
-                                                    <ToggleButton.Styles>
-                                                        <Style Selector="ToggleButton">
-                                                            <Setter Property="Background" Value="{DynamicResource ThemeToggleDefault}" />
+                                <ItemsControl ItemsSource="{Binding BoneGroups}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ComponentBoneGroupViewModel">
+                                            <StackPanel IsVisible="{Binding IsVisible}" Spacing="4" Margin="0,0,0,8">
+                                                <TextBlock Text="{Binding Name}" FontSize="12"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource ThemeTextSecondary}" />
+                                                <TreeView ItemsSource="{Binding BoneRoots}"
+                                                          Background="Transparent" BorderThickness="0"
+                                                          Foreground="{DynamicResource ThemeTextPrimary}" FontSize="12">
+                                                    <TreeView.Styles>
+                                                        <Style Selector="TreeViewItem">
+                                                            <Setter Property="Padding" Value="0" />
+                                                            <Setter Property="Margin" Value="0" />
                                                         </Style>
-                                                        <Style Selector="ToggleButton:checked">
-                                                            <Setter Property="Background" Value="{DynamicResource ThemeToggleChecked}" />
-                                                        </Style>
-                                                        <Style Selector="ToggleButton:unchecked">
-                                                            <Setter Property="Background" Value="{DynamicResource ThemeToggleUnchecked}" />
-                                                        </Style>
-                                                    </ToggleButton.Styles>
-                                                    <TextBlock Text="◉" FontSize="11"
-                                                               HorizontalAlignment="Center"
-                                                               VerticalAlignment="Center" />
-                                                </ToggleButton>
-                                            </Grid>
-                                        </TreeDataTemplate>
-                                    </TreeView.ItemTemplate>
-                                </TreeView>
+                                                    </TreeView.Styles>
+                                                    <TreeView.ItemTemplate>
+                                                        <TreeDataTemplate ItemsSource="{Binding Children}"
+                                                                          x:DataType="vm:BoneTreeItemViewModel">
+                                                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                                                <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="12"
+                                                                           VerticalAlignment="Center" Margin="0,0,4,0" />
+                                                                <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                                                           Foreground="{DynamicResource ThemeTextPrimary}"
+                                                                           FontSize="12" VerticalAlignment="Center"
+                                                                           TextTrimming="CharacterEllipsis" />
+                                                                <ToggleButton Grid.Column="2" Width="24" Height="24"
+                                                                              IsChecked="{Binding IsVisible, Mode=TwoWay}"
+                                                                              CornerRadius="4" Padding="0" Margin="4,0,0,0"
+                                                                              HorizontalContentAlignment="Center"
+                                                                              VerticalContentAlignment="Center">
+                                                                    <ToggleButton.Styles>
+                                                                        <Style Selector="ToggleButton">
+                                                                            <Setter Property="Background" Value="{DynamicResource ThemeToggleDefault}" />
+                                                                        </Style>
+                                                                        <Style Selector="ToggleButton:checked">
+                                                                            <Setter Property="Background" Value="{DynamicResource ThemeToggleChecked}" />
+                                                                        </Style>
+                                                                        <Style Selector="ToggleButton:unchecked">
+                                                                            <Setter Property="Background" Value="{DynamicResource ThemeToggleUnchecked}" />
+                                                                        </Style>
+                                                                    </ToggleButton.Styles>
+                                                                    <TextBlock Text="◉" FontSize="11"
+                                                                               HorizontalAlignment="Center"
+                                                                               VerticalAlignment="Center" />
+                                                                </ToggleButton>
+                                                            </Grid>
+                                                        </TreeDataTemplate>
+                                                    </TreeView.ItemTemplate>
+                                                </TreeView>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
                         </Expander>
 

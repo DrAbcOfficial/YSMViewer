@@ -29,7 +29,7 @@ public sealed partial class MainViewModel : ViewModelBase
 
     public ObservableCollection<string> AnimationNames { get; } = [];
     public ObservableCollection<ComponentViewModel> Components { get; } = [];
-    public ObservableCollection<BoneTreeItemViewModel> BoneTreeRoots { get; } = [];
+    public ObservableCollection<ComponentBoneGroupViewModel> BoneGroups { get; } = [];
     public ObservableCollection<TextureItemViewModel> TextureItems { get; } = [];
 
     private YsmModelDocument? _currentDocument;
@@ -425,7 +425,7 @@ public sealed partial class MainViewModel : ViewModelBase
         HasModelTips = !string.IsNullOrEmpty(ModelTips);
 
         Components.Clear();
-        BoneTreeRoots.Clear();
+        BoneGroups.Clear();
         TextureItems.Clear();
         AnimationNames.Clear();
 
