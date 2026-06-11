@@ -60,10 +60,10 @@ Build & register the C++ version:
 .\YSMViewer.ThumbnailProvider.Cpp\build.bat
 
 # Register (admin required)
-.\YSMViewer.ThumbnailProvider.Cpp\install.bat
+.\YSMViewer.ThumbnailProvider.Cpp\install.ps1
 
 # Unregister
-.\YSMViewer.ThumbnailProvider.Cpp\uninstall.bat
+.\YSMViewer.ThumbnailProvider.Cpp\uninstall.ps1
 ```
 
 Register the C# version:

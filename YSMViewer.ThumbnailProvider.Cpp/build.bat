@@ -1,4 +1,7 @@
 @echo off
+chcp 65001 >nul
+setlocal EnableExtensions EnableDelayedExpansion
+
 echo ==============================================
 echo   YSMViewer Thumbnail Provider C++ Build
 echo ==============================================
@@ -7,22 +10,24 @@ echo Make sure to run this from a Visual Studio
 echo Developer Command Prompt (x64 Native Tools).
 echo.
 
-:: Copy C# DLL to output directory first
 set "OUTDIR=%~dp0build"
 set "CS_DLL=%~dp0..\YSMViewer.ThumbnailProvider\bin\Release\net10.0-windows\win-x64\publish\YSMViewer.ThumbnailProvider.dll"
 
 if not exist "%OUTDIR%" mkdir "%OUTDIR%"
 
 if exist "%CS_DLL%" (
-    echo Copying C# DLL: %CS_DLL%
+    echo Copying C# DLL (AOT native): %CS_DLL%
     copy /Y "%CS_DLL%" "%OUTDIR%\YSMViewer.ThumbnailProvider.dll" >nul
 ) else (
-    echo [WARNING] C# DLL not found. Build it first with:
+    echo [WARNING] C# DLL not found at %CS_DLL%
+    echo [HINT] Build it first with:
     echo   dotnet publish YSMViewer.ThumbnailProvider -c Release -r win-x64
+    echo.
+    echo Continuing without C# DLL (thumbnail provider will fail at runtime).
 )
 
 echo.
-echo Compiling...
+echo Compiling C++ COM server...
 
 cl.exe /nologo /EHsc /std:c++17 /LD /Fe:"%OUTDIR%\YSMViewer.ThumbnailProvider.Cpp.dll" ^
     /Fo:"%OUTDIR%\\" ^
@@ -34,12 +39,16 @@ if %errorLevel% equ 0 (
     echo.
     echo [OK] Build successful!
     echo Output: %OUTDIR%\YSMViewer.ThumbnailProvider.Cpp.dll
+    if exist "%OUTDIR%\YSMViewer.ThumbnailProvider.dll" (
+        echo C# AOT DLL: %OUTDIR%\YSMViewer.ThumbnailProvider.dll
+    )
     echo.
-    echo C# DLL and C++ DLL are both in the build\ directory.
-    echo Run install.bat (as admin) to register the COM DLL.
+    echo Both DLLs are native (no .NET runtime required).
+    echo Run install.ps1 (as admin) to register the COM DLL.
 ) else (
     echo.
     echo [ERROR] Build failed!
+    exit /b 1
 )
 
 pause

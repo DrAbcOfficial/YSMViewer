@@ -73,10 +73,12 @@ jobs:
           msbuild YSMViewer.ThumbnailProvider.Cpp\YSMViewer.ThumbnailProvider.Cpp.vcxproj /p:Configuration=Release /p:OutDir="${{ github.workspace }}\publish\thumbnail\" /p:IntDir="${{ runner.temp }}\thumbnail-obj\" /nologo
 
       - name: Copy registration scripts
-        shell: cmd
+        shell: pwsh
         run: |
-          copy YSMViewer.ThumbnailProvider.Cpp\install.bat publish\thumbnail\
-          copy YSMViewer.ThumbnailProvider.Cpp\uninstall.bat publish\thumbnail\
+          Copy-Item YSMViewer.ThumbnailProvider.Cpp/install.ps1 publish/thumbnail/
+          Copy-Item YSMViewer.ThumbnailProvider.Cpp/uninstall.ps1 publish/thumbnail/
+          Copy-Item YSMViewer.ThumbnailProvider.Cpp/install.bat publish/thumbnail/
+          Copy-Item YSMViewer.ThumbnailProvider.Cpp/uninstall.bat publish/thumbnail/
 
       - name: Clean up unnecessary build artifacts
         shell: cmd
