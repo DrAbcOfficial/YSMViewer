@@ -1,5 +1,4 @@
 #include "YsmThumbnailProvider.h"
-#include <fstream>
 #include <string>
 
 #pragma comment(lib, "shlwapi.lib")

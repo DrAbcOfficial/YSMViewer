@@ -62,7 +62,9 @@ public sealed class ThumbnailRenderer : IDisposable
             }
             catch (Exception ex)
             {
-                Trace.WriteLineIf(Debugger.IsAttached, $"[Thumbnail] Texture load failed: {ex.Message}");
+#if DEBUG
+                Trace.WriteLine($"[Thumbnail] Texture load failed: {ex.Message}");
+#endif
                 _texture = null;
                 _texPixels = null;
             }

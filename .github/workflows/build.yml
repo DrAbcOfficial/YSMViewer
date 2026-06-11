@@ -2,6 +2,8 @@ name: Build & Release
 
 on:
   push:
+    branches: [main, master]
+    tags: ['v*']
   pull_request:
     branches: [main, master]
 
@@ -17,9 +19,6 @@ jobs:
 
       - name: Build Desktop
         run: dotnet build YSMViewer.Desktop -c Release
-
-      - name: Build ThumbnailProvider (C ABI)
-        run: dotnet build YSMViewer.ThumbnailProvider -c Release
 
   publish-desktop:
     needs: build
@@ -71,7 +70,16 @@ jobs:
 
       - name: Build C++ COM wrapper DLL
         run: |
-          msbuild YSMViewer.ThumbnailProvider.Cpp\YSMViewer.ThumbnailProvider.Cpp.vcxproj /p:Configuration=Release /p:OutDir="${{ github.workspace }}\publish\thumbnail\" /p:IntDir="${{ github.workspace }}\publish\thumbnail\obj\" /nologo
+          msbuild YSMViewer.ThumbnailProvider.Cpp\YSMViewer.ThumbnailProvider.Cpp.vcxproj /p:Configuration=Release /p:OutDir="${{ github.workspace }}\publish\thumbnail\" /p:IntDir="${{ runner.temp }}\thumbnail-obj\" /nologo
+
+      - name: Copy registration scripts
+        run: |
+          copy YSMViewer.ThumbnailProvider.Cpp\install.bat publish\thumbnail\
+          copy YSMViewer.ThumbnailProvider.Cpp\uninstall.bat publish\thumbnail\
+
+      - name: Clean up unnecessary build artifacts
+        run: |
+          del /f /q publish\thumbnail\*.exp publish\thumbnail\*.lib publish\thumbnail\*.ilk publish\thumbnail\*.pdb 2>nul || ver>nul
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
@@ -129,6 +137,9 @@ jobs:
           zip -r ../YSMViewer-linux-x64.zip linux-x64/
           zip -r ../YSMViewer-osx-arm64.zip osx-arm64/
 
+      - name: Add .nojekyll for GitHub Pages
+        run: touch publish/browser/wwwroot/.nojekyll
+
       - name: Package browser assets
         run: |
           cd publish/browser
@@ -138,9 +149,6 @@ jobs:
         run: |
           cd publish/thumbnail
           zip -r ../YSMViewer-ThumbnailProvider-win-x64.zip .
-
-      - name: Add .nojekyll for GitHub Pages
-        run: touch publish/browser/wwwroot/.nojekyll
 
       - name: Create Release
         uses: softprops/action-gh-release@v3

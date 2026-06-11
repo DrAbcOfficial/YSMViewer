@@ -1,7 +1,6 @@
 #pragma once
 #include <Windows.h>
 #include <thumbcache.h>
-#include <shlwapi.h>
 #include <string>
 #include <vector>
 

@@ -1,6 +1,5 @@
 #include "YsmThumbnailProvider.h"
 #include <string>
-#include <fstream>
 
 // {F4E2C1A8-7B3D-4E5F-9A1C-2D8E6F0B4A3C}
 static const CLSID CLSID_YsmThumbnailProvider =

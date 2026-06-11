@@ -1,16 +1,17 @@
-using System.Runtime.InteropServices;
-using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using YSMViewer.Services;
 using YSMViewer.ThumbnailProvider.Rendering;
 
-namespace YSMViewer.ThumbnailProvider;
+namespace YSMViewer.ThumbnailProvider.NativeAotCom;
 
 public static unsafe class NativeExports
 {
     private static byte[]? _fileData;
     private static GeometryBuilder.ThumbnailScene? _scene;
 
+    [Conditional("DEBUG")]
     private static void Log(string msg)
     {
         try
