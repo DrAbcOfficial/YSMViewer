@@ -55,17 +55,33 @@ internal sealed class ComStreamWrapper(IStream stream) : Stream
     public override int Read(byte[] buffer, int offset, int count)
     {
         var tempBuffer = new byte[count];
-        _stream.Read(tempBuffer, count, IntPtr.Zero);
-        Array.Copy(tempBuffer, 0, buffer, offset, count);
-        return count;
+        var pcbRead = Marshal.AllocHGlobal(sizeof(int));
+        try
+        {
+            _stream.Read(tempBuffer, count, pcbRead);
+            int bytesRead = Marshal.ReadInt32(pcbRead);
+            if (bytesRead > 0)
+                Array.Copy(tempBuffer, 0, buffer, offset, bytesRead);
+            return bytesRead;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(pcbRead);
+        }
     }
 
     public override long Seek(long offset, SeekOrigin origin)
     {
-        _stream.Seek(offset, (int)origin, IntPtr.Zero);
-        var pos = IntPtr.Zero;
-        _stream.Seek(0, 1, pos);
-        return pos.ToInt64();
+        var plibNewPosition = Marshal.AllocHGlobal(sizeof(long));
+        try
+        {
+            _stream.Seek(offset, (int)origin, plibNewPosition);
+            return Marshal.ReadInt64(plibNewPosition);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(plibNewPosition);
+        }
     }
 
     public override void SetLength(long value) => throw new NotSupportedException();

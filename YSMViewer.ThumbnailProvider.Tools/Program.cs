@@ -231,6 +231,8 @@ void WriteClsid(string dllPath)
     serverKey.SetValue(null, dllPath);
     serverKey.SetValue("ThreadingModel", "Both");
 
+    clsidKey.SetValue("DisableProcessIsolation", 1, RegistryValueKind.DWord);
+
     Console.WriteLine($"  [OK] CLSID registered / 已注册: {Clsid}");
 }
 
@@ -246,6 +248,8 @@ void WriteProgId()
 void WriteFileAssociation()
 {
     using var ysmKey = Registry.ClassesRoot.CreateSubKey(@".ysm");
+    ysmKey.SetValue(null, ProgId);
+
     using var shellexKey = ysmKey.CreateSubKey(@"ShellEx");
     using var handlerKey = shellexKey.CreateSubKey(ThumbnailHandlerGuid);
     handlerKey.SetValue(null, Clsid);

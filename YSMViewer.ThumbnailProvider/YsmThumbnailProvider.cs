@@ -14,10 +14,23 @@ public sealed class YsmThumbnailProvider : IThumbnailProvider, IInitializeWithSt
 {
     private byte[]? _fileData;
 
+    private static void Log(string msg)
+    {
+        try
+        {
+            var logPath = Path.Combine(Path.GetTempPath(), "YsmThumbnail.log");
+            File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss.fff} [{Environment.ProcessId}] {msg}{Environment.NewLine}");
+        }
+        catch { }
+    }
+
     public int Initialize(nint pstream, uint grfMode)
     {
         if (pstream == nint.Zero)
+        {
+            Log("Initialize: null stream");
             return 0;
+        }
         try
         {
             IStream managed_strem = (IStream)Marshal.GetObjectForIUnknown(pstream);
@@ -25,16 +38,12 @@ public sealed class YsmThumbnailProvider : IThumbnailProvider, IInitializeWithSt
             using var ms = new MemoryStream();
             stream.CopyTo(ms);
             _fileData = ms.ToArray();
-#if DEBUG
-            Trace.WriteLine($"[YsmThumb] Initialize: {_fileData.Length} bytes");
-#endif
+            Log($"Initialize: {_fileData.Length} bytes");
             return 0;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-#if DEBUG
-            Trace.WriteLine($"[YsmThumb] Initialize failed");
-#endif
+            Log($"Initialize FAILED: {ex}");
             return unchecked((int)0x80004005);
         }
     }
@@ -47,12 +56,13 @@ public sealed class YsmThumbnailProvider : IThumbnailProvider, IInitializeWithSt
         try
         {
             if (_fileData is null)
+            {
+                Log("GetThumbnail: no file data");
                 return unchecked((int)0x80004005);
+            }
 
-#if DEBUG
             var sw = Stopwatch.StartNew();
-            Trace.WriteLine($"[YsmThumb] GetThumbnail cx={cx}");
-#endif
+            Log($"GetThumbnail: cx={cx} start");
 
             var document = YsmLoaderService.LoadDocumentFromBytes(_fileData);
             var scene = GeometryBuilder.Build(document);
@@ -67,16 +77,12 @@ public sealed class YsmThumbnailProvider : IThumbnailProvider, IInitializeWithSt
             hBitmap = bmp.GetHbitmap();
             alphaType = WTS_ALPHATYPE.WTSAT_ARGB;
 
-#if DEBUG
-            Trace.WriteLine($"[YsmThumb] Done in {sw.ElapsedMilliseconds}ms, hBitmap=0x{hBitmap:X}");
-#endif
+            Log($"GetThumbnail: done {sw.ElapsedMilliseconds}ms hBitmap=0x{hBitmap:X}");
             return 0;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-#if DEBUG
-            Trace.WriteLine($"[YsmThumb] GetThumbnail failed");
-#endif
+            Log($"GetThumbnail FAILED: {ex}");
             if (hBitmap != nint.Zero)
             {
                 DeleteObject(hBitmap);
