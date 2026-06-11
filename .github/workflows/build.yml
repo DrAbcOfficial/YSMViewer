@@ -65,7 +65,7 @@ jobs:
         run: dotnet publish YSMViewer.ThumbnailProvider -c Release -r win-x64 -o publish/thumbnail
 
       - name: Setup MSVC
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: TheMrMilchmann/setup-msvc-dev@v4
         with:
           arch: x64
 
