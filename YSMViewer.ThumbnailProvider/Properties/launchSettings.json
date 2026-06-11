@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "DebugRuntest": {
+      "commandName": "Project",
+      "commandLineArgs": "..\\..\\..\\test.ysm output.png 256",
+      "hotReloadEnabled": false
+    },
+    "AttachExplorer": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Windows\\explorer.exe",
+      "commandLineArgs": "/separate"
+    }
+  }
+}

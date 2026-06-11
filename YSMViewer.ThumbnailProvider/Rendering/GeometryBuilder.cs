@@ -22,6 +22,7 @@ public static class GeometryBuilder
     public static ThumbnailScene Build(YsmModelDocument document)
     {
         var allFaces = new List<TexturedFace>();
+        YsmTextureResource? resolvedTexture = null;
 
         foreach (var geoModel in document.Models)
         {
@@ -29,6 +30,7 @@ public static class GeometryBuilder
                 continue;
 
             var texResource = ResolveTexture(geoModel, document);
+            resolvedTexture ??= texResource;
             var texW = geoModel.TextureWidth > 0 ? geoModel.TextureWidth : 64f;
             var texH = geoModel.TextureHeight > 0 ? geoModel.TextureHeight : 64f;
 
@@ -62,7 +64,7 @@ public static class GeometryBuilder
             boundsMax = Vector3.Max(boundsMax, Vector3.Max(Vector3.Max(face.P0, face.P1), Vector3.Max(face.P2, face.P3)));
         }
 
-        var texture = document.Textures.FirstOrDefault();
+        var texture = resolvedTexture ?? document.Textures.FirstOrDefault();
 
         return new ThumbnailScene(allFaces, texture, boundsMin, boundsMax);
     }
@@ -179,17 +181,17 @@ public static class GeometryBuilder
 
         var faces = new List<TexturedFace>();
 
-        AddTransformedFace(faces, worldMatrix, hx, hy, hz, hx, hy, lz, hx, ly, hz, hx, ly, lz,
+        AddTransformedFace(faces, worldMatrix, hx, hy, hz, hx, hy, lz, hx, ly, lz, hx, ly, hz,
             Vector3.UnitX, GetFaceUV(cubeUV?.East, tw, th));
-        AddTransformedFace(faces, worldMatrix, lx, hy, lz, lx, hy, hz, lx, ly, lz, lx, ly, hz,
+        AddTransformedFace(faces, worldMatrix, lx, hy, lz, lx, hy, hz, lx, ly, hz, lx, ly, lz,
             -Vector3.UnitX, GetFaceUV(cubeUV?.West, tw, th));
-        AddTransformedFace(faces, worldMatrix, lx, hy, lz, hx, hy, lz, lx, hy, hz, hx, hy, hz,
+        AddTransformedFace(faces, worldMatrix, lx, hy, lz, hx, hy, lz, hx, hy, hz, lx, hy, hz,
             Vector3.UnitY, GetFaceUV(cubeUV?.Up, tw, th));
-        AddTransformedFace(faces, worldMatrix, lx, ly, hz, hx, ly, hz, lx, ly, lz, hx, ly, lz,
+        AddTransformedFace(faces, worldMatrix, lx, ly, hz, hx, ly, hz, hx, ly, lz, lx, ly, lz,
             -Vector3.UnitY, GetFaceUV(cubeUV?.Down, tw, th));
-        AddTransformedFace(faces, worldMatrix, lx, hy, hz, hx, hy, hz, lx, ly, hz, hx, ly, hz,
+        AddTransformedFace(faces, worldMatrix, lx, hy, hz, hx, hy, hz, hx, ly, hz, lx, ly, hz,
             Vector3.UnitZ, GetFaceUV(cubeUV?.South, tw, th));
-        AddTransformedFace(faces, worldMatrix, hx, hy, lz, lx, hy, lz, hx, ly, lz, lx, ly, lz,
+        AddTransformedFace(faces, worldMatrix, hx, hy, lz, lx, hy, lz, lx, ly, lz, hx, ly, lz,
             -Vector3.UnitZ, GetFaceUV(cubeUV?.North, tw, th));
 
         return faces;

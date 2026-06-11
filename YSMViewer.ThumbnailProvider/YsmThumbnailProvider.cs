@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
+using SixLabors.ImageSharp;
 using YSMViewer.Rendering.Thumbnail;
 using YSMViewer.Services;
 
@@ -20,10 +22,16 @@ public sealed class YsmThumbnailProvider : IThumbnailProvider, IInitializeWithSt
             using var ms = new MemoryStream();
             stream.CopyTo(ms);
             _fileData = ms.ToArray();
+#if DEBUG
+            Trace.WriteLine($"[YsmThumb] Initialize: {_fileData.Length} bytes");
+#endif
             return 0;
         }
-        catch
+        catch (Exception ex)
         {
+#if DEBUG
+            Trace.WriteLine($"[YsmThumb] Initialize failed: {ex.Message}");
+#endif
             return unchecked((int)0x80004005);
         }
     }
@@ -38,16 +46,34 @@ public sealed class YsmThumbnailProvider : IThumbnailProvider, IInitializeWithSt
             if (_fileData is null)
                 return unchecked((int)0x80004005);
 
+#if DEBUG
+            var sw = Stopwatch.StartNew();
+            Trace.WriteLine($"[YsmThumb] GetThumbnail cx={cx}");
+#endif
+
             var document = YsmLoaderService.LoadDocumentFromBytes(_fileData);
             var scene = GeometryBuilder.Build(document);
             using var renderer = new ThumbnailRenderer();
-            using var bitmap = renderer.Render(scene, (int)cx);
-            hBitmap = bitmap.GetHbitmap();
+            var size = Math.Min((int)cx, 256);
+            using var image = renderer.Render(scene, size);
+
+            using var ms = new MemoryStream();
+            image.SaveAsPng(ms);
+            ms.Position = 0;
+            using var bmp = new System.Drawing.Bitmap(ms);
+            hBitmap = bmp.GetHbitmap();
             alphaType = WTS_ALPHATYPE.WTSAT_ARGB;
+
+#if DEBUG
+            Trace.WriteLine($"[YsmThumb] Done in {sw.ElapsedMilliseconds}ms, hBitmap=0x{hBitmap:X}");
+#endif
             return 0;
         }
-        catch
+        catch (Exception ex)
         {
+#if DEBUG
+            Trace.WriteLine($"[YsmThumb] GetThumbnail failed: {ex}");
+#endif
             if (hBitmap != IntPtr.Zero)
             {
                 DeleteObject(hBitmap);

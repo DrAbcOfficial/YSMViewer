@@ -1,61 +1,70 @@
-using System.Drawing;
-using System.Drawing.Imaging;
+using System.Diagnostics;
 using System.Numerics;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using YSMViewer.Models.Document;
 
 namespace YSMViewer.Rendering.Thumbnail;
 
 public sealed class ThumbnailRenderer : IDisposable
 {
-    private Bitmap? _texture;
+    private Image<Rgba32>? _texture;
+    private Rgba32[]? _texPixels;
     private int _texW, _texH;
 
-    public Bitmap Render(GeometryBuilder.ThumbnailScene scene, int size)
+    public Image<Rgba32> Render(GeometryBuilder.ThumbnailScene scene, int size)
     {
+        var sw = Stopwatch.StartNew();
         LoadTexture(scene.Texture);
 
         var cam = SetupCamera(scene.BoundsMin, scene.BoundsMax, size);
+#if DEBUG
+        Trace.WriteLine($"[Thumbnail] Camera eye={cam.Eye} center={0.5f * (scene.BoundsMin + scene.BoundsMax)} orthoScale={cam.OrthoScale}");
+        Trace.WriteLine($"[Thumbnail] Texture={(_texture is null ? "none" : $"{_texW}x{_texH}")} Faces={scene.Faces.Count}");
+#endif
 
-        var bitmap = new Bitmap(size, size, PixelFormat.Format32bppArgb);
+        var image = new Image<Rgba32>(size, size, new Rgba32(0, 0, 0, 0));
         var depthBuffer = new float[size * size];
         Array.Fill(depthBuffer, float.MaxValue);
 
-        var bmpData = bitmap.LockBits(
-            new Rectangle(0, 0, size, size),
-            ImageLockMode.WriteOnly,
-            PixelFormat.Format32bppArgb);
-
-        try
+        int culled = 0, drawn = 0;
+        foreach (var face in scene.Faces)
         {
-            foreach (var face in scene.Faces)
-                RasterizeFace(face, cam, size, bmpData, depthBuffer);
-        }
-        finally
-        {
-            bitmap.UnlockBits(bmpData);
+            if (RasterizeFace(face, cam, size, image, depthBuffer))
+                drawn++;
+            else
+                culled++;
         }
 
-        return bitmap;
+#if DEBUG
+        Trace.WriteLine($"[Thumbnail] Drawn={drawn} Culled={culled} Time={sw.ElapsedMilliseconds}ms");
+#endif
+        return image;
     }
 
     private void LoadTexture(YsmTextureResource? texture)
     {
         _texture?.Dispose();
         _texture = null;
+        _texPixels = null;
         _texW = _texH = 1;
 
         if (texture?.Data is { Length: > 0 })
         {
             try
             {
-                using var ms = new MemoryStream(texture.Data);
-                _texture = new Bitmap(ms);
+                _texture = Image.Load<Rgba32>(texture.Data);
                 _texW = _texture.Width;
                 _texH = _texture.Height;
+                if (_texPixels is null || _texPixels.Length != _texW * _texH)
+                    _texPixels = new Rgba32[_texW * _texH];
+                _texture.CopyPixelDataTo(_texPixels);
             }
-            catch
+            catch (Exception ex)
             {
+                Trace.WriteLineIf(Debugger.IsAttached, $"[Thumbnail] Texture load failed: {ex.Message}");
                 _texture = null;
+                _texPixels = null;
             }
         }
     }
@@ -63,39 +72,60 @@ public sealed class ThumbnailRenderer : IDisposable
     private static CameraData SetupCamera(Vector3 boundsMin, Vector3 boundsMax, int viewportSize)
     {
         var center = (boundsMin + boundsMax) * 0.5f;
-        var extent = boundsMax - boundsMin;
-        float maxExtent = MathF.Max(MathF.Max(extent.X, extent.Y), extent.Z);
-        if (maxExtent < 0.001f) maxExtent = 1f;
 
-        var forward = Vector3.Normalize(new Vector3(1f, 0.55f, 1f));
+        var forward = Vector3.Normalize(new Vector3(0f, 0.15f, 1f));
         var right = Vector3.Normalize(Vector3.Cross(forward, Vector3.UnitY));
         var up = Vector3.Normalize(Vector3.Cross(right, forward));
 
-        float dist = maxExtent * 2.2f;
-        var eye = center - forward * dist;
+        float viewMinX = float.MaxValue, viewMaxX = float.MinValue;
+        float viewMinY = float.MaxValue, viewMaxY = float.MinValue;
+        var corners = new[]
+        {
+            new Vector3(boundsMin.X, boundsMin.Y, boundsMin.Z),
+            new Vector3(boundsMin.X, boundsMin.Y, boundsMax.Z),
+            new Vector3(boundsMin.X, boundsMax.Y, boundsMin.Z),
+            new Vector3(boundsMin.X, boundsMax.Y, boundsMax.Z),
+            new Vector3(boundsMax.X, boundsMin.Y, boundsMin.Z),
+            new Vector3(boundsMax.X, boundsMin.Y, boundsMax.Z),
+            new Vector3(boundsMax.X, boundsMax.Y, boundsMin.Z),
+            new Vector3(boundsMax.X, boundsMax.Y, boundsMax.Z),
+        };
+        foreach (var c in corners)
+        {
+            float vx = Vector3.Dot(c - center, right);
+            float vy = Vector3.Dot(c - center, up);
+            viewMinX = MathF.Min(viewMinX, vx);
+            viewMaxX = MathF.Max(viewMaxX, vx);
+            viewMinY = MathF.Min(viewMinY, vy);
+            viewMaxY = MathF.Max(viewMaxY, vy);
+        }
+        float viewExtentX = viewMaxX - viewMinX;
+        float viewExtentY = viewMaxY - viewMinY;
 
-        float orthoHalf = maxExtent * 0.7f;
-        float orthoScale = (viewportSize - 20f) / (orthoHalf * 2f);
+        float orthoScaleX = viewportSize / viewExtentX;
+        float orthoScaleY = viewportSize / viewExtentY;
+        float orthoScale = MathF.Min(orthoScaleX, orthoScaleY);
 
-        return new CameraData(eye, right, up, forward, orthoScale, maxExtent);
+        float dist = (boundsMax - boundsMin).Length() * 1.5f;
+        return new CameraData(center - forward * dist, right, up, forward, orthoScale);
     }
 
-    private void RasterizeFace(
+    private bool RasterizeFace(
         GeometryBuilder.TexturedFace face,
         CameraData cam,
         int vpSize,
-        BitmapData bmpData,
+        Image<Rgba32> image,
         float[] depthBuffer)
     {
         var nz = Vector3.Dot(face.WorldNormal, cam.Forward);
-        if (nz <= 0f) return;
+        if (nz <= 0f) return false;
 
         var p0 = ProjectVertex(face.P0, cam);
         var p1 = ProjectVertex(face.P1, cam);
         var p2 = ProjectVertex(face.P2, cam);
         var p3 = ProjectVertex(face.P3, cam);
 
-        if (p0.Z < 0 || p1.Z < 0 || p2.Z < 0 || p3.Z < 0) return;
+        if (p0.Z < 0 || p1.Z < 0 || p2.Z < 0 || p3.Z < 0) return false;
 
         var s0 = ToScreen(p0, cam, vpSize);
         var s1 = ToScreen(p1, cam, vpSize);
@@ -106,10 +136,12 @@ public sealed class ThumbnailRenderer : IDisposable
 
         RasterizeTriangle(s0, s1, s2,
             face.U0, face.V0, face.U1, face.V1, face.U2, face.V2,
-            light, vpSize, bmpData, depthBuffer);
+            light, vpSize, image, depthBuffer);
         RasterizeTriangle(s0, s2, s3,
             face.U0, face.V0, face.U2, face.V2, face.U3, face.V3,
-            light, vpSize, bmpData, depthBuffer);
+            light, vpSize, image, depthBuffer);
+
+        return true;
     }
 
     private static (float X, float Y, float Z) ProjectVertex(Vector3 worldPos, CameraData cam)
@@ -135,7 +167,7 @@ public sealed class ThumbnailRenderer : IDisposable
     {
         var lightDir = Vector3.Normalize(new Vector3(-1f, 1f, -1f));
         float diff = MathF.Max(0f, Vector3.Dot(Vector3.Normalize(worldNormal), lightDir));
-        return 0.25f + 0.75f * diff;
+        return 0.55f + 0.55f * diff;
     }
 
     private void RasterizeTriangle(
@@ -143,7 +175,7 @@ public sealed class ThumbnailRenderer : IDisposable
         (float X, float Y, float Z) b,
         (float X, float Y, float Z) c,
         float ua, float va, float ub, float vb, float uc, float vc,
-        float light, int vpSize, BitmapData bmpData, float[] depthBuffer)
+        float light, int vpSize, Image<Rgba32> image, float[] depthBuffer)
     {
         int minX = Math.Max(0, (int)MathF.Floor(MathF.Min(MathF.Min(a.X, b.X), c.X)));
         int minY = Math.Max(0, (int)MathF.Floor(MathF.Min(MathF.Min(a.Y, b.Y), c.Y)));
@@ -153,6 +185,10 @@ public sealed class ThumbnailRenderer : IDisposable
         float area = EdgeFunc(a.X, a.Y, b.X, b.Y, c.X, c.Y);
         if (MathF.Abs(area) < 0.0001f) return;
         float invArea = 1f / area;
+
+        if (!image.DangerousTryGetSinglePixelMemory(out var pixelMem))
+            return;
+        var pixels = pixelMem.Span;
 
         for (int py = minY; py <= maxY; py++)
         {
@@ -178,18 +214,10 @@ public sealed class ThumbnailRenderer : IDisposable
                 float tu = alpha * ua + beta * ub + gamma * uc;
                 float tv = alpha * va + beta * vb + gamma * vc;
 
-                Color color = SampleTexture(tu, tv, light);
-                if (color.A < 5) continue;
+                var color = SampleTexture(tu, tv, light);
+                if (color.A == 0) continue;
 
-                int pixelOffset = py * bmpData.Stride + px * 4;
-                unsafe
-                {
-                    byte* ptr = (byte*)bmpData.Scan0 + pixelOffset;
-                    ptr[0] = color.B;
-                    ptr[1] = color.G;
-                    ptr[2] = color.R;
-                    ptr[3] = 255;
-                }
+                pixels[idx] = color;
             }
         }
     }
@@ -199,10 +227,14 @@ public sealed class ThumbnailRenderer : IDisposable
         return (px - ax) * (by - ay) - (py - ay) * (bx - ax);
     }
 
-    private Color SampleTexture(float u, float v, float light)
+    private Rgba32 SampleTexture(float u, float v, float light)
     {
-        if (_texture is null)
-            return Color.FromArgb((int)(200 * light), (int)(200 * light), (int)(200 * light));
+        if (_texPixels is null)
+            return new Rgba32(
+                (byte)Math.Clamp((int)(230 * light), 0, 255),
+                (byte)Math.Clamp((int)(230 * light), 0, 255),
+                (byte)Math.Clamp((int)(230 * light), 0, 255),
+                255);
 
         u = u - MathF.Floor(u);
         v = v - MathF.Floor(v);
@@ -212,22 +244,24 @@ public sealed class ThumbnailRenderer : IDisposable
         if (tx < 0) tx += _texW;
         if (ty < 0) ty += _texH;
 
-        var pixel = _texture.GetPixel(tx, ty);
+        int texIdx = ty * _texW + tx;
+        var pixel = _texPixels![texIdx];
 
         if (pixel.A < 128)
-            return Color.Transparent;
+            return new Rgba32(0, 0, 0, 0);
 
-        int r = Math.Clamp((int)(pixel.R * light), 0, 255);
-        int g = Math.Clamp((int)(pixel.G * light), 0, 255);
-        int b = Math.Clamp((int)(pixel.B * light), 0, 255);
+        byte r = (byte)Math.Clamp((int)(pixel.R * light), 0, 255);
+        byte g = (byte)Math.Clamp((int)(pixel.G * light), 0, 255);
+        byte b = (byte)Math.Clamp((int)(pixel.B * light), 0, 255);
 
-        return Color.FromArgb(255, r, g, b);
+        return new Rgba32(r, g, b, 255);
     }
 
     public void Dispose()
     {
         _texture?.Dispose();
         _texture = null;
+        _texPixels = null;
     }
 }
 
@@ -236,5 +270,4 @@ internal sealed record CameraData(
     Vector3 Right,
     Vector3 Up,
     Vector3 Forward,
-    float OrthoScale,
-    float MaxExtent);
+    float OrthoScale);

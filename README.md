@@ -40,8 +40,22 @@ dotnet run --project YSMViewer.Desktop -- path/to/model.ysm
 | Project | Target | Purpose |
 |---|---|---|
 | `YSMViewer/` | `net10.0` | Shared UI library: Views, ViewModels, Services, 3D scene |
+| `YSMViewer.Core/` | `net10.0` | Shared parsing/model library consumed by all other projects |
 | `YSMViewer.Desktop/` | `net10.0` | Desktop launcher |
 | `YSMViewer.Browser/` | `net10.0-browser` (WASM) | Browser launcher |
+| `YSMViewer.ThumbnailProvider/` | `net10.0-windows` | Windows Explorer thumbnail handler for `.ysm` files |
+
+### Windows Thumbnail Provider
+
+`YSMViewer.ThumbnailProvider` registers as a COM shell extension that generates Explorer thumbnail previews for `.ysm` files using a CPU software renderer.
+
+```powershell
+# Register (admin required)
+.\YSMViewer.ThumbnailProvider\Scripts\Register.ps1 -Register
+
+# Unregister
+.\YSMViewer.ThumbnailProvider\Scripts\Register.ps1 -Unregister
+```
 
 ## Tech Stack
 

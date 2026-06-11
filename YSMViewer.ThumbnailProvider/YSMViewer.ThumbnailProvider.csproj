@@ -4,12 +4,29 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <EnableComHosting>true</EnableComHosting>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <!-- Normal COM library build -->
+  <PropertyGroup Condition="'$(Configuration)' != 'DebugRuntest'">
+    <OutputType>Library</OutputType>
+    <EnableComHosting>true</EnableComHosting>
+  </PropertyGroup>
+
+  <!-- DebugRuntest: standalone console test harness -->
+  <PropertyGroup Condition="'$(Configuration)' == 'DebugRuntest'">
+    <OutputType>Exe</OutputType>
+    <EnableComHosting>false</EnableComHosting>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\YSMViewer.Core\YSMViewer.Core.csproj" />
+    <PackageReference Include="System.Drawing.Common" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Test\**" Condition="'$(Configuration)' != 'DebugRuntest'" />
+    <Compile Remove="YsmThumbnailProvider.cs" Condition="'$(Configuration)' == 'DebugRuntest'" />
+    <Compile Remove="ComInterfaces.cs" Condition="'$(Configuration)' == 'DebugRuntest'" />
   </ItemGroup>
 </Project>

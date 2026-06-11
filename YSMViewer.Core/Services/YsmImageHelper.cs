@@ -1,5 +1,4 @@
-using System.Drawing;
-using System.Drawing.Imaging;
+using SixLabors.ImageSharp;
 
 namespace YSMViewer.Services;
 
@@ -24,11 +23,10 @@ public static class YsmImageHelper
     {
         try
         {
-            using var ms = new MemoryStream(imageData);
-            using var bitmap = new Bitmap(ms);
-            using var outMs = new MemoryStream();
-            bitmap.Save(outMs, ImageFormat.Png);
-            return outMs.ToArray();
+            using var image = Image.Load(imageData);
+            using var ms = new MemoryStream();
+            image.SaveAsPng(ms);
+            return ms.ToArray();
         }
         catch
         {
@@ -40,13 +38,10 @@ public static class YsmImageHelper
     {
         try
         {
-            if (data.Length < 24)
-                return (0, 0);
-            if (data[0] != 0x89 || data[1] != 0x50 || data[2] != 0x4E || data[3] != 0x47)
-                return (0, 0);
-            int width = (data[16] << 24) | (data[17] << 16) | (data[18] << 8) | data[19];
-            int height = (data[20] << 24) | (data[21] << 16) | (data[22] << 8) | data[23];
-            return (width, height);
+            var info = Image.Identify(data);
+            if (info is not null)
+                return (info.Width, info.Height);
+            return (0, 0);
         }
         catch
         {

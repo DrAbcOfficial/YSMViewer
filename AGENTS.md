@@ -3,6 +3,7 @@
 ## Prerequisites
 
 - **.NET SDK 10.0** (`net10.0` target). No `global.json`; the SDK version is implied by the TFM.
+- **Windows only** (ThumbnailProvider): Requires `net10.0-windows` + COM host support.
 
 ## NuGet
 
@@ -19,6 +20,9 @@ dotnet run --project YSMViewer.Desktop
 
 # Open a file on launch
 dotnet run --project YSMViewer.Desktop -- path\to\file.ysm
+
+# Run thumbnail test harness
+dotnet run --project YSMViewer.ThumbnailProvider -c DebugRuntest -- path\to\file.ysm [output.png] [size]
 ```
 
 There are **no tests** in YSMViewer.
@@ -27,7 +31,7 @@ There are **no tests** in YSMViewer.
 
 - **Format**: `.slnx` (not `.sln`).
 - **Central package management**: `Directory.Packages.props` — add new NuGet deps there, not in individual `.csproj` files.
-- **Three projects**: `YSMViewer/` (shared lib), `YSMViewer.Desktop/` (WinExe entrypoint), `YSMViewer.Browser/` (WASM entrypoint).
+- **Five projects**: `YSMViewer/` (shared UI), `YSMViewer.Core/` (shared parsing), `YSMViewer.Desktop/` (WinExe), `YSMViewer.Browser/` (WASM), `YSMViewer.ThumbnailProvider/` (COM thumbnail handler).
 
 ## CI (`.github/workflows/build.yml`)
 
@@ -37,6 +41,34 @@ There are **no tests** in YSMViewer.
 - Desktop Release uses `PublishSingleFile`, `SelfContained`, `PublishTrimmed`.
 
 ## Architecture
+
+### YSMViewer.Core
+
+Shared model library (`net10.0`) consumed by all other projects. Contains:
+
+- **Models/**: `YsmModelDocument`, `YsmGeometryModel`, `YsmTextureResource`, `YsmBoneInfo`, `YsmCubeInfo` — document model types.
+- **Models/Document/**: `YsmModelDocument`, `MinecraftGeometry.cs`, `MinecraftAnimation.cs`, `MinecraftCubeFaceUV.cs`.
+- **Services/**: `YsmLoaderService` (file → JSON → document), `YsmImageHelper` (PNG conversion via SixLabors.ImageSharp), `YsmMetadataParser`, `ZipYsmParser`.
+
+NuGet: `YSMParser.Core`, `SixLabors.ImageSharp`.
+
+### YSMViewer.ThumbnailProvider
+
+Windows COM shell extension (`net10.0-windows`) that generates Explorer thumbnail previews for `.ysm` files using a CPU software renderer.
+
+**Two configurations:**
+- **Debug/Release**: `OutputType=Library`, `EnableComHosting=true` — produces `.comhost.dll` for COM registration.
+- **DebugRuntest**: `OutputType=Exe`, `EnableComHosting=false` — standalone CLI test harness for local thumbnail testing.
+
+**Key files:**
+- `YsmThumbnailProvider.cs` — COM entry point, implements `IThumbnailProvider` + `IInitializeWithStream`.
+- `ComInterfaces.cs` — COM interface definitions + `ComStreamWrapper`.
+- `Rendering/SoftwareRenderer.cs` — CPU Z-buffer rasterizer with barycentric texture sampling and directional lighting.
+- `Rendering/GeometryBuilder.cs` — bone hierarchy traversal, world-space quad generation from cube faces.
+- `Test/TestHarness.cs` — CLI test harness with timing diagnostics.
+- `Scripts/Register.ps1` — COM registration/unregistration (requires admin).
+
+**NuGet (ThumbnailProvider only):** `System.Drawing.Common` (for `Bitmap.GetHbitmap()` COM interop), `SixLabors.ImageSharp` (via Core).
 
 ### Two rendering backends
 
@@ -60,7 +92,11 @@ An `IRenderer` abstraction (`Rendering/IRenderer.cs`) has two implementations:
 
 ### Services (`YSMViewer/Services/`)
 
-`YsmLoaderService`, `MeshBuilderService`, `AnimationService`, `LocalizationService`, `ThemeService`, `YsmImageHelper`, `YsmMetadataParser`, `ZipYsmParser`.
+`AnimationService`, `LocalizationService`, `ThemeService`.
+
+### Services (`YSMViewer.Core/Services/`)
+
+`YsmLoaderService`, `YsmImageHelper`, `YsmMetadataParser`, `ZipYsmParser`.
 
 ### Views (`YSMViewer/Views/`)
 
