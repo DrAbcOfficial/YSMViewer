@@ -40,11 +40,6 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
     private readonly HashSet<string> _bonesAnimatedThisFrame = [];
     private const float ResetSpeed = 0.15f;
 
-    public Vector3 CameraOrbitTarget => _cameraOrbitTarget;
-    public float CameraYaw => _cameraYaw;
-    public float CameraPitch => _cameraPitch;
-    public float CameraDistance => _cameraDistance;
-
     public (float Pitch, float Yaw) GetCameraOrbit() => (_cameraPitch, _cameraYaw);
 
     private Vector3 _cameraOrbitTarget = Vector3.Zero;
@@ -108,7 +103,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
         catch { }
     }
 
-    public void SyncGizmoCamera()
+    private void SyncGizmoCamera()
     {
         if (_gizmoView.Scene is null) return;
 

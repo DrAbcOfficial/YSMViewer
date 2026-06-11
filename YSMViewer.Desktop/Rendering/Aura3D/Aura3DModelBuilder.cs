@@ -14,8 +14,7 @@ public static class Aura3DModelBuilder
     public sealed record BuildResult(
         Model RootModel,
         Dictionary<string, Node> BoneNodes,
-        Dictionary<string, Vector3> BaseBoneEulers,
-        Dictionary<string, Vector3> BonePivots);
+        Dictionary<string, Vector3> BaseBoneEulers);
 
     public static BuildResult BuildFromDocument(YsmGeometryModel geoModel, YsmTextureResource? texture)
     {
@@ -155,7 +154,7 @@ public static class Aura3DModelBuilder
             }
         }
 
-        return new BuildResult(model, boneNodes, baseEulers, bonePivots);
+        return new BuildResult(model, boneNodes, baseEulers);
     }
 
     private static (Vector3 From, Vector3 To) ConvertCubeBoundsDoc(YsmCubeInfo cube)
@@ -266,7 +265,7 @@ public static class Aura3DModelBuilder
         indices.AddRange([baseIndex + 2, baseIndex + 3, baseIndex + 1]);
     }
 
-    internal static Quaternion CreateBlockbenchQuaternion(Vector3 eulerDegrees)
+    private static Quaternion CreateBlockbenchQuaternion(Vector3 eulerDegrees)
     {
         float rx = eulerDegrees.X * MathF.PI / 180f;
         float ry = eulerDegrees.Y * MathF.PI / 180f;

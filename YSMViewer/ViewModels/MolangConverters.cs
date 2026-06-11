@@ -21,23 +21,6 @@ public sealed class FloatToBoolConverter : IValueConverter
     }
 }
 
-public sealed class BoolToFloatConverter : IValueConverter
-{
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        if (value is bool b)
-            return b ? 1f : 0f;
-        return 0f;
-    }
-
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-    {
-        if (value is float f)
-            return f > 0.5f;
-        return false;
-    }
-}
-
 public sealed class DomainToBadgeBrushConverter : IValueConverter
 {
     private static readonly IBrush QueryBrush = new SolidColorBrush(Color.FromRgb(0x58, 0xa6, 0xff));

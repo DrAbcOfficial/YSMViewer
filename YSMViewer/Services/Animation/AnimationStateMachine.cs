@@ -31,9 +31,6 @@ public sealed class AnimationStateMachine(
     private string _controllerName = "";
     private int _depth;
 
-    public string CurrentState => _currentState ?? "";
-    public bool IsInitialized => _isInitialized;
-
     public void SetParentInfo(string name, int depth)
     {
         _controllerName = name;
