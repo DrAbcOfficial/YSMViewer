@@ -15,8 +15,11 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Build
+      - name: Build Desktop
         run: dotnet build YSMViewer.Desktop -c Release
+
+      - name: Build ThumbnailProvider (C ABI)
+        run: dotnet build YSMViewer.ThumbnailProvider -c Release
 
   publish-desktop:
     needs: build
@@ -58,11 +61,17 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Publish ThumbnailProvider COM DLL
+      - name: Publish C# NativeAOT rendering DLL
         run: dotnet publish YSMViewer.ThumbnailProvider -c Release -r win-x64 -o publish/thumbnail
 
-      - name: Publish Registration Tool
-        run: dotnet publish YSMViewer.ThumbnailProvider.Tools -c Release -r win-x64 -o publish/thumbnail
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build C++ COM wrapper DLL
+        run: |
+          cl.exe /nologo /EHsc /std:c++17 /LD /Fe:"publish/thumbnail/YSMViewer.ThumbnailProvider.Cpp.dll" /Fo:"publish/thumbnail/" YSMViewer.ThumbnailProvider.Cpp/YsmThumbnailProvider.cpp YSMViewer.ThumbnailProvider.Cpp/DllMain.cpp /link /DEF:YSMViewer.ThumbnailProvider.Cpp/YsmThumbnailProvider.def shlwapi.lib gdi32.lib ole32.lib advapi32.lib user32.lib
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
