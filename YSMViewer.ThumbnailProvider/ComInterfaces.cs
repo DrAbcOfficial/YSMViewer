@@ -1,22 +1,21 @@
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
-using System.Runtime.InteropServices.Marshalling;
 
 namespace YSMViewer.ThumbnailProvider;
 
-[GeneratedComInterface]
+[ComImport]
 [Guid("E357FCCD-A995-4576-B01F-234630154E96")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-public partial interface IThumbnailProvider
+internal interface IThumbnailProvider
 {
     [PreserveSig]
     int GetThumbnail(uint cx, out nint hBitmap, out WTS_ALPHATYPE alphaType);
 }
 
-[GeneratedComInterface]
+[ComImport]
 [Guid("B824B49D-22AC-4161-AC8A-9916E8FA3F7F")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-public partial interface IInitializeWithStream
+internal interface IInitializeWithStream
 {
     [PreserveSig]
     int Initialize(nint stream, uint grfMode);

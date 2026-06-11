@@ -2,7 +2,6 @@ using SixLabors.ImageSharp;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
-using System.Runtime.InteropServices.Marshalling;
 using YSMViewer.Services;
 using YSMViewer.ThumbnailProvider.Rendering;
 
@@ -11,8 +10,7 @@ namespace YSMViewer.ThumbnailProvider;
 [ComVisible(true)]
 [Guid("F4E2C1A8-7B3D-4E5F-9A1C-2D8E6F0B4A3C")]
 [ClassInterface(ClassInterfaceType.None)]
-[GeneratedComClass]
-public sealed partial class YsmThumbnailProvider : IThumbnailProvider, IInitializeWithStream
+public sealed class YsmThumbnailProvider : IThumbnailProvider, IInitializeWithStream
 {
     private byte[]? _fileData;
 
@@ -32,10 +30,10 @@ public sealed partial class YsmThumbnailProvider : IThumbnailProvider, IInitiali
 #endif
             return 0;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
 #if DEBUG
-            Trace.WriteLine($"[YsmThumb] Initialize failed: {ex.Message}");
+            Trace.WriteLine($"[YsmThumb] Initialize failed");
 #endif
             return unchecked((int)0x80004005);
         }
@@ -74,10 +72,10 @@ public sealed partial class YsmThumbnailProvider : IThumbnailProvider, IInitiali
 #endif
             return 0;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
 #if DEBUG
-            Trace.WriteLine($"[YsmThumb] GetThumbnail failed: {ex}");
+            Trace.WriteLine($"[YsmThumb] GetThumbnail failed");
 #endif
             if (hBitmap != nint.Zero)
             {
@@ -88,7 +86,7 @@ public sealed partial class YsmThumbnailProvider : IThumbnailProvider, IInitiali
         }
     }
 
-    [LibraryImport("gdi32.dll")]
+    [DllImport("gdi32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool DeleteObject(nint hObject);
+    private static extern bool DeleteObject(nint hObject);
 }
