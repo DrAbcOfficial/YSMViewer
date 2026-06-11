@@ -52,18 +52,20 @@ public static class ThreeJsPayloadBuilder
             var bonePivots = new Dictionary<string, Vector3>();
 
             foreach (var bone in geoModel.Bones)
-                bonePivots[bone.Id] = bone.Pivot;
+                bonePivots[$"{geoModel.Id}:{bone.Id}"] = bone.Pivot;
 
             foreach (var bone in geoModel.Bones)
             {
-                var localPosition = bone.ParentId is not null && bonePivots.TryGetValue(bone.ParentId, out var parentPivot)
+                var boneId = $"{geoModel.Id}:{bone.Id}";
+                var parentId = bone.ParentId is not null ? $"{geoModel.Id}:{bone.ParentId}" : null;
+                var localPosition = parentId is not null && bonePivots.TryGetValue(parentId, out var parentPivot)
                     ? (bone.Pivot - parentPivot) * ExportScale
                     : bone.Pivot * ExportScale;
 
                 bones.Add(new ThreeJsBoneData(
-                    Id: bone.Id,
+                    Id: boneId,
                     Name: bone.Name,
-                    ParentId: bone.ParentId,
+                    ParentId: parentId,
                     LocalPosition: ToArray(localPosition),
                     LocalRotation: ToArray(CreateBlockbenchQuaternion(bone.Rotation))));
 
@@ -74,7 +76,7 @@ public static class ThreeJsPayloadBuilder
                     var meshData = BuildCubeMeshData(
                         cube, bone.Pivot,
                         geoModel.TextureWidth, geoModel.TextureHeight,
-                        $"{bone.Id}_{cubeIdx}", bone.Id);
+                        $"{boneId}_{cubeIdx}", boneId);
                     if (meshData is not null)
                         meshGroups.Add(meshData);
                     cubeIdx++;

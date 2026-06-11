@@ -24,6 +24,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
     private YsmModelDocument? _document;
     private readonly Dictionary<string, Model> _componentModels = [];
     private readonly Dictionary<string, Node> _boneNodes = [];
+    private readonly Dictionary<string, List<(string key, Node node)>> _boneNameToNodes = [];
     private readonly Dictionary<string, Vector3> _baseBoneEulers = [];
     private readonly Dictionary<string, Vector3> _basePositions = [];
     private readonly List<Model> _sceneRoots = [];
@@ -147,8 +148,19 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
             result.RootModel.Enable = geoModel.DefaultVisible;
             _componentModels[geoModel.Id] = result.RootModel;
 
+            // Use compound key to distinguish bones across components
             foreach (var kv in result.BoneNodes)
-                _boneNodes[kv.Key] = kv.Value;
+            {
+                var compoundKey = $"{geoModel.Id}:{kv.Key}";
+                _boneNodes[compoundKey] = kv.Value;
+
+                if (!_boneNameToNodes.TryGetValue(kv.Key, out var list))
+                {
+                    list = [];
+                    _boneNameToNodes[kv.Key] = list;
+                }
+                list.Add((compoundKey, kv.Value));
+            }
 
             foreach (var kv in result.BaseBoneEulers)
                 _baseBoneEulers[kv.Key] = kv.Value;
@@ -168,10 +180,18 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
             FitCameraToContent();
 
         _animBones = [];
-        foreach (var kv in _boneNodes)
+        _basePositions.Clear();
+        foreach (var geoModel in document.Models)
         {
-            _animBones[kv.Key] = new Aura3DBoneNode(kv.Value);
-            _basePositions[kv.Key] = kv.Value.Position;
+            foreach (var bone in geoModel.Bones)
+            {
+                var compoundKey = $"{geoModel.Id}:{bone.Id}";
+                if (_boneNodes.TryGetValue(compoundKey, out var node) && !_animBones.ContainsKey(bone.Id))
+                {
+                    _animBones[bone.Id] = new Aura3DBoneNode(node);
+                    _basePositions[bone.Id] = node.Position;
+                }
+            }
         }
 
         foreach (var geoModel in document.Models)
@@ -262,6 +282,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
         _animService.ResetBones();
         _componentModels.Clear();
         _boneNodes.Clear();
+        _boneNameToNodes.Clear();
         _baseBoneEulers.Clear();
         _basePositions.Clear();
 
@@ -363,13 +384,14 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
                 }
             });
 
-            foreach (var (boneName, bone) in _animBones!)
+            foreach (var (boneName, entries) in _boneNameToNodes)
             {
-                if (_boneNodes.TryGetValue(boneName, out var node))
-                    node.Enable = _stateMachine.GetBoneVisibility(boneName);
+                var vis = _stateMachine.GetBoneVisibility(boneName);
+                foreach (var (_, node) in entries)
+                    node.Enable = vis;
             }
 
-            foreach (var (boneName, bone) in _animBones)
+            foreach (var (boneName, bone) in _animBones!)
             {
                 if (_bonesAnimatedThisFrame.Contains(boneName)) continue;
 

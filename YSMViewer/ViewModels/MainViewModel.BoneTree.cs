@@ -30,7 +30,7 @@ public sealed partial class MainViewModel
             {
                 if (bone.ParentId is null || !boneParentMap.ContainsKey(bone.ParentId))
                 {
-                    var item = BuildBoneTreeItem(bone, model.Bones, visited);
+                    var item = BuildBoneTreeItem(bone, model.Bones, visited, componentVm.ComponentId);
                     if (item is not null)
                         group.BoneRoots.Add(item);
                 }
@@ -41,7 +41,7 @@ public sealed partial class MainViewModel
         }
     }
 
-    private BoneTreeItemViewModel? BuildBoneTreeItem(YsmBoneInfo bone, IReadOnlyList<YsmBoneInfo> bones, HashSet<string> visited)
+    private BoneTreeItemViewModel? BuildBoneTreeItem(YsmBoneInfo bone, IReadOnlyList<YsmBoneInfo> bones, HashSet<string> visited, string componentId)
     {
         if (!visited.Add(bone.Id))
             return null;
@@ -49,7 +49,7 @@ public sealed partial class MainViewModel
         var item = new BoneTreeItemViewModel
         {
             Name = bone.Name,
-            BoneId = bone.Id,
+            BoneId = $"{componentId}:{bone.Id}",
             IsVisible = true,
             OnVisibilityToggled = (id, vis) => SetBoneVisible(id, vis),
         };
@@ -58,7 +58,7 @@ public sealed partial class MainViewModel
         {
             if (child.ParentId == bone.Id && !visited.Contains(child.Id))
             {
-                var childItem = BuildBoneTreeItem(child, bones, visited);
+                var childItem = BuildBoneTreeItem(child, bones, visited, componentId);
                 if (childItem is not null)
                     item.Children.Add(childItem);
             }
