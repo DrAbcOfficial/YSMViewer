@@ -1,24 +1,29 @@
+using SixLabors.ImageSharp;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
-using SixLabors.ImageSharp;
-using YSMViewer.Rendering.Thumbnail;
+using System.Runtime.InteropServices.Marshalling;
 using YSMViewer.Services;
+using YSMViewer.ThumbnailProvider.Rendering;
 
 namespace YSMViewer.ThumbnailProvider;
 
 [ComVisible(true)]
 [Guid("F4E2C1A8-7B3D-4E5F-9A1C-2D8E6F0B4A3C")]
 [ClassInterface(ClassInterfaceType.None)]
-public sealed class YsmThumbnailProvider : IThumbnailProvider, IInitializeWithStream
+[GeneratedComClass]
+public sealed partial class YsmThumbnailProvider : IThumbnailProvider, IInitializeWithStream
 {
     private byte[]? _fileData;
 
-    public int Initialize(IStream pstream, uint grfMode)
+    public int Initialize(nint pstream, uint grfMode)
     {
+        if (pstream == nint.Zero)
+            return 0;
         try
         {
-            using var stream = new ComStreamWrapper(pstream);
+            IStream managed_strem = (IStream)Marshal.GetObjectForIUnknown(pstream);
+            using var stream = new ComStreamWrapper(managed_strem);
             using var ms = new MemoryStream();
             stream.CopyTo(ms);
             _fileData = ms.ToArray();
@@ -36,9 +41,9 @@ public sealed class YsmThumbnailProvider : IThumbnailProvider, IInitializeWithSt
         }
     }
 
-    public int GetThumbnail(uint cx, out IntPtr hBitmap, out WTS_ALPHATYPE alphaType)
+    public int GetThumbnail(uint cx, out nint hBitmap, out WTS_ALPHATYPE alphaType)
     {
-        hBitmap = IntPtr.Zero;
+        hBitmap = nint.Zero;
         alphaType = WTS_ALPHATYPE.WTSAT_UNKNOWN;
 
         try
@@ -74,15 +79,16 @@ public sealed class YsmThumbnailProvider : IThumbnailProvider, IInitializeWithSt
 #if DEBUG
             Trace.WriteLine($"[YsmThumb] GetThumbnail failed: {ex}");
 #endif
-            if (hBitmap != IntPtr.Zero)
+            if (hBitmap != nint.Zero)
             {
                 DeleteObject(hBitmap);
-                hBitmap = IntPtr.Zero;
+                hBitmap = nint.Zero;
             }
             return unchecked((int)0x80004005);
         }
     }
 
-    [DllImport("gdi32.dll")]
-    private static extern bool DeleteObject(IntPtr hObject);
+    [LibraryImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool DeleteObject(nint hObject);
 }

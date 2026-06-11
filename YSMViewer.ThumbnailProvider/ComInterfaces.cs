@@ -1,24 +1,25 @@
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
+using System.Runtime.InteropServices.Marshalling;
 
 namespace YSMViewer.ThumbnailProvider;
 
-[ComImport]
+[GeneratedComInterface]
 [Guid("E357FCCD-A995-4576-B01F-234630154E96")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-public interface IThumbnailProvider
+public partial interface IThumbnailProvider
 {
     [PreserveSig]
-    int GetThumbnail(uint cx, out IntPtr hBitmap, out WTS_ALPHATYPE alphaType);
+    int GetThumbnail(uint cx, out nint hBitmap, out WTS_ALPHATYPE alphaType);
 }
 
-[ComImport]
+[GeneratedComInterface]
 [Guid("B824B49D-22AC-4161-AC8A-9916E8FA3F7F")]
 [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-public interface IInitializeWithStream
+public partial interface IInitializeWithStream
 {
     [PreserveSig]
-    int Initialize(IStream stream, uint grfMode);
+    int Initialize(nint stream, uint grfMode);
 }
 
 public enum WTS_ALPHATYPE : int
@@ -39,8 +40,7 @@ internal sealed class ComStreamWrapper(IStream stream) : Stream
     {
         get
         {
-            var stat = new STATSTG();
-            _stream.Stat(out stat, 0);
+            _stream.Stat(out var stat, 0);
             return stat.cbSize;
         }
     }

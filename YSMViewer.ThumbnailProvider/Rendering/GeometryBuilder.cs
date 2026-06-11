@@ -2,7 +2,7 @@ using System.Numerics;
 using YSMViewer.Models;
 using YSMViewer.Models.Document;
 
-namespace YSMViewer.Rendering.Thumbnail;
+namespace YSMViewer.ThumbnailProvider.Rendering;
 
 public static class GeometryBuilder
 {
@@ -64,7 +64,7 @@ public static class GeometryBuilder
             boundsMax = Vector3.Max(boundsMax, Vector3.Max(Vector3.Max(face.P0, face.P1), Vector3.Max(face.P2, face.P3)));
         }
 
-        var texture = resolvedTexture ?? document.Textures.FirstOrDefault();
+        var texture = resolvedTexture ?? (document.Textures.Count > 0 ? document.Textures[0] : null);
 
         return new ThumbnailScene(allFaces, texture, boundsMin, boundsMax);
     }
@@ -76,7 +76,7 @@ public static class GeometryBuilder
             var match = document.Textures.FirstOrDefault(t => t.Id == model.TextureId);
             if (match is not null) return match;
         }
-        return document.Textures.FirstOrDefault();
+        return document.Textures.Count > 0 ? document.Textures[0] : null;
     }
 
     private static void ComputeWorldMatrices(

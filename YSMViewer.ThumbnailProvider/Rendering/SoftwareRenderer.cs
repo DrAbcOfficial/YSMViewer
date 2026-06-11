@@ -1,10 +1,10 @@
-using System.Diagnostics;
-using System.Numerics;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using System.Diagnostics;
+using System.Numerics;
 using YSMViewer.Models.Document;
 
-namespace YSMViewer.Rendering.Thumbnail;
+namespace YSMViewer.ThumbnailProvider.Rendering;
 
 public sealed class ThumbnailRenderer : IDisposable
 {
@@ -236,8 +236,8 @@ public sealed class ThumbnailRenderer : IDisposable
                 (byte)Math.Clamp((int)(230 * light), 0, 255),
                 255);
 
-        u = u - MathF.Floor(u);
-        v = v - MathF.Floor(v);
+        u -= MathF.Floor(u);
+        v -= MathF.Floor(v);
 
         int tx = (int)(u * _texW) % _texW;
         int ty = (int)(v * _texH) % _texH;
