@@ -43,37 +43,25 @@ dotnet run --project YSMViewer.Desktop -- path/to/model.ysm
 | `YSMViewer.Core/` | `net10.0` | Shared parsing/model library consumed by all other projects |
 | `YSMViewer.Desktop/` | `net10.0` | Desktop launcher |
 | `YSMViewer.Browser/` | `net10.0-browser` (WASM) | Browser launcher |
-| `YSMViewer.ThumbnailProvider/` | `net10.0-windows` | Windows Explorer thumbnail handler for `.ysm` files |
-| `YSMViewer.ThumbnailProvider.Cpp/` | Native (C++/COM) | Native COM thumbnail provider shell extension (replaces .NET version in-place) |
+| `YSMViewer.ThumbnailProvider/` | `net10.0-windows` | Thumbnail library |
+| `YSMViewer.ThumbnailProvider.Cpp/` | Native (C++/COM) | Native COM thumbnail provider shell extension|
 
 ### Windows Thumbnail Provider
 
-Two implementations are available:
-
-- **C#** (`YSMViewer.ThumbnailProvider`): .NET-based COM shell extension using `EnableComHosting`.
-- **C++** (`YSMViewer.ThumbnailProvider.Cpp`): Native COM DLL with lower overhead — recommended for production use.
-
-Build & register the C++ version:
+Build & register:
 
 ```powershell
-# Build (run from Visual Studio x64 Native Tools command prompt)
+# Build native wrapper(run from Visual Studio x64 Native Tools command prompt)
 .\YSMViewer.ThumbnailProvider.Cpp\build.bat
+
+# Build C# library
+dotnet publish YSMViewer.TumbnailProvider -c Release
 
 # Register (admin required)
 .\YSMViewer.ThumbnailProvider.Cpp\install.ps1
 
 # Unregister
 .\YSMViewer.ThumbnailProvider.Cpp\uninstall.ps1
-```
-
-Register the C# version:
-
-```powershell
-# Register (admin required)
-.\YSMViewer.ThumbnailProvider\Scripts\Register.ps1 -Register
-
-# Unregister
-.\YSMViewer.ThumbnailProvider\Scripts\Register.ps1 -Unregister
 ```
 
 ## Tech Stack
