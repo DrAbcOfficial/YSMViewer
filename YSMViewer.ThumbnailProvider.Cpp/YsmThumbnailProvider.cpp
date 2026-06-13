@@ -12,19 +12,23 @@
 YsmThumbnailProvider::YsmThumbnailProvider()
     : m_refCount(1)
     , m_hYsmDll(nullptr)
-    , m_ysmInit(nullptr)
+    , m_ysmCreate(nullptr)
     , m_ysmRender(nullptr)
-    , m_ysmFree(nullptr)
+    , m_ysmDestroy(nullptr)
+    , m_ctx(nullptr)
     , m_initialized(false)
 {
+    InterlockedIncrement(&g_lockCount);
 }
 
 YsmThumbnailProvider::~YsmThumbnailProvider()
 {
-    if (m_initialized && m_ysmFree)
-        m_ysmFree();
+    if (m_ctx && m_ysmDestroy)
+        m_ysmDestroy(m_ctx);
+    m_ctx = nullptr;
     m_initialized = false;
     UnloadYsmDll();
+    InterlockedDecrement(&g_lockCount);
 }
 
 STDMETHODIMP YsmThumbnailProvider::QueryInterface(REFIID riid, void** ppv)
@@ -97,12 +101,12 @@ STDMETHODIMP YsmThumbnailProvider::Initialize(IStream* pStream, DWORD grfMode)
         }
     }
 
-    // Load C# DLL and call Init
+    // Load C# DLL and call Create
     if (!LoadYsmDll())
         return E_FAIL;
 
-    int result = m_ysmInit(m_fileData.data(), static_cast<int>(m_fileData.size()));
-    if (result != 0)
+    m_ctx = m_ysmCreate(m_fileData.data(), static_cast<int>(m_fileData.size()));
+    if (!m_ctx)
         return E_FAIL;
 
     m_initialized = true;
@@ -117,21 +121,21 @@ STDMETHODIMP YsmThumbnailProvider::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALP
     *phbmp = nullptr;
     *pdwAlpha = WTSAT_UNKNOWN;
 
-    if (!m_initialized || !m_ysmRender)
+    if (!m_initialized || !m_ysmRender || !m_ctx)
         return E_FAIL;
 
     int size = static_cast<int>(cx);
     if (size < 1) size = 1;
     if (size > 256) size = 256;
 
-    // Allocate RGBA buffer
-    std::vector<uint8_t> rgba(size * size * 4);
+    // Allocate BGRA buffer — C# writes BGRA directly
+    std::vector<uint8_t> bgra(size * size * 4);
 
-    int result = m_ysmRender(rgba.data(), size, size);
+    int result = m_ysmRender(m_ctx, bgra.data(), size, size);
     if (result != 0)
         return E_FAIL;
 
-    // Create HBITMAP from RGBA buffer
+    // Create HBITMAP from BGRA buffer (Windows DIB is BGRA)
     BITMAPINFO bmi = {};
     bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     bmi.bmiHeader.biWidth = size;
@@ -148,15 +152,8 @@ STDMETHODIMP YsmThumbnailProvider::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALP
     if (!hBitmap)
         return E_FAIL;
 
-    // Copy RGBA -> BGRA (Windows DIB is BGRA)
-    uint8_t* dst = static_cast<uint8_t*>(pBits);
-    for (int i = 0; i < size * size; i++)
-    {
-        dst[i * 4] = rgba[i * 4 + 2];     // B
-        dst[i * 4 + 1] = rgba[i * 4 + 1]; // G
-        dst[i * 4 + 2] = rgba[i * 4];     // R
-        dst[i * 4 + 3] = rgba[i * 4 + 3]; // A
-    }
+    // Direct copy — C# already outputs BGRA
+    memcpy(pBits, bgra.data(), size * size * 4);
 
     *phbmp = hBitmap;
     *pdwAlpha = WTSAT_ARGB;
@@ -173,11 +170,11 @@ bool YsmThumbnailProvider::LoadYsmDll()
     if (!m_hYsmDll)
         return false;
 
-    m_ysmInit = reinterpret_cast<YsmInitFn>(GetProcAddress(m_hYsmDll, "YsmThumbnail_Init"));
+    m_ysmCreate = reinterpret_cast<YsmCreateFn>(GetProcAddress(m_hYsmDll, "YsmThumbnail_Create"));
     m_ysmRender = reinterpret_cast<YsmRenderFn>(GetProcAddress(m_hYsmDll, "YsmThumbnail_Render"));
-    m_ysmFree = reinterpret_cast<YsmFreeFn>(GetProcAddress(m_hYsmDll, "YsmThumbnail_Free"));
+    m_ysmDestroy = reinterpret_cast<YsmDestroyFn>(GetProcAddress(m_hYsmDll, "YsmThumbnail_Destroy"));
 
-    if (!m_ysmInit || !m_ysmRender || !m_ysmFree)
+    if (!m_ysmCreate || !m_ysmRender || !m_ysmDestroy)
     {
         UnloadYsmDll();
         return false;
@@ -193,9 +190,9 @@ void YsmThumbnailProvider::UnloadYsmDll()
         FreeLibrary(m_hYsmDll);
         m_hYsmDll = nullptr;
     }
-    m_ysmInit = nullptr;
+    m_ysmCreate = nullptr;
     m_ysmRender = nullptr;
-    m_ysmFree = nullptr;
+    m_ysmDestroy = nullptr;
 }
 
 std::wstring YsmThumbnailProvider::GetDllDir()
@@ -262,5 +259,9 @@ STDMETHODIMP YsmClassFactory::CreateInstance(IUnknown* pUnkOuter, REFIID riid, v
 
 STDMETHODIMP YsmClassFactory::LockServer(BOOL fLock)
 {
+    if (fLock)
+        InterlockedIncrement(&g_lockCount);
+    else
+        InterlockedDecrement(&g_lockCount);
     return S_OK;
 }

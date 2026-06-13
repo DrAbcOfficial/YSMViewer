@@ -122,11 +122,99 @@ public sealed class YsmLoaderService
         return LoadDocument(parser);
     }
 
+    public static YsmModelDocument LoadDocumentForThumbnail(byte[] data)
+    {
+        using var parser = IsZipData(data) ? new ZipYsmParser(data) : YSMParserFactory.CreateFromBytes(data);
+        parser.Parse();
+        return LoadDocumentThumbnail(parser);
+    }
+
     public static bool IsZipFile(string filePath) =>
         filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
 
     public static bool IsZipData(byte[] data) =>
         data.Length >= 4 && data[0] == 0x50 && data[1] == 0x4B && data[2] == 0x03 && data[3] == 0x04;
+
+    private static YsmModelDocument LoadDocumentThumbnail(YSMParser.Core.Parsers.YSMParser parser)
+    {
+        var resources = parser.GetResources();
+
+        if (resources.Models.Count == 0)
+            throw new InvalidOperationException("No models found in YSM file");
+
+        var meta = YsmMetadataParser.Parse(resources.YsmJson, resources.InfoJson);
+
+        var info = new YsmDocumentModelInfo(
+            Name: meta?.Name ?? "Unknown",
+            DisplayName: MinecraftFormatHelper.StripFormatting(meta?.Name ?? "Unknown"),
+            Version: parser.GetYSGPVersion(),
+            Authors: meta?.Authors is { Length: > 0 } ? string.Join(", ", meta.Authors) : string.Empty,
+            License: meta?.LicenseType ?? string.Empty,
+            Tips: meta?.Tips ?? string.Empty,
+            IsFree: meta?.IsFree ?? false);
+
+        var textureResources = new List<YsmTextureResource>();
+        var models = new List<YsmGeometryModel>();
+
+        YsmResourceEntry? mainModelEntry = null;
+        foreach (var m in resources.Models)
+        {
+            if (ClassifyModel(m.Name) == ModelCategory.Main)
+            {
+                mainModelEntry = m;
+                break;
+            }
+        }
+        mainModelEntry ??= resources.Models[0];
+
+        var allGeometries = ParseAllGeometries(mainModelEntry.Data);
+        var geometry = allGeometries[0];
+        if (geometry?.Description is null)
+            throw new InvalidOperationException($"Geometry has no description for model '{mainModelEntry.Name}'");
+        if (geometry.Bones is null)
+            throw new InvalidOperationException($"Geometry has no bones for model '{mainModelEntry.Name}'");
+
+        var textureMatch = FindTextureForModel(mainModelEntry.Name, resources.Textures);
+        if (textureMatch is null && resources.Textures.Count > 0)
+            textureMatch = YsmImageHelper.EnsurePng(resources.Textures[0].Data);
+
+        string? textureId = null;
+        if (textureMatch is not null)
+        {
+            var (width, height) = YsmImageHelper.GetPngDimensions(textureMatch);
+            var texResource = new YsmTextureResource(
+                Id: $"tex_{mainModelEntry.Name}",
+                Name: mainModelEntry.Name,
+                Data: textureMatch,
+                Width: width,
+                Height: height);
+            textureResources.Add(texResource);
+            textureId = texResource.Id;
+        }
+
+        var bones = ConvertBones(geometry.Bones);
+        var model = new YsmGeometryModel(
+            Id: mainModelEntry.Name,
+            Name: mainModelEntry.Name,
+            Category: YsmModelCategory.Main,
+            DefaultVisible: true,
+            GeometryIdentifier: geometry.Description.Identifier,
+            TextureWidth: geometry.Description.TextureWidth,
+            TextureHeight: geometry.Description.TextureHeight,
+            TextureId: textureId,
+            Bones: bones);
+        models.Add(model);
+
+        return new YsmModelDocument(
+            info,
+            models,
+            textureResources,
+            new List<YsmAnimationResource>(),
+            new List<YsmImageResource>(),
+            new List<YsmAnimationControllerResource>(),
+            new List<YsmSoundResource>(),
+            new List<YsmFunctionResource>());
+    }
 
     private static YsmModelDocument LoadDocument(YSMParser.Core.Parsers.YSMParser parser)
     {

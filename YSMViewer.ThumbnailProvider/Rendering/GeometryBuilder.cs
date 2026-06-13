@@ -23,6 +23,8 @@ public static class GeometryBuilder
     {
         var allFaces = new List<TexturedFace>();
         YsmTextureResource? resolvedTexture = null;
+        var boundsMin = new Vector3(float.MaxValue);
+        var boundsMax = new Vector3(float.MinValue);
 
         foreach (var geoModel in document.Models)
         {
@@ -51,17 +53,14 @@ public static class GeometryBuilder
                 {
                     var cubeWorld = ComputeCubeWorldMatrix(cube, bone.Pivot, boneWorld);
                     var faces = BuildCubeFaces(cube, cubeWorld, texW, texH);
-                    allFaces.AddRange(faces);
+                    foreach (var f in faces)
+                    {
+                        allFaces.Add(f);
+                        boundsMin = Vector3.Min(boundsMin, Vector3.Min(Vector3.Min(f.P0, f.P1), Vector3.Min(f.P2, f.P3)));
+                        boundsMax = Vector3.Max(boundsMax, Vector3.Max(Vector3.Max(f.P0, f.P1), Vector3.Max(f.P2, f.P3)));
+                    }
                 }
             }
-        }
-
-        var boundsMin = new Vector3(float.MaxValue);
-        var boundsMax = new Vector3(float.MinValue);
-        foreach (var face in allFaces)
-        {
-            boundsMin = Vector3.Min(boundsMin, Vector3.Min(Vector3.Min(face.P0, face.P1), Vector3.Min(face.P2, face.P3)));
-            boundsMax = Vector3.Max(boundsMax, Vector3.Max(Vector3.Max(face.P0, face.P1), Vector3.Max(face.P2, face.P3)));
         }
 
         var texture = resolvedTexture ?? (document.Textures.Count > 0 ? document.Textures[0] : null);

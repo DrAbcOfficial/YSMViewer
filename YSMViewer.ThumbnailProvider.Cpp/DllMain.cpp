@@ -14,7 +14,7 @@ static const WCHAR* PROG_ID = L"YSMViewer.ThumbnailProvider";
 static const WCHAR* HANDLER_GUID_STR = L"{E357FCCD-A995-4576-B01F-234630154E96}";
 
 static HMODULE g_hModule = nullptr;
-static LONG g_lockCount = 0;
+LONG g_lockCount = 0;
 
 static std::wstring GetModulePath()
 {

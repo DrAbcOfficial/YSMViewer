@@ -4,10 +4,12 @@
 #include <string>
 #include <vector>
 
-// C# NativeAOT function signatures
-typedef int (*YsmInitFn)(const uint8_t* data, int length);
-typedef int (*YsmRenderFn)(uint8_t* rgba, int width, int height);
-typedef void (*YsmFreeFn)();
+extern LONG g_lockCount;
+
+// C# NativeAOT function signatures (context-based, BGRA output)
+typedef void* (*YsmCreateFn)(const uint8_t* data, int length);
+typedef int (*YsmRenderFn)(void* ctx, uint8_t* bgra, int width, int height);
+typedef void (*YsmDestroyFn)(void* ctx);
 
 class YsmThumbnailProvider : public IThumbnailProvider, public IInitializeWithStream
 {
@@ -31,9 +33,10 @@ private:
     std::vector<uint8_t> m_fileData;
 
     HMODULE m_hYsmDll;
-    YsmInitFn m_ysmInit;
+    YsmCreateFn m_ysmCreate;
     YsmRenderFn m_ysmRender;
-    YsmFreeFn m_ysmFree;
+    YsmDestroyFn m_ysmDestroy;
+    void* m_ctx;
     bool m_initialized;
 
     bool LoadYsmDll();

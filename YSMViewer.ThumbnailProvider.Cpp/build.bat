@@ -11,19 +11,35 @@ echo Developer Command Prompt (x64 Native Tools).
 echo.
 
 set "OUTDIR=%~dp0build"
-set "CS_DLL=%~dp0..\YSMViewer.ThumbnailProvider\bin\Release\net10.0-windows\win-x64\publish\YSMViewer.ThumbnailProvider.dll"
+set "CS_PUBLISH_DIR=%~dp0..\YSMViewer.ThumbnailProvider\bin\Release\net10.0-windows\win-x64\publish"
+set "CS_DLL=%CS_PUBLISH_DIR%\YSMViewer.ThumbnailProvider.dll"
 
 if not exist "%OUTDIR%" mkdir "%OUTDIR%"
 
+set "CS_FOUND=0"
 if exist "%CS_DLL%" (
-    echo Copying C# DLL (AOT native): %CS_DLL%
-    copy /Y "%CS_DLL%" "%OUTDIR%\YSMViewer.ThumbnailProvider.dll" >nul
+    set "CS_FOUND=1"
 ) else (
-    echo [WARNING] C# DLL not found at %CS_DLL%
-    echo [HINT] Build it first with:
-    echo   dotnet publish YSMViewer.ThumbnailProvider -c Release -r win-x64
+    :: Search alternative publish locations
+    for /r "%~dp0..\YSMViewer.ThumbnailProvider\bin\Release" %%f in (YSMViewer.ThumbnailProvider.dll) do (
+        if exist "%%f" (
+            set "CS_DLL=%%f"
+            set "CS_FOUND=1"
+            goto :cs_found
+        )
+    )
+)
+
+:cs_found
+if "!CS_FOUND!" == "1" (
+    echo Copying C# DLL ^(AOT native^): !CS_DLL!
+    copy /Y "!CS_DLL!" "%OUTDIR%\YSMViewer.ThumbnailProvider.dll" >nul
+) else (
+    echo [WARNING] C# DLL not found
+    echo [HINT] Build and publish the C# project first with:
+    echo   dotnet publish YSMViewer.ThumbnailProvider -c Release
     echo.
-    echo Continuing without C# DLL (thumbnail provider will fail at runtime).
+    echo Continuing without C# DLL ^(thumbnail provider will fail at runtime^).
 )
 
 echo.
