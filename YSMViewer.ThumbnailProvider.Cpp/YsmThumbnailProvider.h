@@ -1,8 +1,7 @@
 #pragma once
 #include <Windows.h>
 #include <thumbcache.h>
-#include <string>
-#include <vector>
+#include <stdint.h>
 
 extern LONG g_lockCount;
 
@@ -30,7 +29,8 @@ public:
 
 private:
     LONG m_refCount;
-    std::vector<uint8_t> m_fileData;
+    uint8_t* m_fileData;
+    size_t m_fileDataSize;
 
     HMODULE m_hYsmDll;
     YsmCreateFn m_ysmCreate;
@@ -41,7 +41,7 @@ private:
 
     bool LoadYsmDll();
     void UnloadYsmDll();
-    static std::wstring GetDllDir();
+    static BOOL GetDllDir(WCHAR* buffer, size_t bufferSize);
 };
 
 class YsmClassFactory : public IClassFactory

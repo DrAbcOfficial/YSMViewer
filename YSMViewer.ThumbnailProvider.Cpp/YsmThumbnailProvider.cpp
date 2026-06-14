@@ -1,5 +1,7 @@
 #include "YsmThumbnailProvider.h"
-#include <string>
+#include <new>
+#include <stdio.h>
+#include <string.h>
 
 #pragma comment(lib, "shlwapi.lib")
 #pragma comment(lib, "gdi32.lib")
@@ -11,6 +13,8 @@
 
 YsmThumbnailProvider::YsmThumbnailProvider()
     : m_refCount(1)
+    , m_fileData(nullptr)
+    , m_fileDataSize(0)
     , m_hYsmDll(nullptr)
     , m_ysmCreate(nullptr)
     , m_ysmRender(nullptr)
@@ -27,6 +31,12 @@ YsmThumbnailProvider::~YsmThumbnailProvider()
         m_ysmDestroy(m_ctx);
     m_ctx = nullptr;
     m_initialized = false;
+    if (m_fileData)
+    {
+        delete[] m_fileData;
+        m_fileData = nullptr;
+        m_fileDataSize = 0;
+    }
     UnloadYsmDll();
     InterlockedDecrement(&g_lockCount);
 }
@@ -76,36 +86,82 @@ STDMETHODIMP YsmThumbnailProvider::Initialize(IStream* pStream, DWORD grfMode)
     if (SUCCEEDED(hr))
         fileSize = stat.cbSize.QuadPart;
 
-    m_fileData.clear();
+    // Validate fileSize fits in size_t
+    if (fileSize > SIZE_MAX)
+        return E_OUTOFMEMORY;
+
+    // Free existing data
+    if (m_fileData)
+    {
+        delete[] m_fileData;
+        m_fileData = nullptr;
+        m_fileDataSize = 0;
+    }
 
     if (fileSize > 0)
     {
-        m_fileData.resize(static_cast<size_t>(fileSize));
+        size_t allocSize = static_cast<size_t>(fileSize);
+        m_fileData = new (std::nothrow) uint8_t[allocSize];
+        if (!m_fileData)
+            return E_OUTOFMEMORY;
+        m_fileDataSize = allocSize;
+        if (fileSize > ULONG_MAX)
+            return E_OUTOFMEMORY;
         ULONG bytesRead = 0;
-        hr = pStream->Read(m_fileData.data(), static_cast<ULONG>(fileSize), &bytesRead);
+        hr = pStream->Read(m_fileData, static_cast<ULONG>(fileSize), &bytesRead);
         if (FAILED(hr))
             return hr;
-        m_fileData.resize(bytesRead);
+        m_fileDataSize = bytesRead;
     }
     else
     {
         // Read in chunks
-        uint8_t buffer[65536];
+        uint8_t* buffer = new (std::nothrow) uint8_t[65536];
+        if (!buffer)
+            return E_OUTOFMEMORY;
+        size_t totalSize = 0;
+        uint8_t* temp = nullptr;
         while (true)
         {
             ULONG bytesRead = 0;
-            hr = pStream->Read(buffer, sizeof(buffer), &bytesRead);
+            hr = pStream->Read(buffer, 65536, &bytesRead);
             if (FAILED(hr) || bytesRead == 0)
                 break;
-            m_fileData.insert(m_fileData.end(), buffer, buffer + bytesRead);
+            // Overflow check
+            if (bytesRead > SIZE_MAX - totalSize)
+            {
+                delete[] temp;
+                delete[] buffer;
+                return E_OUTOFMEMORY;
+            }
+            uint8_t* newTemp = new (std::nothrow) uint8_t[totalSize + bytesRead];
+            if (!newTemp)
+            {
+                delete[] temp;
+                delete[] buffer;
+                return E_OUTOFMEMORY;
+            }
+            if (temp)
+            {
+                memcpy(newTemp, temp, totalSize);
+                delete[] temp;
+            }
+            memcpy(newTemp + totalSize, buffer, bytesRead);
+            temp = newTemp;
+            totalSize += bytesRead;
         }
+        delete[] buffer;
+        m_fileData = temp;
+        m_fileDataSize = totalSize;
     }
 
     // Load C# DLL and call Create
     if (!LoadYsmDll())
         return E_FAIL;
 
-    m_ctx = m_ysmCreate(m_fileData.data(), static_cast<int>(m_fileData.size()));
+    if (m_fileDataSize > INT_MAX)
+        return E_OUTOFMEMORY;
+    m_ctx = m_ysmCreate(m_fileData, static_cast<int>(m_fileDataSize));
     if (!m_ctx)
         return E_FAIL;
 
@@ -129,11 +185,17 @@ STDMETHODIMP YsmThumbnailProvider::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALP
     if (size > 256) size = 256;
 
     // Allocate BGRA buffer — C# writes BGRA directly
-    std::vector<uint8_t> bgra(size * size * 4);
+    size_t bgraSize = static_cast<size_t>(size) * size * 4;
+    uint8_t* bgra = new (std::nothrow) uint8_t[bgraSize];
+    if (!bgra)
+        return E_OUTOFMEMORY;
 
-    int result = m_ysmRender(m_ctx, bgra.data(), size, size);
+    int result = m_ysmRender(m_ctx, bgra, size, size);
     if (result != 0)
+    {
+        delete[] bgra;
         return E_FAIL;
+    }
 
     // Create HBITMAP from BGRA buffer (Windows DIB is BGRA)
     BITMAPINFO bmi = {};
@@ -150,10 +212,14 @@ STDMETHODIMP YsmThumbnailProvider::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALP
     ReleaseDC(nullptr, hdcScreen);
 
     if (!hBitmap)
+    {
+        delete[] bgra;
         return E_FAIL;
+    }
 
     // Direct copy — C# already outputs BGRA
-    memcpy(pBits, bgra.data(), size * size * 4);
+    memcpy(pBits, bgra, bgraSize);
+    delete[] bgra;
 
     *phbmp = hBitmap;
     *pdwAlpha = WTSAT_ARGB;
@@ -165,8 +231,17 @@ bool YsmThumbnailProvider::LoadYsmDll()
     if (m_hYsmDll)
         return true;
 
-    std::wstring dllPath = GetDllDir() + L"\\YSMViewer.ThumbnailProvider.dll";
-    m_hYsmDll = LoadLibraryW(dllPath.c_str());
+    WCHAR dllDir[MAX_PATH];
+    if (!GetDllDir(dllDir, MAX_PATH))
+        return false;
+
+    // Ensure combined path with suffix fits in MAX_PATH (including null)
+    static const size_t SUFFIX_CHARS = sizeof(L"\\YSMViewer.ThumbnailProvider.dll") / sizeof(WCHAR) - 1;
+    if (wcslen(dllDir) > MAX_PATH - SUFFIX_CHARS - 1)
+        return false;
+    WCHAR dllPath[MAX_PATH];
+    _snwprintf_s(dllPath, MAX_PATH, L"%s\\YSMViewer.ThumbnailProvider.dll", dllDir);
+    m_hYsmDll = LoadLibraryW(dllPath);
     if (!m_hYsmDll)
         return false;
 
@@ -195,16 +270,31 @@ void YsmThumbnailProvider::UnloadYsmDll()
     m_ysmDestroy = nullptr;
 }
 
-std::wstring YsmThumbnailProvider::GetDllDir()
+BOOL YsmThumbnailProvider::GetDllDir(WCHAR* buffer, size_t bufferSize)
 {
+    if (!buffer || bufferSize == 0)
+        return FALSE;
+
     WCHAR path[MAX_PATH];
     HMODULE hModule;
     GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
         reinterpret_cast<LPCWSTR>(&GetDllDir), &hModule);
     GetModuleFileNameW(hModule, path, MAX_PATH);
-    std::wstring fullPath(path);
-    size_t pos = fullPath.find_last_of(L"\\/");
-    return fullPath.substr(0, pos);
+    // Find last backslash or forward slash
+    WCHAR* lastSlash = NULL;
+    for (WCHAR* p = path; *p; ++p)
+    {
+        if (*p == L'\\' || *p == L'/')
+            lastSlash = p;
+    }
+    if (!lastSlash)
+        return FALSE;
+    size_t dirLen = lastSlash - path;
+    if (dirLen >= bufferSize)
+        return FALSE;
+    wcsncpy(buffer, path, dirLen);
+    buffer[dirLen] = L'\0';
+    return TRUE;
 }
 
 //-----------------------------------------------------------------------------
@@ -251,7 +341,9 @@ STDMETHODIMP YsmClassFactory::CreateInstance(IUnknown* pUnkOuter, REFIID riid, v
     if (pUnkOuter)
         return CLASS_E_NOAGGREGATION;
 
-    auto* provider = new YsmThumbnailProvider();
+    auto* provider = new (std::nothrow) YsmThumbnailProvider();
+    if (!provider)
+        return E_OUTOFMEMORY;
     HRESULT hr = provider->QueryInterface(riid, ppv);
     provider->Release();
     return hr;
