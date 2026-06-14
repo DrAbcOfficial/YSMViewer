@@ -143,10 +143,10 @@ STDMETHODIMP YsmThumbnailProvider::Initialize(IStream* pStream, DWORD grfMode)
             }
             if (temp)
             {
-                memcpy(newTemp, temp, totalSize);
+                memcpy_s(newTemp, totalSize + bytesRead, temp, totalSize);
                 delete[] temp;
             }
-            memcpy(newTemp + totalSize, buffer, bytesRead);
+            memcpy_s(newTemp + totalSize, bytesRead, buffer, bytesRead);
             temp = newTemp;
             totalSize += bytesRead;
         }
@@ -218,7 +218,7 @@ STDMETHODIMP YsmThumbnailProvider::GetThumbnail(UINT cx, HBITMAP* phbmp, WTS_ALP
     }
 
     // Direct copy — C# already outputs BGRA
-    memcpy(pBits, bgra, bgraSize);
+    memcpy_s(pBits, bgraSize, bgra, bgraSize);
     delete[] bgra;
 
     *phbmp = hBitmap;
@@ -292,8 +292,7 @@ BOOL YsmThumbnailProvider::GetDllDir(WCHAR* buffer, size_t bufferSize)
     size_t dirLen = lastSlash - path;
     if (dirLen >= bufferSize)
         return FALSE;
-    wcsncpy(buffer, path, dirLen);
-    buffer[dirLen] = L'\0';
+    wcsncpy_s(buffer, bufferSize, path, dirLen);
     return TRUE;
 }
 
