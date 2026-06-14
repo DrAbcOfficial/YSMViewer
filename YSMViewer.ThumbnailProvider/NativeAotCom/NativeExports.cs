@@ -1,6 +1,6 @@
+using SixLabors.ImageSharp.PixelFormats;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.PixelFormats;
 using YSMViewer.Services;
 using YSMViewer.ThumbnailProvider.Rendering;
 
@@ -8,17 +8,6 @@ namespace YSMViewer.ThumbnailProvider.NativeAotCom;
 
 public static unsafe class NativeExports
 {
-    [Conditional("DEBUG")]
-    private static void Log(string msg)
-    {
-        try
-        {
-            var logPath = Path.Combine(Path.GetTempPath(), "YsmThumbnail.log");
-            File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss.fff} [{Environment.ProcessId}] {msg}{Environment.NewLine}");
-        }
-        catch { }
-    }
-
     private sealed class ThumbnailContext
     {
         public GeometryBuilder.ThumbnailScene? Scene;
@@ -37,12 +26,12 @@ public static unsafe class NativeExports
 
             var ctx = new ThumbnailContext { Scene = scene };
             var handle = GCHandle.Alloc(ctx);
-            Log($"Create: {length} bytes, models={document.Models.Count}, faces={scene.Faces.Count}");
+            Util.Log($"Create: {length} bytes, models={document.Models.Count}, faces={scene.Faces.Count}");
             return (void*)GCHandle.ToIntPtr(handle);
         }
         catch (Exception ex)
         {
-            Log($"Create FAILED: {ex.GetType().Name}: {ex.Message}");
+            Util.Log($"Create FAILED: {ex.GetType().Name}: {ex.Message}");
             return null;
         }
     }
@@ -55,7 +44,7 @@ public static unsafe class NativeExports
             var scene = ((ThumbnailContext)GCHandle.FromIntPtr((nint)ctx).Target!).Scene;
             if (scene is null)
             {
-                Log("Render: no scene in context");
+                Util.Log("Render: no scene in context");
                 return -1;
             }
 
@@ -72,19 +61,9 @@ public static unsafe class NativeExports
             if (image.DangerousTryGetSinglePixelMemory(out var pixelMem))
             {
                 var pixels = pixelMem.Span;
-                for (int y = 0; y < size; y++)
+                fixed (Rgba32* srcBase = pixels)
                 {
-                    int dstRowStart = (y + offsetY) * width + offsetX;
-                    int srcRowStart = y * size;
-                    for (int x = 0; x < size; x++)
-                    {
-                        int srcIdx = srcRowStart + x;
-                        int dstIdx = (dstRowStart + x) * 4;
-                        bgra[dstIdx] = pixels[srcIdx].B;
-                        bgra[dstIdx + 1] = pixels[srcIdx].G;
-                        bgra[dstIdx + 2] = pixels[srcIdx].R;
-                        bgra[dstIdx + 3] = pixels[srcIdx].A;
-                    }
+                    CopyPixels(srcBase, bgra, size, width, offsetX, offsetY);
                 }
             }
             else
@@ -92,28 +71,18 @@ public static unsafe class NativeExports
                 var pixelCount = size * size;
                 var pixels = new Rgba32[pixelCount];
                 image.CopyPixelDataTo(pixels);
-                for (int y = 0; y < size; y++)
+                fixed (Rgba32* srcBase = pixels)
                 {
-                    int dstRowStart = (y + offsetY) * width + offsetX;
-                    int srcRowStart = y * size;
-                    for (int x = 0; x < size; x++)
-                    {
-                        int srcIdx = srcRowStart + x;
-                        int dstIdx = (dstRowStart + x) * 4;
-                        bgra[dstIdx] = pixels[srcIdx].B;
-                        bgra[dstIdx + 1] = pixels[srcIdx].G;
-                        bgra[dstIdx + 2] = pixels[srcIdx].R;
-                        bgra[dstIdx + 3] = pixels[srcIdx].A;
-                    }
+                    CopyPixels(srcBase, bgra, size, width, offsetX, offsetY);
                 }
             }
 
-            Log($"Render: {width}x{height} -> used {size}x{size} in {sw.ElapsedMilliseconds}ms");
+            Util.Log($"Render: {width}x{height} -> used {size}x{size} in {sw.ElapsedMilliseconds}ms");
             return 0;
         }
         catch (Exception ex)
         {
-            Log($"Render FAILED: {ex.GetType().Name}: {ex.Message}");
+            Util.Log($"Render FAILED: {ex.GetType().Name}: {ex.Message}");
             return -1;
         }
     }
@@ -125,5 +94,25 @@ public static unsafe class NativeExports
         var handle = GCHandle.FromIntPtr((nint)ctx);
         if (handle.IsAllocated)
             handle.Free();
+    }
+
+    private static void CopyPixels(Rgba32* srcBase, byte* bgra, int size, int width, int offsetX, int offsetY)
+    {
+        int dstStride = width * 4;
+        byte* dstRowStart = bgra + offsetY * dstStride + offsetX * 4;
+        for (int y = 0; y < size; y++)
+        {
+            Rgba32* srcCol = srcBase + y * size;
+            byte* dstCol = dstRowStart + y * dstStride;
+            for (int x = 0; x < size; x++)
+            {
+                var pixel = srcCol[x];
+                byte* d = dstCol + x * 4;
+                d[0] = pixel.B;
+                d[1] = pixel.G;
+                d[2] = pixel.R;
+                d[3] = pixel.A;
+            }
+        }
     }
 }

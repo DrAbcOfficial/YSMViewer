@@ -21,17 +21,40 @@ public static class GeometryBuilder
 
     public static ThumbnailScene Build(YsmModelDocument document)
     {
-        var allFaces = new List<TexturedFace>();
+        int estimatedFaces = 0;
+        foreach (var m in document.Models)
+            if (m.DefaultVisible)
+                foreach (var b in m.Bones)
+                    estimatedFaces += b.Cubes.Count * 6;
+
+        var allFaces = new List<TexturedFace>(estimatedFaces);
         YsmTextureResource? resolvedTexture = null;
-        var boundsMin = new Vector3(float.MaxValue);
-        var boundsMax = new Vector3(float.MinValue);
+        float bMinX = float.MaxValue, bMinY = float.MaxValue, bMinZ = float.MaxValue;
+        float bMaxX = float.MinValue, bMaxY = float.MinValue, bMaxZ = float.MinValue;
+
+        YsmTextureResource? defaultTex = document.Textures.Count > 0 ? document.Textures[0] : null;
+
+        Dictionary<string, YsmTextureResource>? texById = null;
+        if (document.Textures.Count > 1)
+        {
+            texById = new Dictionary<string, YsmTextureResource>(document.Textures.Count);
+            foreach (var t in document.Textures)
+                if (t.Id is not null)
+                    texById[t.Id] = t;
+        }
 
         foreach (var geoModel in document.Models)
         {
             if (!geoModel.DefaultVisible)
                 continue;
 
-            var texResource = ResolveTexture(geoModel, document);
+            YsmTextureResource? texResource;
+            if (geoModel.TextureId is not null && texById is not null && texById.TryGetValue(geoModel.TextureId, out var matched))
+                texResource = matched;
+            else if (geoModel.TextureId is null && defaultTex is not null)
+                texResource = defaultTex;
+            else
+                texResource = defaultTex;
             resolvedTexture ??= texResource;
             var texW = geoModel.TextureWidth > 0 ? geoModel.TextureWidth : 64f;
             var texH = geoModel.TextureHeight > 0 ? geoModel.TextureHeight : 64f;
@@ -56,26 +79,28 @@ public static class GeometryBuilder
                     foreach (var f in faces)
                     {
                         allFaces.Add(f);
-                        boundsMin = Vector3.Min(boundsMin, Vector3.Min(Vector3.Min(f.P0, f.P1), Vector3.Min(f.P2, f.P3)));
-                        boundsMax = Vector3.Max(boundsMax, Vector3.Max(Vector3.Max(f.P0, f.P1), Vector3.Max(f.P2, f.P3)));
+                        float fMinX = MathF.Min(MathF.Min(f.P0.X, f.P1.X), MathF.Min(f.P2.X, f.P3.X));
+                        float fMinY = MathF.Min(MathF.Min(f.P0.Y, f.P1.Y), MathF.Min(f.P2.Y, f.P3.Y));
+                        float fMinZ = MathF.Min(MathF.Min(f.P0.Z, f.P1.Z), MathF.Min(f.P2.Z, f.P3.Z));
+                        float fMaxX = MathF.Max(MathF.Max(f.P0.X, f.P1.X), MathF.Max(f.P2.X, f.P3.X));
+                        float fMaxY = MathF.Max(MathF.Max(f.P0.Y, f.P1.Y), MathF.Max(f.P2.Y, f.P3.Y));
+                        float fMaxZ = MathF.Max(MathF.Max(f.P0.Z, f.P1.Z), MathF.Max(f.P2.Z, f.P3.Z));
+                        bMinX = MathF.Min(bMinX, fMinX);
+                        bMinY = MathF.Min(bMinY, fMinY);
+                        bMinZ = MathF.Min(bMinZ, fMinZ);
+                        bMaxX = MathF.Max(bMaxX, fMaxX);
+                        bMaxY = MathF.Max(bMaxY, fMaxY);
+                        bMaxZ = MathF.Max(bMaxZ, fMaxZ);
                     }
                 }
             }
         }
 
-        var texture = resolvedTexture ?? (document.Textures.Count > 0 ? document.Textures[0] : null);
+        var texture = resolvedTexture ?? defaultTex;
+        var boundsMin = new Vector3(bMinX, bMinY, bMinZ);
+        var boundsMax = new Vector3(bMaxX, bMaxY, bMaxZ);
 
         return new ThumbnailScene(allFaces, texture, boundsMin, boundsMax);
-    }
-
-    private static YsmTextureResource? ResolveTexture(YsmGeometryModel model, YsmModelDocument document)
-    {
-        if (model.TextureId is not null)
-        {
-            var match = document.Textures.FirstOrDefault(t => t.Id == model.TextureId);
-            if (match is not null) return match;
-        }
-        return document.Textures.Count > 0 ? document.Textures[0] : null;
     }
 
     private static void ComputeWorldMatrices(
@@ -155,25 +180,29 @@ public static class GeometryBuilder
         if (cubeUV?.IsBoxUV == true && cube.Size != Vector3.Zero)
             cubeUV = cubeUV.Expand(cube.Size.X, cube.Size.Y, cube.Size.Z);
 
+        float ox = cube.Origin.X, oy = cube.Origin.Y, oz = cube.Origin.Z;
+        float sx = cube.Size.X, sy = cube.Size.Y, sz = cube.Size.Z;
         float inflate = cube.Inflate;
-        var from = new Vector3(cube.Origin.X - cube.Size.X, cube.Origin.Y, cube.Origin.Z);
-        var to = from + cube.Size;
+        float px = cube.Pivot.X, py = cube.Pivot.Y, pz = cube.Pivot.Z;
 
-        var center = (from + to) * 0.5f;
-        var halfSize = (to - from) * 0.5f;
-        var min = center - new Vector3(halfSize.X + inflate, halfSize.Y + inflate, halfSize.Z + inflate) - cube.Pivot;
-        var max = center + new Vector3(halfSize.X + inflate, halfSize.Y + inflate, halfSize.Z + inflate) - cube.Pivot;
+        // Algebraically simplified from: center +/- halfSize +/- inflate - pivot
+        float minX = ox - sx - inflate - px;
+        float minY = oy - inflate - py;
+        float minZ = oz - inflate - pz;
+        float maxX = ox + inflate - px;
+        float maxY = oy + sy + inflate - py;
+        float maxZ = oz + sz + inflate - pz;
 
-        if (min.X == max.X) max.X += 0.001f;
-        if (min.Y == max.Y) max.Y += 0.001f;
-        if (min.Z == max.Z) max.Z += 0.001f;
+        if (maxX == minX) maxX += 0.001f;
+        if (maxY == minY) maxY += 0.001f;
+        if (maxZ == minZ) maxZ += 0.001f;
 
-        float lx = min.X * ExportScale;
-        float ly = min.Y * ExportScale;
-        float lz = min.Z * ExportScale;
-        float hx = max.X * ExportScale;
-        float hy = max.Y * ExportScale;
-        float hz = max.Z * ExportScale;
+        float lx = minX * ExportScale;
+        float ly = minY * ExportScale;
+        float lz = minZ * ExportScale;
+        float hx = maxX * ExportScale;
+        float hy = maxY * ExportScale;
+        float hz = maxZ * ExportScale;
 
         float tw = texW > 0 ? texW : 64f;
         float th = texH > 0 ? texH : 64f;
