@@ -77,8 +77,6 @@ jobs:
         run: |
           Copy-Item YSMViewer.ThumbnailProvider.Cpp/install.ps1 publish/thumbnail/
           Copy-Item YSMViewer.ThumbnailProvider.Cpp/uninstall.ps1 publish/thumbnail/
-          Copy-Item YSMViewer.ThumbnailProvider.Cpp/install.bat publish/thumbnail/
-          Copy-Item YSMViewer.ThumbnailProvider.Cpp/uninstall.bat publish/thumbnail/
 
       - name: Clean up unnecessary build artifacts
         shell: cmd
