@@ -15,10 +15,21 @@ public sealed class YsmLoaderService
         SubEntity,
     }
 
+    private static string NormalizeModelName(string name)
+    {
+        var result = name.Replace("models/", "").Replace(".json", "");
+        if (result.Contains('/'))
+            result = result[(result.LastIndexOf('/') + 1)..];
+        if (result.Contains('\\'))
+            result = result[(result.LastIndexOf('\\') + 1)..];
+        return result;
+    }
+
     private static ModelCategory ClassifyModel(string name)
     {
-        if (name == "main") return ModelCategory.Main;
-        if (name == "arm") return ModelCategory.Arm;
+        var normalized = NormalizeModelName(name);
+        if (normalized == "main") return ModelCategory.Main;
+        if (normalized == "arm") return ModelCategory.Arm;
         return ModelCategory.SubEntity;
     }
 
@@ -66,11 +77,7 @@ public sealed class YsmLoaderService
     {
         if (textures.Count == 0) return null;
 
-        string normalizedModel = modelName.Replace("models/", "").Replace(".json", "");
-        if (normalizedModel.Contains('/'))
-            normalizedModel = normalizedModel[(normalizedModel.LastIndexOf('/') + 1)..];
-        if (normalizedModel.Contains('\\'))
-            normalizedModel = normalizedModel[(normalizedModel.LastIndexOf('\\') + 1)..];
+        string normalizedModel = NormalizeModelName(modelName);
 
         YsmResourceEntry? exactMatch = null;
         YsmResourceEntry? containsMatch = null;
@@ -195,7 +202,7 @@ public sealed class YsmLoaderService
         var bones = ConvertBones(geometry.Bones);
         var model = new YsmGeometryModel(
             Id: mainModelEntry.Name,
-            Name: mainModelEntry.Name,
+            Name: NormalizeModelName(mainModelEntry.Name),
             Category: YsmModelCategory.Main,
             DefaultVisible: true,
             GeometryIdentifier: geometry.Description.Identifier,
@@ -319,7 +326,7 @@ public sealed class YsmLoaderService
             var bones = ConvertBones(geometry.Bones);
             var model = new YsmGeometryModel(
                 Id: modelEntry.Name,
-                Name: modelEntry.Name,
+                Name: NormalizeModelName(modelEntry.Name),
                 Category: categoryDoc,
                 DefaultVisible: defaultVisible,
                 GeometryIdentifier: geometry.Description.Identifier,

@@ -436,13 +436,34 @@ public sealed partial class MainViewModel : ViewModelBase
 
         HasTextures = TextureItems.Count > 0;
 
+        var nameCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var modelInfo in document.Models)
         {
-            var displayName = modelInfo.Category switch
+            var key = modelInfo.Name;
+            nameCounts[key] = nameCounts.GetValueOrDefault(key, 0) + 1;
+        }
+
+        foreach (var modelInfo in document.Models)
+        {
+            var displayName = modelInfo.Name;
+
+            if (nameCounts[modelInfo.Name] > 1)
             {
-                YsmModelCategory.Main => modelInfo.Name,
-                YsmModelCategory.Arm => $"{modelInfo.Name} (Arm)",
-                _ => $"{modelInfo.Name} (Sub)",
+                var disambig = modelInfo.Id
+                    .Replace("models/", "")
+                    .Replace(".json", "");
+                var lastSlash = disambig.LastIndexOf('/');
+                if (lastSlash >= 0)
+                    disambig = disambig[..lastSlash];
+                if (!string.IsNullOrEmpty(disambig))
+                    displayName = $"{displayName} ({disambig})";
+            }
+
+            displayName = modelInfo.Category switch
+            {
+                YsmModelCategory.Main => displayName,
+                YsmModelCategory.Arm => $"{displayName} (Arm)",
+                _ => $"{displayName} (Sub)",
             };
 
             Components.Add(new ComponentViewModel
