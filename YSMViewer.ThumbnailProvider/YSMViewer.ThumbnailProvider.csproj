@@ -8,8 +8,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <!-- Normal build: NativeAOT C ABI rendering library -->
-  <PropertyGroup Condition="'$(Configuration)' != 'DebugRuntest'">
+  <!-- NativeAOT C ABI rendering library -->
+  <PropertyGroup>
     <OutputType>Library</OutputType>
     <PublishAot>true</PublishAot>
     <IsTrimmable>true</IsTrimmable>
@@ -19,17 +19,11 @@
     <EnableComHosting>false</EnableComHosting>
   </PropertyGroup>
 
-  <!-- DebugRuntest: standalone console test harness -->
-  <PropertyGroup Condition="'$(Configuration)' == 'DebugRuntest'">
-    <OutputType>Exe</OutputType>
-    <DefineConstants>$(DefineConstants);TEST_HARNESS</DefineConstants>
-  </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\YSMViewer.Core\YSMViewer.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(Configuration)' != 'DebugRuntest'">
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
     <TrimmerRootDescriptor Include="ThumbnailTrimming.xml" />
   </ItemGroup>
 
