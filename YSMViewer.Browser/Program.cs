@@ -2,8 +2,8 @@
 using Avalonia.Browser;
 using Microsoft.Extensions.DependencyInjection;
 using YSMViewer;
+using YSMViewer.Browser.Rendering.ThreeJs;
 using YSMViewer.Browser.Views;
-using YSMViewer.Rendering.ThreeJs;
 
 internal sealed partial class Program
 {

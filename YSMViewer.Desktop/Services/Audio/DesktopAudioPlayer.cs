@@ -1,7 +1,8 @@
 using NAudio.Vorbis;
 using NAudio.Wave;
+using YSMViewer.Services.Audio;
 
-namespace YSMViewer.Services.Audio;
+namespace YSMViewer.Desktop.Services.Audio;
 
 public sealed class DesktopAudioPlayer : IPlatformAudioPlayer
 {

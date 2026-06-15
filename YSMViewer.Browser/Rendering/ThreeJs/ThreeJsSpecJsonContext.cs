@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using static YSMViewer.Rendering.ThreeJs.ThreeJsPayloadBuilder;
+using static YSMViewer.Browser.Rendering.ThreeJs.ThreeJsPayloadBuilder;
 
 namespace YSMViewer.Rendering.ThreeJs;
 

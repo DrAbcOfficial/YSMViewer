@@ -185,8 +185,7 @@ public partial class BrowserMainView : UserControl
     private void OnCloseBannerClick(object? sender, RoutedEventArgs e)
     {
         var banner = this.FindControl<Border>("BrowserBanner");
-        if (banner is not null)
-            banner.IsVisible = false;
+        banner?.IsVisible = false;
     }
 
     private void OnShowAllComponentsClick(object? sender, RoutedEventArgs e)

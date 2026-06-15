@@ -295,7 +295,7 @@ public partial class MainView : UserControl
             vm.SelectAnimation(name);
     }
 
-    private void SyncGizmoCamera(IInteractiveRenderer interactive)
+    private static void SyncGizmoCamera(IInteractiveRenderer interactive)
     {
         interactive.SyncGizmo();
     }
@@ -303,15 +303,13 @@ public partial class MainView : UserControl
     private void OnGizmoPointerEntered(object? sender, PointerEventArgs e)
     {
         var gizmoBorder = this.FindControl<Border>("GizmoBorder");
-        if (gizmoBorder is not null)
-            gizmoBorder.Background = new SolidColorBrush(Color.FromArgb(128, 0, 0, 0));
+        gizmoBorder?.Background = new SolidColorBrush(Color.FromArgb(128, 0, 0, 0));
     }
 
     private void OnGizmoPointerExited(object? sender, PointerEventArgs e)
     {
         var gizmoBorder = this.FindControl<Border>("GizmoBorder");
-        if (gizmoBorder is not null)
-            gizmoBorder.Background = Brushes.Transparent;
+        gizmoBorder?.Background = Brushes.Transparent;
     }
 
     private void OnGizmoPointerPressed(object? sender, PointerPressedEventArgs e)

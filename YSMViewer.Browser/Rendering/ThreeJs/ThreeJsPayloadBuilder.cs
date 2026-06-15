@@ -2,8 +2,9 @@ using System.Numerics;
 using System.Text.Json;
 using YSMViewer.Models;
 using YSMViewer.Models.Document;
+using YSMViewer.Rendering.ThreeJs;
 
-namespace YSMViewer.Rendering.ThreeJs;
+namespace YSMViewer.Browser.Rendering.ThreeJs;
 
 public static class ThreeJsPayloadBuilder
 {

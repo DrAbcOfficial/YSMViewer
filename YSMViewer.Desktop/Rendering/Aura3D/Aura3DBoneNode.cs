@@ -2,7 +2,7 @@ using Aura3D.Core.Nodes;
 using System.Numerics;
 using YSMViewer.Services;
 
-namespace YSMViewer.Rendering.Aura3D;
+namespace YSMViewer.Desktop.Rendering.Aura3D;
 
 internal sealed class Aura3DBoneNode(Node node) : IAnimatableBone
 {

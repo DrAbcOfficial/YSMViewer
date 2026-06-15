@@ -1,7 +1,6 @@
 using Aura3D.Core.Nodes;
 using Aura3D.Core.Renderers;
 using Aura3D.Core.Scenes;
-using YSMViewer.Rendering.Aura3D;
 
 namespace YSMViewer.Desktop.Rendering.Aura3D;
 

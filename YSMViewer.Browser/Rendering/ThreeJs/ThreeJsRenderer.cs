@@ -1,11 +1,11 @@
 using Avalonia;
 using Avalonia.Controls;
 using YSMViewer.Models.Document;
+using YSMViewer.Rendering;
+using YSMViewer.Rendering.ThreeJs;
 using YSMViewer.Services.Molang;
 
-#pragma warning disable CA1416 // browser-only calls are intentional
-
-namespace YSMViewer.Rendering.ThreeJs;
+namespace YSMViewer.Browser.Rendering.ThreeJs;
 
 public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimationRenderer, IDisposable
 {
