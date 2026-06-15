@@ -14,6 +14,9 @@
     <PublishAot>true</PublishAot>
     <IsTrimmable>true</IsTrimmable>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <IlcOptimizationPreference>Size</IlcOptimizationPreference>
+    <IlcFoldIdenticalMethods>true</IlcFoldIdenticalMethods>
+    <EnableComHosting>false</EnableComHosting>
   </PropertyGroup>
 
   <!-- DebugRuntest: standalone console test harness -->
@@ -27,12 +30,10 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' != 'DebugRuntest'">
-    <Compile Remove="Program.cs" />
+    <TrimmerRootDescriptor Include="ThumbnailTrimming.xml" />
   </ItemGroup>
 
-  <!-- AOT trimming -->
-  <ItemGroup Condition="'$(Configuration)' != 'DebugRuntest'">
-    <TrimmerRootAssembly Include="YSMViewer.ThumbnailProvider" />
-    <TrimmerRootAssembly Include="YSMViewer.Core" />
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
 </Project>

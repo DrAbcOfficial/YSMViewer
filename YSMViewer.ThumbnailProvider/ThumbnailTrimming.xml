@@ -1,0 +1,19 @@
+<linker>
+  <assembly fullname="YSMViewer.ThumbnailProvider" />
+  <assembly fullname="YSMViewer.Core">
+    <type fullname="YSMViewer.Models.Document.*" />
+    <type fullname="YSMViewer.Models.MinecraftCubeFaceUV" />
+    <type fullname="YSMViewer.Models.MinecraftGeometryFile" />
+    <type fullname="YSMViewer.Models.MinecraftGeometry" />
+    <type fullname="YSMViewer.Models.MinecraftGeometryDescription" />
+    <type fullname="YSMViewer.Models.MinecraftBone" />
+    <type fullname="YSMViewer.Models.MinecraftCube" />
+    <type fullname="YSMViewer.Models.MinecraftCubeUV" />
+    <type fullname="YSMViewer.Models.YsmJsonContext" />
+    <type fullname="YSMViewer.Services.YsmLoaderService" />
+    <type fullname="YSMViewer.Services.YsmMetadataParser" />
+    <type fullname="YSMViewer.Services.ZipYsmParser" />
+    <type fullname="YSMViewer.Services.YsmImageHelper" />
+    <type fullname="YSMViewer.MinecraftFormatHelper" />
+  </assembly>
+</linker>

@@ -109,6 +109,40 @@ public sealed class YsmLoaderService
         return YsmImageHelper.EnsurePng(entry.Data);
     }
 
+    private static byte[]? FindRawTexture(string modelName, IReadOnlyList<YsmResourceEntry> textures)
+    {
+        if (textures.Count == 0) return null;
+
+        string normalizedModel = NormalizeModelName(modelName);
+
+        YsmResourceEntry? exactMatch = null;
+        YsmResourceEntry? containsMatch = null;
+        YsmResourceEntry? defaultMatch = null;
+
+        foreach (var tex in textures)
+        {
+            string normalizedTex = tex.Name.Replace("textures/", "").Replace(".png", "").Replace(".webp", "");
+            if (normalizedTex.Contains('/'))
+                normalizedTex = normalizedTex[(normalizedTex.LastIndexOf('/') + 1)..];
+            if (normalizedTex.Contains('\\'))
+                normalizedTex = normalizedTex[(normalizedTex.LastIndexOf('\\') + 1)..];
+
+            if (string.Equals(normalizedTex, normalizedModel, StringComparison.OrdinalIgnoreCase))
+                exactMatch = tex;
+
+            if (defaultMatch is null && string.Equals(normalizedTex, "default", StringComparison.OrdinalIgnoreCase))
+                defaultMatch = tex;
+
+            if (containsMatch is null &&
+                (normalizedTex.Contains(normalizedModel, StringComparison.OrdinalIgnoreCase) ||
+                 normalizedModel.Contains(normalizedTex, StringComparison.OrdinalIgnoreCase)))
+                containsMatch = tex;
+        }
+
+        var entry = exactMatch ?? containsMatch ?? defaultMatch;
+        return entry?.Data;
+    }
+
     public static YsmModelDocument LoadDocumentFromFile(string filePath)
     {
         if (IsZipFile(filePath))
@@ -181,9 +215,9 @@ public sealed class YsmLoaderService
         if (geometry.Bones is null)
             throw new InvalidOperationException($"Geometry has no bones for model '{mainModelEntry.Name}'");
 
-        var textureMatch = FindTextureForModel(mainModelEntry.Name, resources.Textures);
+        var textureMatch = FindRawTexture(mainModelEntry.Name, resources.Textures);
         if (textureMatch is null && resources.Textures.Count > 0)
-            textureMatch = YsmImageHelper.EnsurePng(resources.Textures[0].Data);
+            textureMatch = resources.Textures[0].Data;
 
         string? textureId = null;
         if (textureMatch is not null)
@@ -216,11 +250,11 @@ public sealed class YsmLoaderService
             info,
             models,
             textureResources,
-            new List<YsmAnimationResource>(),
-            new List<YsmImageResource>(),
-            new List<YsmAnimationControllerResource>(),
-            new List<YsmSoundResource>(),
-            new List<YsmFunctionResource>());
+            [],
+            [],
+            [],
+            [],
+            []);
     }
 
     private static YsmModelDocument LoadDocument(YSMParser.Core.Parsers.YSMParser parser)

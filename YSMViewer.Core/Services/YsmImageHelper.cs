@@ -36,16 +36,13 @@ public static class YsmImageHelper
 
     public static (int width, int height) GetPngDimensions(byte[] data)
     {
-        try
+        if (data is { Length: >= 24 }
+            && data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47)
         {
-            var info = Image.Identify(data);
-            if (info is not null)
-                return (info.Width, info.Height);
-            return (0, 0);
+            int w = (data[16] << 24) | (data[17] << 16) | (data[18] << 8) | data[19];
+            int h = (data[20] << 24) | (data[21] << 16) | (data[22] << 8) | data[23];
+            return (w, h);
         }
-        catch
-        {
-            return (0, 0);
-        }
+        return (0, 0);
     }
 }

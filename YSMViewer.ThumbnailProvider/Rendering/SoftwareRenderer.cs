@@ -1,6 +1,6 @@
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using System.Buffers;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using YSMViewer.Models.Document;
@@ -9,28 +9,31 @@ namespace YSMViewer.ThumbnailProvider.Rendering;
 
 public sealed unsafe class ThumbnailRenderer : IDisposable
 {
-    private Image<Rgba32>? _texture;
-    private Rgba32[]? _texPixels;
+    private byte[]? _texPixels;
     private GCHandle _texPixelsHandle;
-    private Rgba32* _texPixelsPtr;
+    private byte* _texPixelsPtr;
     private int _texW, _texH;
 
-    public Image<Rgba32> Render(GeometryBuilder.ThumbnailScene scene, int size)
+    public byte[] Render(GeometryBuilder.ThumbnailScene scene, int size)
     {
         LoadTexture(scene.Texture);
 
         var cam = SetupCamera(scene.BoundsMin, scene.BoundsMax, size);
 
-        var image = new Image<Rgba32>(size, size, new Rgba32(0, 0, 0, 0));
-        int depthLen = size * size;
+        int pixelCount = size * size;
+        var image = new byte[pixelCount * 4];
+        int depthLen = pixelCount;
         var depthBuffer = ArrayPool<float>.Shared.Rent(depthLen);
         try
         {
             new Span<float>(depthBuffer, 0, depthLen).Fill(float.MaxValue);
 
-            foreach (var face in scene.Faces)
+            fixed (byte* pixelsBase = image)
             {
-                RasterizeFace(face, cam, size, image, depthBuffer);
+                foreach (var face in scene.Faces)
+                {
+                    RasterizeFace(face, cam, size, pixelsBase, depthBuffer);
+                }
             }
         }
         finally
@@ -43,34 +46,40 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
 
     private void LoadTexture(YsmTextureResource? texture)
     {
-        _texture?.Dispose();
-        _texture = null;
-        _texPixels = null;
-        _texW = _texH = 1;
         if (_texPixelsHandle.IsAllocated)
         {
             _texPixelsHandle.Free();
             _texPixelsHandle = default;
         }
+        _texPixels = null;
         _texPixelsPtr = null;
+        _texW = _texH = 1;
 
         if (texture?.Data is { Length: > 0 })
         {
             try
             {
-                _texture = Image.Load<Rgba32>(texture.Data);
-                _texW = _texture.Width;
-                _texH = _texture.Height;
-                if (_texPixels is null || _texPixels.Length != _texW * _texH)
-                    _texPixels = new Rgba32[_texW * _texH];
-                _texture.CopyPixelDataTo(_texPixels);
+                using var img = Image.FromStream(new MemoryStream(texture.Data));
+                using var bmp = new Bitmap(img);
+                _texW = bmp.Width;
+                _texH = bmp.Height;
+                var rect = new Rectangle(0, 0, _texW, _texH);
+                var bd = bmp.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                int stride = bd.Stride;
+                int rowBytes = _texW * 4;
+                _texPixels = new byte[_texW * _texH * 4];
+                for (int y = 0; y < _texH; y++)
+                {
+                    Marshal.Copy(bd.Scan0 + y * stride, _texPixels, y * rowBytes, rowBytes);
+                }
+                bmp.UnlockBits(bd);
                 _texPixelsHandle = GCHandle.Alloc(_texPixels, GCHandleType.Pinned);
-                _texPixelsPtr = (Rgba32*)_texPixelsHandle.AddrOfPinnedObject();
+                _texPixelsPtr = (byte*)_texPixelsHandle.AddrOfPinnedObject();
             }
             catch
             {
-                _texture = null;
                 _texPixels = null;
+                _texPixelsPtr = null;
             }
         }
     }
@@ -118,7 +127,7 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
         GeometryBuilder.TexturedFace face,
         CameraData cam,
         int vpSize,
-        Image<Rgba32> image,
+        byte* image,
         float[] depthBuffer)
     {
         var nz = Vector3.Dot(face.WorldNormal, cam.Forward);
@@ -168,7 +177,7 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
         (float X, float Y, float Z) b,
         (float X, float Y, float Z) c,
         float ua, float va, float ub, float vb, float uc, float vc,
-        int vpSize, Image<Rgba32> image, float[] depthBuffer)
+        int vpSize, byte* image, float[] depthBuffer)
     {
         int minX = Math.Max(0, (int)MathF.Floor(MathF.Min(MathF.Min(a.X, b.X), c.X)));
         int minY = Math.Max(0, (int)MathF.Floor(MathF.Min(MathF.Min(a.Y, b.Y), c.Y)));
@@ -179,18 +188,13 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
         if (MathF.Abs(area) < 0.0001f) return;
         float invArea = 1f / area;
 
-        if (!image.DangerousTryGetSinglePixelMemory(out var pixelMem))
-            return;
-        var pixels = pixelMem.Span;
-
-        fixed (Rgba32* pixelsBase = pixels)
         fixed (float* depthBase = depthBuffer)
         {
             for (int py = minY; py <= maxY; py++)
             {
                 int rowStart = py * vpSize;
                 float* depthRow = depthBase + rowStart;
-                Rgba32* pixelRow = pixelsBase + rowStart;
+                byte* pixelRow = image + rowStart * 4;
                 for (int px = minX; px <= maxX; px++)
                 {
                     float w0 = EdgeFunc(b.X, b.Y, c.X, c.Y, px + 0.5f, py + 0.5f);
@@ -212,9 +216,13 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
                     float tv = alpha * va + beta * vb + gamma * vc;
 
                     var color = SampleTexture(tu, tv);
-                    if (color.A == 0) continue;
+                    if (color == 0) continue;
 
-                    pixelRow[px] = color;
+                    byte* d = pixelRow + px * 4;
+                    d[0] = (byte)(color);
+                    d[1] = (byte)(color >> 8);
+                    d[2] = (byte)(color >> 16);
+                    d[3] = (byte)(color >> 24);
                 }
             }
         }
@@ -225,10 +233,10 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
         return (px - ax) * (by - ay) - (py - ay) * (bx - ax);
     }
 
-    private Rgba32 SampleTexture(float u, float v)
+    private uint SampleTexture(float u, float v)
     {
         if (_texPixelsPtr is null)
-            return new Rgba32(230, 230, 230, 255);
+            return 0xFFE6E6E6; // BGRA: B=230, G=230, R=230, A=255
 
         u -= MathF.Floor(u);
         v -= MathF.Floor(v);
@@ -238,21 +246,23 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
         if (tx < 0) tx += _texW;
         if (ty < 0) ty += _texH;
 
-        int texIdx = ty * _texW + tx;
-        var pixel = _texPixelsPtr[texIdx];
+        int texIdx = (ty * _texW + tx) * 4;
+        byte b = _texPixelsPtr[texIdx];
+        byte g = _texPixelsPtr[texIdx + 1];
+        byte r = _texPixelsPtr[texIdx + 2];
+        byte a = _texPixelsPtr[texIdx + 3];
 
-        if (pixel.A < 128)
-            return new Rgba32(0, 0, 0, 0);
+        if (a < 128)
+            return 0;
 
-        return new Rgba32(pixel.R, pixel.G, pixel.B, 255);
+        // Return packed BGRA with A=255
+        return (uint)(b | (g << 8) | (r << 16) | (0xFF << 24));
     }
 
     public void Dispose()
     {
         if (_texPixelsHandle.IsAllocated)
             _texPixelsHandle.Free();
-        _texture?.Dispose();
-        _texture = null;
         _texPixels = null;
         _texPixelsPtr = null;
     }

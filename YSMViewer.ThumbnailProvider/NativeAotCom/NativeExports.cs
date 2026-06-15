@@ -1,4 +1,3 @@
-using SixLabors.ImageSharp.PixelFormats;
 using System.Runtime.InteropServices;
 using YSMViewer.Services;
 using YSMViewer.ThumbnailProvider.Rendering;
@@ -44,29 +43,23 @@ public static unsafe class NativeExports
 
             var size = Math.Max(1, Math.Min(width, height));
             using var renderer = new ThumbnailRenderer();
-            using var image = renderer.Render(scene, size);
+            var pixels = renderer.Render(scene, size);
 
             int offsetX = (width - size) / 2;
             int offsetY = (height - size) / 2;
 
             new Span<byte>(bgra, width * height * 4).Clear();
 
-            if (image.DangerousTryGetSinglePixelMemory(out var pixelMem))
+            fixed (byte* src = pixels)
             {
-                var pixels = pixelMem.Span;
-                fixed (Rgba32* srcBase = pixels)
+                int srcStride = size * 4;
+                int dstStride = width * 4;
+                for (int y = 0; y < size; y++)
                 {
-                    CopyPixels(srcBase, bgra, size, width, offsetX, offsetY);
-                }
-            }
-            else
-            {
-                var pixelCount = size * size;
-                var pixels = new Rgba32[pixelCount];
-                image.CopyPixelDataTo(pixels);
-                fixed (Rgba32* srcBase = pixels)
-                {
-                    CopyPixels(srcBase, bgra, size, width, offsetX, offsetY);
+                    Buffer.MemoryCopy(
+                        src + y * srcStride,
+                        bgra + (offsetY + y) * dstStride + offsetX * 4,
+                        srcStride, srcStride);
                 }
             }
 
@@ -85,25 +78,5 @@ public static unsafe class NativeExports
         var handle = GCHandle.FromIntPtr((nint)ctx);
         if (handle.IsAllocated)
             handle.Free();
-    }
-
-    private static void CopyPixels(Rgba32* srcBase, byte* bgra, int size, int width, int offsetX, int offsetY)
-    {
-        int dstStride = width * 4;
-        byte* dstRowStart = bgra + offsetY * dstStride + offsetX * 4;
-        for (int y = 0; y < size; y++)
-        {
-            Rgba32* srcCol = srcBase + y * size;
-            byte* dstCol = dstRowStart + y * dstStride;
-            for (int x = 0; x < size; x++)
-            {
-                var pixel = srcCol[x];
-                byte* d = dstCol + x * 4;
-                d[0] = pixel.B;
-                d[1] = pixel.G;
-                d[2] = pixel.R;
-                d[3] = pixel.A;
-            }
-        }
     }
 }
