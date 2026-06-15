@@ -9,14 +9,16 @@ using System.Text.Json;
 using YSMViewer.Models;
 using YSMViewer.Models.AnimationController;
 using YSMViewer.Models.Document;
+using YSMViewer.Rendering;
+using YSMViewer.Rendering.Aura3D;
 using YSMViewer.Services;
 using YSMViewer.Services.Animation;
 using YSMViewer.Services.Audio;
 using YSMViewer.Services.Molang;
 
-namespace YSMViewer.Rendering.Aura3D;
+namespace YSMViewer.Desktop.Rendering.Aura3D;
 
-public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
+public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, IDisposable
 {
     private readonly Aura3DView _view;
     private readonly Aura3DView _gizmoView;
@@ -141,8 +143,13 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
         {
             YsmTextureResource? tex = null;
             if (geoModel.TextureId is not null)
-                tex = document.Textures.FirstOrDefault(t => t.Id == geoModel.TextureId)
-                      ?? document.Textures.FirstOrDefault();
+            {
+                foreach (var t in document.Textures)
+                {
+                    if (t.Id == geoModel.TextureId) { tex = t; break; }
+                }
+                tex ??= document.Textures.Count > 0 ? document.Textures[0] : null;
+            }
 
             var result = Aura3DModelBuilder.BuildFromDocument(geoModel, tex);
             result.RootModel.Enable = geoModel.DefaultVisible;
@@ -276,37 +283,38 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
         };
     }
 
-    public void Clear()
+    public void Dispose()
     {
         _animService.IsPlaying = false;
         _animService.ResetBones();
-        _componentModels.Clear();
-        _boneNodes.Clear();
-        _boneNameToNodes.Clear();
-        _baseBoneEulers.Clear();
-        _basePositions.Clear();
-
         if (_view.Scene is not null)
         {
             foreach (var root in _sceneRoots)
                 _view.Scene.RemoveNode(root);
-
             if (_loadedModel is not null)
                 _view.Scene.RemoveNode(_loadedModel);
         }
-
         _loadedModel = null;
         _sceneRoots.Clear();
         _animBones = null;
         _document = null;
         _animTime = 0f;
-
         _audioService?.Dispose();
         _audioService = null;
         _stateMachine = null;
         _molangService = null;
         HasAnimationController = false;
         _useAnimationController = false;
+        _componentModels.Clear();
+        _boneNodes.Clear();
+        _boneNameToNodes.Clear();
+        _baseBoneEulers.Clear();
+        _basePositions.Clear();
+    }
+
+    public void Clear()
+    {
+        Dispose();
     }
 
     public void SetCameraView(RenderCameraView view)
@@ -391,23 +399,26 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer
                     node.Enable = vis;
             }
 
-            foreach (var (boneName, bone) in _animBones!)
+            if (_bonesAnimatedThisFrame.Count > 0 && _animBones is not null)
             {
-                if (_bonesAnimatedThisFrame.Contains(boneName)) continue;
-
-                float t = Math.Clamp(deltaTime / ResetSpeed, 0f, 1f);
-
-                if (_basePositions.TryGetValue(boneName, out var basePos))
-                    bone.Position = Vector3.Lerp(bone.Position, basePos, t);
-
-                if (_baseBoneEulers.TryGetValue(boneName, out var baseEuler))
+                foreach (var (boneName, bone) in _animBones)
                 {
-                    var targetQuat = AnimationService.CreateBlockbenchQuaternion(baseEuler);
-                    bone.RotationQuaternion = Quaternion.Normalize(
-                        Quaternion.Slerp(bone.RotationQuaternion, targetQuat, t));
-                }
+                    if (_bonesAnimatedThisFrame.Contains(boneName)) continue;
 
-                bone.Scale = Vector3.Lerp(bone.Scale, Vector3.One, t);
+                    float t = Math.Clamp(deltaTime / ResetSpeed, 0f, 1f);
+
+                    if (_basePositions.TryGetValue(boneName, out var basePos))
+                        bone.Position = Vector3.Lerp(bone.Position, basePos, t);
+
+                    if (_baseBoneEulers.TryGetValue(boneName, out var baseEuler))
+                    {
+                        var targetQuat = AnimationService.CreateBlockbenchQuaternion(baseEuler);
+                        bone.RotationQuaternion = Quaternion.Normalize(
+                            Quaternion.Slerp(bone.RotationQuaternion, targetQuat, t));
+                    }
+
+                    bone.Scale = Vector3.Lerp(bone.Scale, Vector3.One, t);
+                }
             }
         }
         else

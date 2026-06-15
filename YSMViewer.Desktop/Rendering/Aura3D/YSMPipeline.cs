@@ -1,14 +1,15 @@
-using global::Aura3D.Core.Nodes;
-using global::Aura3D.Core.Renderers;
-using global::Aura3D.Core.Scenes;
+using Aura3D.Core.Nodes;
+using Aura3D.Core.Renderers;
+using Aura3D.Core.Scenes;
+using YSMViewer.Rendering.Aura3D;
 
-namespace YSMViewer.Rendering.Aura3D;
+namespace YSMViewer.Desktop.Rendering.Aura3D;
 
 public sealed class YSMPipeline : RenderPipeline
 {
     private readonly YSMNoLightPass _noLightPass;
 
-    /// <summary>0 = off, >0 = simple shading intensity. Default 0.3.</summary>
+    /// <summary>0 = off, >0 = simple shading intensity.</summary>
     public float SimpleShadingIntensity
     {
         get => _noLightPass.SimpleShadingIntensity;
@@ -27,7 +28,7 @@ public sealed class YSMPipeline : RenderPipeline
         RegisterRenderPass(new DebugDrawPass(this, "BaseRenderTarget"), RenderPassGroup.EveryCamera);
 
         RegisterRenderTarget("BaseRenderTarget")
-            .AddTexture("Color", TextureFormat.Rgba16f)
+            .AddTexture("Color", TextureFormat.Rgba8)
             .SetDepthTexture(Settings.DepthFormat);
 
         RegisterRenderTarget("GammaOutput")

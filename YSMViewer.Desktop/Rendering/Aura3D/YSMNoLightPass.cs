@@ -1,13 +1,12 @@
-using global::Aura3D.Core;
-using global::Aura3D.Core.Math;
-using global::Aura3D.Core.Nodes;
-using global::Aura3D.Core.Renderers;
-using global::Aura3D.Core.Resources;
+using Aura3D.Core.Math;
+using Aura3D.Core.Nodes;
+using Aura3D.Core.Renderers;
+using Aura3D.Core.Resources;
 using Silk.NET.OpenGLES;
 using System.Drawing;
 using System.Numerics;
 
-namespace YSMViewer.Rendering.Aura3D;
+namespace YSMViewer.Desktop.Rendering.Aura3D;
 
 public class YSMNoLightPass : NoLightPass
 {
@@ -21,10 +20,6 @@ public class YSMNoLightPass : NoLightPass
     {
         _defaultBaseColor = global::Aura3D.Core.Resources.Texture.CreateFromColor(Color.White);
 
-        FragmentShader = ShaderResource.NoLightFrag.Replace(
-            "precision mediump float;",
-            "precision mediump float;\n//{{defines}}");
-
         VertexShader = _VertexShader;
         FragmentShader = _FragmentShader;
     }
@@ -32,7 +27,7 @@ public class YSMNoLightPass : NoLightPass
     private const string _VertexShader = @"#version 300 es
 precision mediump float;
 
-#define BONE_NUMBER 150
+#define BONE_NUMBER 120
 
 //{{defines}}
 
@@ -70,7 +65,7 @@ void main()
 	vTexCoord = texCoord;
 
 #ifdef SKINNED_MESH
-	
+
 	int idx0 = clamp(int(boneIndices.x), 0, BONE_NUMBER - 1);
     int idx1 = clamp(int(boneIndices.y), 0, BONE_NUMBER - 1);
     int idx2 = clamp(int(boneIndices.z), 0, BONE_NUMBER - 1);

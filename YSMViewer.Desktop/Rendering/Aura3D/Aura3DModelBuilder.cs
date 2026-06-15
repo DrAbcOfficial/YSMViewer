@@ -2,14 +2,17 @@ using Aura3D.Core;
 using Aura3D.Core.Nodes;
 using Aura3D.Core.Resources;
 using System.Numerics;
+using System.Security.Cryptography;
 using YSMViewer.Models;
 using YSMViewer.Models.Document;
 
-namespace YSMViewer.Rendering.Aura3D;
+namespace YSMViewer.Desktop.Rendering.Aura3D;
 
 public static class Aura3DModelBuilder
 {
     private const float ExportScale = 1f / 16f;
+    private static readonly Dictionary<string, Texture> _textureCache = [];
+    private static readonly Lock _textureCacheLock = new();
 
     public sealed record BuildResult(
         Model RootModel,
@@ -27,11 +30,22 @@ public static class Aura3DModelBuilder
         {
             try
             {
-                sharedTexture = TextureLoader.LoadTexture(texture.Data)
-                    .SetMinFilter(TextureFilterMode.Nearest)
-                    .SetMagFilter(TextureFilterMode.Nearest)
-                    .SetWarpS(TextureWrapMode.Repeat)
-                    .SetWarpT(TextureWrapMode.Repeat);
+                string hash;
+                var hashBytes = SHA256.HashData(texture.Data);
+                hash = Convert.ToHexString(hashBytes);
+
+                lock (_textureCacheLock)
+                {
+                    if (!_textureCache.TryGetValue(hash, out sharedTexture))
+                    {
+                        sharedTexture = TextureLoader.LoadTexture(texture.Data)
+                            .SetMinFilter(TextureFilterMode.Nearest)
+                            .SetMagFilter(TextureFilterMode.Nearest)
+                            .SetWarpS(TextureWrapMode.Repeat)
+                            .SetWarpT(TextureWrapMode.Repeat);
+                        _textureCache[hash] = sharedTexture;
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -86,15 +100,6 @@ public static class Aura3DModelBuilder
                 model.AddChild(rootNode, AttachToParentRule.KeepLocal);
         }
 
-        // initial world matrix bake
-        foreach (var bone in geoModel.Bones)
-        {
-            if (bone.ParentId is null && boneNodes.TryGetValue(bone.Id, out var rootNode))
-            {
-                using var u = rootNode.BeginTransformUpdate(UpdateTransformMode.ChildrenWorld);
-            }
-        }
-
         foreach (var bone in geoModel.Bones)
         {
             var bonePivot = bonePivots[bone.Id];
@@ -145,7 +150,6 @@ public static class Aura3DModelBuilder
             }
         }
 
-        // Re-bake parents under model after cubes added
         foreach (var bone in geoModel.Bones)
         {
             if (bone.ParentId is null && boneNodes.TryGetValue(bone.Id, out var rootNode))
