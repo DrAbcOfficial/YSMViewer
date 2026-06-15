@@ -1,7 +1,6 @@
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using System.Buffers;
-using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using YSMViewer.Models.Document;
@@ -10,8 +9,6 @@ namespace YSMViewer.ThumbnailProvider.Rendering;
 
 public sealed unsafe class ThumbnailRenderer : IDisposable
 {
-    private static readonly Vector3 LightDir = Vector3.Normalize(new Vector3(1f, -1f, -1f));
-
     private Image<Rgba32>? _texture;
     private Rgba32[]? _texPixels;
     private GCHandle _texPixelsHandle;
@@ -20,13 +17,9 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
 
     public Image<Rgba32> Render(GeometryBuilder.ThumbnailScene scene, int size)
     {
-        var sw = Stopwatch.StartNew();
         LoadTexture(scene.Texture);
 
         var cam = SetupCamera(scene.BoundsMin, scene.BoundsMax, size);
-
-        Util.Log($"[Thumbnail] Camera eye={cam.Eye} center={0.5f * (scene.BoundsMin + scene.BoundsMax)} orthoScale={cam.OrthoScale}");
-        Util.Log($"[Thumbnail] Texture={(_texture is null ? "none" : $"{_texW}x{_texH}")} Faces={scene.Faces.Count}");
 
         var image = new Image<Rgba32>(size, size, new Rgba32(0, 0, 0, 0));
         int depthLen = size * size;
@@ -35,16 +28,10 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
         {
             new Span<float>(depthBuffer, 0, depthLen).Fill(float.MaxValue);
 
-            int culled = 0, drawn = 0;
             foreach (var face in scene.Faces)
             {
-                if (RasterizeFace(face, cam, size, image, depthBuffer))
-                    drawn++;
-                else
-                    culled++;
+                RasterizeFace(face, cam, size, image, depthBuffer);
             }
-
-            Util.Log($"[Thumbnail] Drawn={drawn} Culled={culled} Time={sw.ElapsedMilliseconds}ms");
         }
         finally
         {
@@ -80,9 +67,8 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
                 _texPixelsHandle = GCHandle.Alloc(_texPixels, GCHandleType.Pinned);
                 _texPixelsPtr = (Rgba32*)_texPixelsHandle.AddrOfPinnedObject();
             }
-            catch (Exception ex)
+            catch
             {
-                Util.Log($"[Thumbnail] Texture load failed: {ex.Message}");
                 _texture = null;
                 _texPixels = null;
             }
@@ -128,7 +114,7 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
         return new CameraData(center - forward * dist, right, up, forward, orthoScale);
     }
 
-    private bool RasterizeFace(
+    private void RasterizeFace(
         GeometryBuilder.TexturedFace face,
         CameraData cam,
         int vpSize,
@@ -136,30 +122,26 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
         float[] depthBuffer)
     {
         var nz = Vector3.Dot(face.WorldNormal, cam.Forward);
-        if (nz <= 0f) return false;
+        if (nz <= 0f) return;
 
         var p0 = ProjectVertex(face.P0, cam);
         var p1 = ProjectVertex(face.P1, cam);
         var p2 = ProjectVertex(face.P2, cam);
         var p3 = ProjectVertex(face.P3, cam);
 
-        if (p0.Z < 0 || p1.Z < 0 || p2.Z < 0 || p3.Z < 0) return false;
+        if (p0.Z < 0 || p1.Z < 0 || p2.Z < 0 || p3.Z < 0) return;
 
         var s0 = ToScreen(p0, cam, vpSize);
         var s1 = ToScreen(p1, cam, vpSize);
         var s2 = ToScreen(p2, cam, vpSize);
         var s3 = ToScreen(p3, cam, vpSize);
 
-        float light = ComputeLighting(face.WorldNormal);
-
         RasterizeTriangle(s0, s1, s2,
             face.U0, face.V0, face.U1, face.V1, face.U2, face.V2,
-            light, vpSize, image, depthBuffer);
+            vpSize, image, depthBuffer);
         RasterizeTriangle(s0, s2, s3,
             face.U0, face.V0, face.U2, face.V2, face.U3, face.V3,
-            light, vpSize, image, depthBuffer);
-
-        return true;
+            vpSize, image, depthBuffer);
     }
 
     private static (float X, float Y, float Z) ProjectVertex(Vector3 worldPos, CameraData cam)
@@ -181,18 +163,12 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
         return (sx, sy, viewPos.Z);
     }
 
-    private static float ComputeLighting(Vector3 worldNormal)
-    {
-        float diff = MathF.Max(0f, Vector3.Dot(Vector3.Normalize(worldNormal), LightDir));
-        return 0.55f + 0.55f * diff;
-    }
-
     private void RasterizeTriangle(
         (float X, float Y, float Z) a,
         (float X, float Y, float Z) b,
         (float X, float Y, float Z) c,
         float ua, float va, float ub, float vb, float uc, float vc,
-        float light, int vpSize, Image<Rgba32> image, float[] depthBuffer)
+        int vpSize, Image<Rgba32> image, float[] depthBuffer)
     {
         int minX = Math.Max(0, (int)MathF.Floor(MathF.Min(MathF.Min(a.X, b.X), c.X)));
         int minY = Math.Max(0, (int)MathF.Floor(MathF.Min(MathF.Min(a.Y, b.Y), c.Y)));
@@ -235,7 +211,7 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
                     float tu = alpha * ua + beta * ub + gamma * uc;
                     float tv = alpha * va + beta * vb + gamma * vc;
 
-                    var color = SampleTexture(tu, tv, light);
+                    var color = SampleTexture(tu, tv);
                     if (color.A == 0) continue;
 
                     pixelRow[px] = color;
@@ -249,13 +225,10 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
         return (px - ax) * (by - ay) - (py - ay) * (bx - ax);
     }
 
-    private Rgba32 SampleTexture(float u, float v, float light)
+    private Rgba32 SampleTexture(float u, float v)
     {
         if (_texPixelsPtr is null)
-        {
-            byte lit = (byte)Math.Clamp((int)(230 * light), 0, 255);
-            return new Rgba32(lit, lit, lit, 255);
-        }
+            return new Rgba32(230, 230, 230, 255);
 
         u -= MathF.Floor(u);
         v -= MathF.Floor(v);
@@ -271,11 +244,7 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
         if (pixel.A < 128)
             return new Rgba32(0, 0, 0, 0);
 
-        byte r = (byte)Math.Clamp((int)(pixel.R * light), 0, 255);
-        byte g = (byte)Math.Clamp((int)(pixel.G * light), 0, 255);
-        byte b = (byte)Math.Clamp((int)(pixel.B * light), 0, 255);
-
-        return new Rgba32(r, g, b, 255);
+        return new Rgba32(pixel.R, pixel.G, pixel.B, 255);
     }
 
     public void Dispose()

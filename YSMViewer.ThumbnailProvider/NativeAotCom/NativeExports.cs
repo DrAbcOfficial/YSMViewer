@@ -1,5 +1,4 @@
 using SixLabors.ImageSharp.PixelFormats;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using YSMViewer.Services;
 using YSMViewer.ThumbnailProvider.Rendering;
@@ -26,12 +25,10 @@ public static unsafe class NativeExports
 
             var ctx = new ThumbnailContext { Scene = scene };
             var handle = GCHandle.Alloc(ctx);
-            Util.Log($"Create: {length} bytes, models={document.Models.Count}, faces={scene.Faces.Count}");
             return (void*)GCHandle.ToIntPtr(handle);
         }
-        catch (Exception ex)
+        catch
         {
-            Util.Log($"Create FAILED: {ex.GetType().Name}: {ex.Message}");
             return null;
         }
     }
@@ -43,12 +40,8 @@ public static unsafe class NativeExports
         {
             var scene = ((ThumbnailContext)GCHandle.FromIntPtr((nint)ctx).Target!).Scene;
             if (scene is null)
-            {
-                Util.Log("Render: no scene in context");
                 return -1;
-            }
 
-            var sw = Stopwatch.StartNew();
             var size = Math.Max(1, Math.Min(width, height));
             using var renderer = new ThumbnailRenderer();
             using var image = renderer.Render(scene, size);
@@ -77,12 +70,10 @@ public static unsafe class NativeExports
                 }
             }
 
-            Util.Log($"Render: {width}x{height} -> used {size}x{size} in {sw.ElapsedMilliseconds}ms");
             return 0;
         }
-        catch (Exception ex)
+        catch
         {
-            Util.Log($"Render FAILED: {ex.GetType().Name}: {ex.Message}");
             return -1;
         }
     }
