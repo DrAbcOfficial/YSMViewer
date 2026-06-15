@@ -108,6 +108,17 @@ jobs:
       - name: Publish Browser
         run: dotnet publish YSMViewer.Browser -c Release -o publish/browser
 
+      - name: Build Android APK
+        uses: cemcoe/web-to-apk-action@v14
+        with:
+          app_name: "YSMViewer"
+          app_id: "net.drabc.ysmviewer"
+          build_command: "echo 'already built'"
+          web_dir: "publish/browser/wwwroot"
+
+      - name: Rename APK
+        run: mv app-release.apk publish/YSMViewer-Android.apk
+
       - name: Download desktop (win-x64)
         uses: actions/download-artifact@v7
         with:
@@ -160,6 +171,7 @@ jobs:
             publish/YSMViewer-linux-x64.zip
             publish/YSMViewer-osx-arm64.zip
             publish/YSMViewer-Browser.zip
+            publish/YSMViewer-Android.apk
             publish/YSMViewer-ThumbnailProvider-win-x64.zip
           generate_release_notes: true
 
