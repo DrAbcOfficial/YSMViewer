@@ -222,11 +222,12 @@ public sealed class YsmLoaderService
         string? textureId = null;
         if (textureMatch is not null)
         {
-            var (width, height) = YsmImageHelper.GetPngDimensions(textureMatch);
+            var pngData = YsmImageHelper.EnsurePng(textureMatch) ?? textureMatch;
+            var (width, height) = YsmImageHelper.GetPngDimensions(pngData);
             var texResource = new YsmTextureResource(
                 Id: $"tex_{mainModelEntry.Name}",
                 Name: mainModelEntry.Name,
-                Data: textureMatch,
+                Data: pngData,
                 Width: width,
                 Height: height);
             textureResources.Add(texResource);

@@ -424,6 +424,9 @@ public sealed partial class MainViewModel : ViewModelBase
         HasModelLicense = !string.IsNullOrEmpty(ModelLicense);
         HasModelTips = !string.IsNullOrEmpty(ModelTips);
 
+        foreach (var item in TextureItems)
+            item.Thumbnail?.Dispose();
+
         Components.Clear();
         BoneGroups.Clear();
         TextureItems.Clear();

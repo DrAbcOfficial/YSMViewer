@@ -97,6 +97,9 @@ public static class GeometryBuilder
         }
 
         var texture = resolvedTexture ?? defaultTex;
+        if (allFaces.Count == 0)
+            return new ThumbnailScene(allFaces, texture, new Vector3(-0.5f), new Vector3(0.5f));
+
         var boundsMin = new Vector3(bMinX, bMinY, bMinZ);
         var boundsMax = new Vector3(bMaxX, bMaxY, bMaxZ);
 

@@ -65,14 +65,20 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
                 _texH = bmp.Height;
                 var rect = new Rectangle(0, 0, _texW, _texH);
                 var bd = bmp.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
-                int stride = bd.Stride;
-                int rowBytes = _texW * 4;
-                _texPixels = new byte[_texW * _texH * 4];
-                for (int y = 0; y < _texH; y++)
+                try
                 {
-                    Marshal.Copy(bd.Scan0 + y * stride, _texPixels, y * rowBytes, rowBytes);
+                    int stride = bd.Stride;
+                    int rowBytes = _texW * 4;
+                    _texPixels = new byte[_texW * _texH * 4];
+                    for (int y = 0; y < _texH; y++)
+                    {
+                        Marshal.Copy(bd.Scan0 + y * stride, _texPixels, y * rowBytes, rowBytes);
+                    }
                 }
-                bmp.UnlockBits(bd);
+                finally
+                {
+                    bmp.UnlockBits(bd);
+                }
                 _texPixelsHandle = GCHandle.Alloc(_texPixels, GCHandleType.Pinned);
                 _texPixelsPtr = (byte*)_texPixelsHandle.AddrOfPinnedObject();
             }
@@ -210,13 +216,13 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
                     float depth = alpha * a.Z + beta * b.Z + gamma * c.Z;
 
                     if (depth >= depthRow[px]) continue;
-                    depthRow[px] = depth;
 
                     float tu = alpha * ua + beta * ub + gamma * uc;
                     float tv = alpha * va + beta * vb + gamma * vc;
 
                     var color = SampleTexture(tu, tv);
                     if (color == 0) continue;
+                    depthRow[px] = depth;
 
                     byte* d = pixelRow + px * 4;
                     d[0] = (byte)(color);
