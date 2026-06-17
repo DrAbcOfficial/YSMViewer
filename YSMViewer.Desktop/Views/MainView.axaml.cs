@@ -264,7 +264,7 @@ public partial class MainView : UserControl
         if (DataContext is MainViewModel vm)
         {
             foreach (var comp in vm.Components)
-                vm.SetComponentVisible(comp.ComponentId, true);
+                comp.IsVisible = true;
         }
     }
 
@@ -273,7 +273,7 @@ public partial class MainView : UserControl
         if (DataContext is MainViewModel vm)
         {
             foreach (var comp in vm.Components)
-                vm.SetComponentVisible(comp.ComponentId, false);
+                comp.IsVisible = false;
         }
     }
 

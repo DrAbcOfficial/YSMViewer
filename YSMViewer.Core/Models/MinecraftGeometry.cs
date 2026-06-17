@@ -228,6 +228,6 @@ public sealed class MinecraftCubeUVConverter : JsonConverter<MinecraftCubeUV>
         writer.WritePropertyName(name);
         writer.WriteStartArray();
         foreach (var v in values) writer.WriteNumberValue(v);
-        writer.WriteEndObject();
+        writer.WriteEndArray();
     }
 }

@@ -720,6 +720,8 @@ function startAnimLoop() {
             if (renderer && scene && camera) {
                 renderer.render(scene, camera);
             }
+
+            requestAnimationFrame(tick);
         } catch (e) {
             console.error('[YSM-Three] Animation tick error:', e);
             stopAnimLoop();

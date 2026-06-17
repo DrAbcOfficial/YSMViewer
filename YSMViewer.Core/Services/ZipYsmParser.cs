@@ -138,9 +138,16 @@ public sealed class ZipYsmParser(byte[] buffer) : YSMParser.Core.Parsers.YSMPars
             Parse();
 
         Directory.CreateDirectory(outputDirectory);
+        var outputRoot = Path.GetFullPath(outputDirectory);
+        if (!outputRoot.EndsWith(Path.DirectorySeparatorChar))
+            outputRoot += Path.DirectorySeparatorChar;
+
         foreach (var (fileName, data) in _resources)
         {
-            var filePath = Path.Combine(outputDirectory, fileName);
+            var filePath = Path.GetFullPath(Path.Combine(outputRoot, fileName));
+            if (!filePath.StartsWith(outputRoot, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException($"Archive entry escapes output directory: {fileName}");
+
             var dir = Path.GetDirectoryName(filePath);
             if (!string.IsNullOrEmpty(dir))
                 Directory.CreateDirectory(dir);

@@ -489,7 +489,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
                 foreach (var geoModel in _document.Models)
                 {
                     if (_componentModels.TryGetValue(geoModel.Id, out var compModel))
-                        _view.AddNode(compModel);
+                        AddModelToScene(compModel);
                 }
 
                 FitCameraToContent();
