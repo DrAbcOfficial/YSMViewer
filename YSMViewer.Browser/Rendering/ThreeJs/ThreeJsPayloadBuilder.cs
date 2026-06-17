@@ -45,9 +45,6 @@ public static class ThreeJsPayloadBuilder
 
         foreach (var geoModel in document.Models)
         {
-            if (!geoModel.DefaultVisible)
-                continue;
-
             var bones = new List<ThreeJsBoneData>();
             var meshGroups = new List<ThreeJsMeshData>();
             var bonePivots = new Dictionary<string, Vector3>();

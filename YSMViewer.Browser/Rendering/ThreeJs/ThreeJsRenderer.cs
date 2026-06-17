@@ -26,15 +26,7 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimatio
     public Control View => _viewHost;
     public Control? GizmoControl => null;
 
-    public RendererCapabilities Capabilities { get; } = new(
-        SupportsAnimation: false,
-        SupportsComponentVisibility: true,
-        SupportsBoneVisibility: true,
-        SupportsTextureProjection: false,
-        SupportsAutoRotation: false,
-        SupportsFreeCamera: true,
-        SupportsGizmo: false,
-        SupportsAudio: false);
+    public RendererCapabilities Capabilities => RendererCapabilities.Browser;
 
     public IReadOnlyList<string> AnimationNames => _animationNames;
     public float AnimationDuration => _animationDuration;

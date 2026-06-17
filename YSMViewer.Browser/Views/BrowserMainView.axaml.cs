@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.VisualTree;
 using System.Runtime.Versioning;
 using YSMViewer.Rendering;
 using YSMViewer.Rendering.ThreeJs;
@@ -209,13 +210,25 @@ public partial class BrowserMainView : UserControl
     private void OnExpandAllBonesClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainViewModel vm)
+        {
             vm.ExpandAllBones();
+            SetGeneratedTreeItemsExpanded(true);
+        }
     }
 
     private void OnCollapseAllBonesClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainViewModel vm)
+        {
             vm.CollapseAllBones();
+            SetGeneratedTreeItemsExpanded(false);
+        }
+    }
+
+    private void SetGeneratedTreeItemsExpanded(bool expanded)
+    {
+        foreach (var item in this.GetVisualDescendants().OfType<TreeViewItem>())
+            item.IsExpanded = expanded;
     }
 
     private void OnAnimationSelectionChanged(object? sender, SelectionChangedEventArgs e)
