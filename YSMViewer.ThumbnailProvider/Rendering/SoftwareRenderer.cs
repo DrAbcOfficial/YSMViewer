@@ -13,11 +13,10 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
     private GCHandle _texPixelsHandle;
     private byte* _texPixelsPtr;
     private int _texW, _texH;
+    private YsmTextureResource? _loadedTexture;
 
     public byte[] Render(GeometryBuilder.ThumbnailScene scene, int size)
     {
-        LoadTexture(scene.Texture);
-
         var cam = SetupCamera(scene.BoundsMin, scene.BoundsMax, size);
 
         int pixelCount = size * size;
@@ -32,6 +31,8 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
             {
                 foreach (var face in scene.Faces)
                 {
+                    if (!ReferenceEquals(_loadedTexture, face.Texture))
+                        LoadTexture(face.Texture);
                     RasterizeFace(face, cam, size, pixelsBase, depthBuffer);
                 }
             }
@@ -54,6 +55,7 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
         _texPixels = null;
         _texPixelsPtr = null;
         _texW = _texH = 1;
+        _loadedTexture = texture;
 
         if (texture?.Data is { Length: > 0 })
         {
@@ -207,7 +209,14 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
                     float w1 = EdgeFunc(c.X, c.Y, a.X, a.Y, px + 0.5f, py + 0.5f);
                     float w2 = EdgeFunc(a.X, a.Y, b.X, b.Y, px + 0.5f, py + 0.5f);
 
-                    if (w0 < 0 || w1 < 0 || w2 < 0) continue;
+                    if (area > 0f)
+                    {
+                        if (w0 < 0 || w1 < 0 || w2 < 0) continue;
+                    }
+                    else
+                    {
+                        if (w0 > 0 || w1 > 0 || w2 > 0) continue;
+                    }
 
                     float alpha = w0 * invArea;
                     float beta = w1 * invArea;
@@ -271,6 +280,7 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
             _texPixelsHandle.Free();
         _texPixels = null;
         _texPixelsPtr = null;
+        _loadedTexture = null;
     }
 }
 
