@@ -34,6 +34,7 @@ let isSceneReady  = false;
 
 let modelGroups  = new Map();
 let boneGroups   = new Map();
+let animationBoneGroups = new Map();
 let textureCache = new Map();
 
 let animMixer          = null;
@@ -151,6 +152,8 @@ export function loadModelGeometry(specJson) {
         clearSceneInternal();
         modelGroups.clear();
         boneGroups.clear();
+        animationBoneGroups.clear();
+        disposeAnimations();
 
         for (const model of spec.models || []) {
             buildModelComponent(model);
@@ -192,6 +195,9 @@ function buildModelComponent(model) {
         };
         setObjectTransform(boneGroup, bone.localPosition, bone.localRotation);
         boneGroups.set(bone.id, boneGroup);
+        if (!animationBoneGroups.has(bone.name)) {
+            animationBoneGroups.set(bone.name, boneGroup);
+        }
     }
 
     for (const bone of bones) {
@@ -378,6 +384,7 @@ export function clearScene() {
     clearSceneInternal();
     modelGroups.clear();
     boneGroups.clear();
+    animationBoneGroups.clear();
     disposeAnimations();
 
     textureCache.forEach(t => t.dispose());
@@ -529,22 +536,22 @@ function buildAnimationTracks(animData) {
     const bones   = animData.bones || animData.animators || {};
 
     for (const [boneId, channels] of Object.entries(bones)) {
-        const boneObj  = boneGroups.get(boneId);
+        const boneObj  = animationBoneGroups.get(boneId) || boneGroups.get(boneId);
         if (!boneObj) continue;
 
         const bonePath = getObjectPath(scene, boneObj);
         if (!bonePath) continue;
 
         if (channels.rotation) {
-            const track = buildQuaternionTrack(bonePath + '.quaternion', channels.rotation);
+            const track = buildQuaternionTrack(bonePath + '.quaternion', channels.rotation, boneObj);
             if (track) tracks.push(track);
         }
         if (channels.position) {
-            const track = buildPositionTrack(bonePath + '.position', channels.position);
+            const track = buildPositionTrack(bonePath + '.position', channels.position, boneObj);
             if (track) tracks.push(track);
         }
         if (channels.scale) {
-            const track = buildScaleTrack(bonePath + '.scale', channels.scale);
+            const track = buildScaleTrack(bonePath + '.scale', channels.scale, boneObj);
             if (track) tracks.push(track);
         }
     }
@@ -552,22 +559,26 @@ function buildAnimationTracks(animData) {
     return tracks;
 }
 
-function buildQuaternionTrack(path, channel) {
+function buildQuaternionTrack(path, channel, boneObj) {
     const times  = [];
     const values = [];
-    const kfs    = typeof channel === 'object' ? channel : {};
+    const kfs    = normalizeKeyframes(channel);
+    const baseQuaternion = getInitialQuaternion(boneObj);
 
     for (const [t, val] of Object.entries(kfs)) {
-        if (!Array.isArray(val) || val.length < 3) continue;
-        times.push(parseFloat(t));
+        const vec = toVector3Array(val);
+        const time = parseFloat(t);
+        if (!vec || vec.length < 3 || Number.isNaN(time)) continue;
+        times.push(time);
 
         const euler = new THREE.Euler(
-            -val[0] * Math.PI / 180,
-            -val[1] * Math.PI / 180,
-             val[2] * Math.PI / 180,
+            -vec[0] * Math.PI / 180,
+            -vec[1] * Math.PI / 180,
+             vec[2] * Math.PI / 180,
             'XYZ'
         );
         const q = new THREE.Quaternion().setFromEuler(euler);
+        q.premultiply(baseQuaternion);
         values.push(q.x, q.y, q.z, q.w);
     }
 
@@ -576,15 +587,21 @@ function buildQuaternionTrack(path, channel) {
         : null;
 }
 
-function buildPositionTrack(path, channel) {
+function buildPositionTrack(path, channel, boneObj) {
     const times  = [];
     const values = [];
-    const kfs    = typeof channel === 'object' ? channel : {};
+    const kfs    = normalizeKeyframes(channel);
+    const basePosition = getInitialPosition(boneObj);
 
     for (const [t, val] of Object.entries(kfs)) {
-        if (!Array.isArray(val) || val.length < 3) continue;
-        times.push(parseFloat(t));
-        values.push(-val[0] / 16, val[1] / 16, val[2] / 16);
+        const vec = toVector3Array(val);
+        const time = parseFloat(t);
+        if (!vec || vec.length < 3 || Number.isNaN(time)) continue;
+        times.push(time);
+        values.push(
+            basePosition.x - vec[0] / 16,
+            basePosition.y + vec[1] / 16,
+            basePosition.z + vec[2] / 16);
     }
 
     return times.length > 0
@@ -592,20 +609,68 @@ function buildPositionTrack(path, channel) {
         : null;
 }
 
-function buildScaleTrack(path, channel) {
+function buildScaleTrack(path, channel, boneObj) {
     const times  = [];
     const values = [];
-    const kfs    = typeof channel === 'object' ? channel : {};
+    const kfs    = normalizeKeyframes(channel);
+    const baseScale = getInitialScale(boneObj);
 
     for (const [t, val] of Object.entries(kfs)) {
-        if (!Array.isArray(val) || val.length < 3) continue;
-        times.push(parseFloat(t));
-        values.push(val[0], val[1], val[2]);
+        const vec = toVector3Array(val);
+        const time = parseFloat(t);
+        if (!vec || vec.length < 3 || Number.isNaN(time)) continue;
+        times.push(time);
+        values.push(baseScale.x * vec[0], baseScale.y * vec[1], baseScale.z * vec[2]);
     }
 
     return times.length > 0
         ? new THREE.VectorKeyframeTrack(path, times, values)
         : null;
+}
+
+function normalizeKeyframes(channel) {
+    if (Array.isArray(channel) || typeof channel === 'number') {
+        return { 0: channel };
+    }
+    if (!channel || typeof channel !== 'object') {
+        return {};
+    }
+    return channel;
+}
+
+function toVector3Array(value) {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'number') return [value, value, value];
+    if (typeof value === 'string') {
+        const parsed = parseFloat(value);
+        return Number.isNaN(parsed) ? null : [parsed, parsed, parsed];
+    }
+    if (value && typeof value === 'object') {
+        if (value.post !== undefined) return toVector3Array(value.post);
+        if (value.pre !== undefined) return toVector3Array(value.pre);
+    }
+    return null;
+}
+
+function getInitialPosition(boneObj) {
+    const ip = boneObj.userData ? boneObj.userData.initialPosition : null;
+    return ip && ip.length >= 3
+        ? new THREE.Vector3(ip[0], ip[1], ip[2])
+        : new THREE.Vector3();
+}
+
+function getInitialQuaternion(boneObj) {
+    const ir = boneObj.userData ? boneObj.userData.initialRotation : null;
+    return ir && ir.length >= 4
+        ? new THREE.Quaternion(ir[0], ir[1], ir[2], ir[3])
+        : new THREE.Quaternion();
+}
+
+function getInitialScale(boneObj) {
+    const is = boneObj.userData ? boneObj.userData.initialScale : null;
+    return is && is.length >= 3
+        ? new THREE.Vector3(is[0], is[1], is[2])
+        : new THREE.Vector3(1, 1, 1);
 }
 
 function getObjectPath(root, target) {

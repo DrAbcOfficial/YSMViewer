@@ -57,6 +57,8 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimatio
     {
         _currentDocument = document;
         _animationNames.Clear();
+        _animationDuration = 0f;
+        _animationCurrentTime = 0f;
 
         bool wasUninitialized = !_isInitialized;
         if (!_isInitialized)
