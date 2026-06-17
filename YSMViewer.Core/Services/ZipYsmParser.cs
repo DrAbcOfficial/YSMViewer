@@ -98,6 +98,12 @@ public sealed class ZipYsmParser(byte[] buffer) : YSMParser.Core.Parsers.YSMPars
                  (name.Contains("/animations/", StringComparison.OrdinalIgnoreCase) ||
                   name.Contains("\\animations\\", StringComparison.OrdinalIgnoreCase))))
                 animations.Add(new(name, data));
+            else if (name.StartsWith("avatars/", StringComparison.OrdinalIgnoreCase))
+                avatars.Add(new(name, data));
+            else if (name.StartsWith("backgrounds/", StringComparison.OrdinalIgnoreCase))
+                backgrounds.Add(new(name, data));
+            else if (name.StartsWith("special/", StringComparison.OrdinalIgnoreCase) || name.Contains("specular", StringComparison.OrdinalIgnoreCase))
+                specialImages.Add(new(name, data));
             else if (name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) || name.EndsWith(".webp", StringComparison.OrdinalIgnoreCase))
                 textures.Add(new(name, data));
             else if (name.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase))
@@ -113,12 +119,6 @@ public sealed class ZipYsmParser(byte[] buffer) : YSMParser.Core.Parsers.YSMPars
                 else
                     models.Add(new(name, data));
             }
-            else if (name.StartsWith("avatars/", StringComparison.OrdinalIgnoreCase))
-                avatars.Add(new(name, data));
-            else if (name.StartsWith("backgrounds/", StringComparison.OrdinalIgnoreCase))
-                backgrounds.Add(new(name, data));
-            else if (name.StartsWith("special/", StringComparison.OrdinalIgnoreCase) || name.Contains("specular"))
-                specialImages.Add(new(name, data));
             else if (name.EndsWith(".mcfunction", StringComparison.OrdinalIgnoreCase))
                 functions.Add(new(name, data));
             else if (name.EndsWith(".lang", StringComparison.OrdinalIgnoreCase))

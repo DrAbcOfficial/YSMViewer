@@ -6,15 +6,31 @@ public static class YsmMetadataParser
 {
     public static YsmMetadata? Parse(byte[]? ysmJson, byte[]? infoJson)
     {
-        try
+        var ysm = TryParse(ysmJson, ParseYsmJson);
+        var info = TryParse(infoJson, ParseInfoJson);
+        return Merge(ysm, info);
+    }
+
+    private static YsmMetadata? TryParse(byte[]? data, Func<byte[], YsmMetadata?> parse)
+    {
+        if (data is not { Length: > 0 }) return null;
+        try { return parse(data); }
+        catch { return null; }
+    }
+
+    private static YsmMetadata? Merge(YsmMetadata? primary, YsmMetadata? fallback)
+    {
+        if (primary is null) return fallback;
+        if (fallback is null) return primary;
+
+        return primary with
         {
-            if (ysmJson is { Length: > 0 })
-                return ParseYsmJson(ysmJson);
-            if (infoJson is { Length: > 0 })
-                return ParseInfoJson(infoJson);
-        }
-        catch { }
-        return null;
+            Name = string.IsNullOrWhiteSpace(primary.Name) ? fallback.Name : primary.Name,
+            Tips = string.IsNullOrWhiteSpace(primary.Tips) ? fallback.Tips : primary.Tips,
+            LicenseType = string.IsNullOrWhiteSpace(primary.LicenseType) ? fallback.LicenseType : primary.LicenseType,
+            IsFree = primary.IsFree || fallback.IsFree,
+            Authors = primary.Authors.Length > 0 ? primary.Authors : fallback.Authors,
+        };
     }
 
     private static YsmMetadata? ParseYsmJson(byte[] data)

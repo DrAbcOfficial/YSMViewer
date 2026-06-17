@@ -24,6 +24,7 @@ public sealed class AnimationControllerEntry
 public sealed class AnimationControllerStateModel
 {
     [JsonPropertyName("animations")]
+    [JsonConverter(typeof(AnimationReferenceListConverter))]
     public List<string>? Animations { get; set; }
 
     [JsonPropertyName("transitions")]
@@ -123,6 +124,71 @@ public sealed class AnimationSlotReference(string animationName, string? conditi
             return new AnimationSlotReference(name, condition);
         }
         return new AnimationSlotReference(entry.Trim(), null);
+    }
+}
+
+public sealed class AnimationReferenceListConverter : JsonConverter<List<string>>
+{
+    public override List<string>? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+            return null;
+        if (reader.TokenType != JsonTokenType.StartArray)
+            throw new JsonException("Expected start of array for animations");
+
+        var list = new List<string>();
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+        {
+            if (reader.TokenType == JsonTokenType.String)
+            {
+                var value = reader.GetString();
+                if (!string.IsNullOrWhiteSpace(value))
+                    list.Add(value);
+            }
+            else if (reader.TokenType == JsonTokenType.StartObject)
+            {
+                ReadAnimationObject(ref reader, list);
+            }
+            else
+            {
+                reader.Skip();
+            }
+        }
+
+        return list;
+    }
+
+    private static void ReadAnimationObject(ref Utf8JsonReader reader, List<string> list)
+    {
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+        {
+            if (reader.TokenType != JsonTokenType.PropertyName)
+            {
+                reader.Skip();
+                continue;
+            }
+
+            var name = reader.GetString();
+            if (!reader.Read()) break;
+
+            if (reader.TokenType == JsonTokenType.String && !string.IsNullOrWhiteSpace(name))
+            {
+                var condition = reader.GetString();
+                list.Add(string.IsNullOrWhiteSpace(condition) ? name : $"{name}>{condition}");
+            }
+            else
+            {
+                reader.Skip();
+            }
+        }
+    }
+
+    public override void Write(Utf8JsonWriter writer, List<string> value, JsonSerializerOptions options)
+    {
+        writer.WriteStartArray();
+        foreach (var item in value)
+            writer.WriteStringValue(item);
+        writer.WriteEndArray();
     }
 }
 

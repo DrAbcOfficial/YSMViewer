@@ -17,11 +17,28 @@ public sealed class YsmLoaderService
 
     private static string NormalizeModelName(string name)
     {
-        var result = name.Replace("models/", "").Replace(".json", "");
-        if (result.Contains('/'))
-            result = result[(result.LastIndexOf('/') + 1)..];
-        if (result.Contains('\\'))
-            result = result[(result.LastIndexOf('\\') + 1)..];
+        return NormalizeResourceName(name, "models/");
+    }
+
+    private static string NormalizeTextureName(string name)
+    {
+        return NormalizeResourceName(name, "textures/");
+    }
+
+    private static string NormalizeResourceName(string name, string prefix)
+    {
+        var result = name.Replace('\\', '/');
+        if (result.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            result = result[prefix.Length..];
+
+        var lastSlash = result.LastIndexOf('/');
+        if (lastSlash >= 0)
+            result = result[(lastSlash + 1)..];
+
+        var ext = Path.GetExtension(result);
+        if (!string.IsNullOrEmpty(ext))
+            result = result[..^ext.Length];
+
         return result;
     }
 
@@ -85,11 +102,7 @@ public sealed class YsmLoaderService
 
         foreach (var tex in textures)
         {
-            string normalizedTex = tex.Name.Replace("textures/", "").Replace(".png", "").Replace(".webp", "");
-            if (normalizedTex.Contains('/'))
-                normalizedTex = normalizedTex[(normalizedTex.LastIndexOf('/') + 1)..];
-            if (normalizedTex.Contains('\\'))
-                normalizedTex = normalizedTex[(normalizedTex.LastIndexOf('\\') + 1)..];
+            string normalizedTex = NormalizeTextureName(tex.Name);
 
             if (string.Equals(normalizedTex, normalizedModel, StringComparison.OrdinalIgnoreCase))
                 exactMatch = tex;
@@ -121,11 +134,7 @@ public sealed class YsmLoaderService
 
         foreach (var tex in textures)
         {
-            string normalizedTex = tex.Name.Replace("textures/", "").Replace(".png", "").Replace(".webp", "");
-            if (normalizedTex.Contains('/'))
-                normalizedTex = normalizedTex[(normalizedTex.LastIndexOf('/') + 1)..];
-            if (normalizedTex.Contains('\\'))
-                normalizedTex = normalizedTex[(normalizedTex.LastIndexOf('\\') + 1)..];
+            string normalizedTex = NormalizeTextureName(tex.Name);
 
             if (string.Equals(normalizedTex, normalizedModel, StringComparison.OrdinalIgnoreCase))
                 exactMatch = tex;
