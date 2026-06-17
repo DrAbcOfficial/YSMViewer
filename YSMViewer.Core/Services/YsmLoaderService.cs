@@ -45,8 +45,8 @@ public sealed class YsmLoaderService
     private static ModelCategory ClassifyModel(string name)
     {
         var normalized = NormalizeModelName(name);
-        if (normalized == "main") return ModelCategory.Main;
-        if (normalized == "arm") return ModelCategory.Arm;
+        if (string.Equals(normalized, "main", StringComparison.OrdinalIgnoreCase)) return ModelCategory.Main;
+        if (string.Equals(normalized, "arm", StringComparison.OrdinalIgnoreCase)) return ModelCategory.Arm;
         return ModelCategory.SubEntity;
     }
 
