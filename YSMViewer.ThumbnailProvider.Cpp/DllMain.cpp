@@ -92,31 +92,41 @@ STDAPI DllRegisterServer()
     if (!GetModulePath(dllPath, MAX_PATH))
         return E_FAIL;
 
+    HRESULT hr;
+
     // HKCR\CLSID\{...}
     WCHAR clsidKey[MAX_PATH];
     _snwprintf_s(clsidKey, MAX_PATH, L"CLSID\\%s", CLSID_STR);
-    WriteRegistryValue(HKEY_CLASSES_ROOT, clsidKey, nullptr, PROG_ID);
+    hr = WriteRegistryValue(HKEY_CLASSES_ROOT, clsidKey, nullptr, PROG_ID);
+    if (FAILED(hr)) return hr;
 
     WCHAR serverKey[MAX_PATH];
     _snwprintf_s(serverKey, MAX_PATH, L"%s\\InprocServer32", clsidKey);
-    WriteRegistryValue(HKEY_CLASSES_ROOT, serverKey, nullptr, dllPath);
-    WriteRegistryValue(HKEY_CLASSES_ROOT, serverKey, L"ThreadingModel", L"Both");
-    WriteRegistryDword(HKEY_CLASSES_ROOT, clsidKey, L"DisableProcessIsolation", 1);
+    hr = WriteRegistryValue(HKEY_CLASSES_ROOT, serverKey, nullptr, dllPath);
+    if (FAILED(hr)) return hr;
+    hr = WriteRegistryValue(HKEY_CLASSES_ROOT, serverKey, L"ThreadingModel", L"Both");
+    if (FAILED(hr)) return hr;
+    hr = WriteRegistryDword(HKEY_CLASSES_ROOT, clsidKey, L"DisableProcessIsolation", 1);
+    if (FAILED(hr)) return hr;
 
     // HKCR\<ProgID>
-    WriteRegistryValue(HKEY_CLASSES_ROOT, PROG_ID, nullptr, PROG_ID);
+    hr = WriteRegistryValue(HKEY_CLASSES_ROOT, PROG_ID, nullptr, PROG_ID);
+    if (FAILED(hr)) return hr;
     WCHAR progIdClsidKey[MAX_PATH];
     _snwprintf_s(progIdClsidKey, MAX_PATH, L"%s\\CLSID", PROG_ID);
-    WriteRegistryValue(HKEY_CLASSES_ROOT, progIdClsidKey, nullptr, CLSID_STR);
+    hr = WriteRegistryValue(HKEY_CLASSES_ROOT, progIdClsidKey, nullptr, CLSID_STR);
+    if (FAILED(hr)) return hr;
 
     // HKCR\.ysm\ShellEx\{...}
     WCHAR handlerKey[MAX_PATH];
     _snwprintf_s(handlerKey, MAX_PATH, L".ysm\\ShellEx\\%s", HANDLER_GUID_STR);
-    WriteRegistryValue(HKEY_CLASSES_ROOT, handlerKey, nullptr, CLSID_STR);
+    hr = WriteRegistryValue(HKEY_CLASSES_ROOT, handlerKey, nullptr, CLSID_STR);
+    if (FAILED(hr)) return hr;
 
     // Approved list
     WCHAR approvedKey[] = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Shell Extensions\\Approved";
-    WriteRegistryValue(HKEY_LOCAL_MACHINE, approvedKey, CLSID_STR, L"YSMViewer Thumbnail Provider");
+    hr = WriteRegistryValue(HKEY_LOCAL_MACHINE, approvedKey, CLSID_STR, L"YSMViewer Thumbnail Provider");
+    if (FAILED(hr)) return hr;
 
     return S_OK;
 }

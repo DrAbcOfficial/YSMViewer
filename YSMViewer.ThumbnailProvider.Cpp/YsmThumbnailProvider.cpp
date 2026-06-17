@@ -74,6 +74,8 @@ STDMETHODIMP YsmThumbnailProvider::Initialize(IStream* pStream, DWORD grfMode)
 {
     if (!pStream)
         return E_INVALIDARG;
+    if (m_initialized)
+        return HRESULT_FROM_WIN32(ERROR_ALREADY_INITIALIZED);
 
     // Read stream data
     STATSTG stat;
@@ -87,7 +89,7 @@ STDMETHODIMP YsmThumbnailProvider::Initialize(IStream* pStream, DWORD grfMode)
         fileSize = stat.cbSize.QuadPart;
 
     // Validate fileSize fits in size_t
-    if (fileSize > SIZE_MAX)
+    if (fileSize > SIZE_MAX || fileSize > ULONG_MAX)
         return E_OUTOFMEMORY;
 
     // Free existing data
@@ -105,13 +107,18 @@ STDMETHODIMP YsmThumbnailProvider::Initialize(IStream* pStream, DWORD grfMode)
         if (!m_fileData)
             return E_OUTOFMEMORY;
         m_fileDataSize = allocSize;
-        if (fileSize > ULONG_MAX)
-            return E_OUTOFMEMORY;
-        ULONG bytesRead = 0;
-        hr = pStream->Read(m_fileData, static_cast<ULONG>(fileSize), &bytesRead);
-        if (FAILED(hr))
-            return hr;
-        m_fileDataSize = bytesRead;
+        size_t totalRead = 0;
+        while (totalRead < allocSize)
+        {
+            ULONG bytesRead = 0;
+            ULONG bytesToRead = static_cast<ULONG>(allocSize - totalRead);
+            hr = pStream->Read(m_fileData + totalRead, bytesToRead, &bytesRead);
+            if (FAILED(hr))
+                return hr;
+            if (bytesRead == 0)
+                return E_FAIL;
+            totalRead += bytesRead;
+        }
     }
     else
     {
