@@ -30,7 +30,7 @@ public sealed class DesktopAudioPlayer : IPlatformAudioPlayer
         if (cached is null)
             return Play([], volume);
 
-        var instance = new DesktopAudioInstance(cached.Samples, cached.SampleRate, cached.Channels, volume);
+        var instance = new DesktopAudioInstance(cached.Samples, cached.Format, volume);
         lock (_instances)
             _instances.Add(instance);
         instance.Play();
@@ -51,13 +51,12 @@ public sealed class DesktopAudioPlayer : IPlatformAudioPlayer
             {
                 using var stream = new MemoryStream(oggData);
                 using var reader = new VorbisWaveReader(stream, false);
-                var decodeStream = new RawSourceWaveStream(reader, new WaveFormat(reader.WaveFormat.SampleRate, reader.WaveFormat.Channels));
 
                 var pcmBlocks = new List<byte[]>();
                 int totalBytes = 0;
                 byte[] buffer = new byte[8192];
                 int read;
-                while ((read = decodeStream.Read(buffer, 0, buffer.Length)) > 0)
+                while ((read = reader.Read(buffer, 0, buffer.Length)) > 0)
                 {
                     var block = new byte[read];
                     Array.Copy(buffer, block, read);
@@ -78,8 +77,7 @@ public sealed class DesktopAudioPlayer : IPlatformAudioPlayer
                     _pcmCache[key] = new CachedPcm
                     {
                         Samples = pcmData,
-                        SampleRate = reader.WaveFormat.SampleRate,
-                        Channels = reader.WaveFormat.Channels,
+                        Format = reader.WaveFormat,
                     };
                 }
             }
@@ -104,8 +102,7 @@ public sealed class DesktopAudioPlayer : IPlatformAudioPlayer
     private sealed class CachedPcm
     {
         public byte[] Samples = [];
-        public int SampleRate;
-        public int Channels;
+        public WaveFormat Format = null!;
     }
 }
 
@@ -128,9 +125,8 @@ internal sealed class DesktopAudioInstance : IAudioInstance, IDisposable
         _output.Volume = float.Clamp(volume, 0f, 1f);
     }
 
-    public DesktopAudioInstance(byte[] pcmData, int sampleRate, int channels, float volume)
+    public DesktopAudioInstance(byte[] pcmData, WaveFormat format, float volume)
     {
-        var format = new WaveFormat(sampleRate, 16, channels);
         _memStream = new MemoryStream(pcmData);
         _stream = new RawSourceWaveStream(_memStream, format);
         _output = new WaveOutEvent();

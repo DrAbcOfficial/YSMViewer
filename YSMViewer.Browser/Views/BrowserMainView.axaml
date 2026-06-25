@@ -435,6 +435,15 @@
                             <StackPanel Spacing="6" Margin="12,8">
                                 <TextBlock Text="Audio resources in this YSM file"
                                            FontSize="11" Foreground="{DynamicResource ThemeTextMuted}" />
+                                <Grid ColumnDefinitions="Auto,*" Margin="0,2,0,6">
+                                    <TextBlock Grid.Column="0" Text="{Binding LocVolume}"
+                                               FontSize="12" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource ThemeTextSecondary}" />
+                                    <Slider Grid.Column="1" Margin="10,0,0,0"
+                                            Minimum="0" Maximum="1"
+                                            Value="{Binding GlobalSoundVolume}"
+                                            VerticalAlignment="Center" />
+                                </Grid>
                                 <ItemsControl ItemsSource="{Binding SoundItems}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:SoundItemViewModel">
@@ -444,16 +453,28 @@
                                                     <Border Grid.Column="0" Width="56" Height="56"
                                                             CornerRadius="4"
                                                             Background="{DynamicResource ThemeBgViewport}">
-                                                        <Button Content="{Binding PlayPauseText}"
-                                                                Command="{Binding TogglePlaybackCommand}"
-                                                                IsEnabled="{Binding CanPlay}"
-                                                                Width="48" Height="28" Padding="0"
-                                                                CornerRadius="4"
-                                                                Background="{DynamicResource ThemeBgButton}"
-                                                                Foreground="{DynamicResource ThemeTextPrimary}"
-                                                                FontSize="10" FontWeight="SemiBold"
-                                                                HorizontalAlignment="Center"
-                                                                VerticalAlignment="Center" />
+                                                        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                            <Button Command="{Binding TogglePlaybackCommand}"
+                                                                    IsEnabled="{Binding CanPlay}"
+                                                                    IsVisible="{Binding !IsPlaying}"
+                                                                    Width="34" Height="34" Padding="0"
+                                                                    CornerRadius="17"
+                                                                    Background="{DynamicResource ThemeBgButton}"
+                                                                    Foreground="{DynamicResource ThemeTextPrimary}">
+                                                                <svg:Svg Path="avares://YSMViewer/Assets/svg/play.svg"
+                                                                         Width="18" Height="18" Stretch="Uniform" />
+                                                            </Button>
+                                                            <Button Command="{Binding TogglePlaybackCommand}"
+                                                                    IsEnabled="{Binding CanPlay}"
+                                                                    IsVisible="{Binding IsPlaying}"
+                                                                    Width="34" Height="34" Padding="0"
+                                                                    CornerRadius="17"
+                                                                    Background="{DynamicResource ThemeBgButton}"
+                                                                    Foreground="{DynamicResource ThemeTextPrimary}">
+                                                                <svg:Svg Path="avares://YSMViewer/Assets/svg/pause.svg"
+                                                                         Width="18" Height="18" Stretch="Uniform" />
+                                                            </Button>
+                                                        </Grid>
                                                     </Border>
                                                     <StackPanel Grid.Column="1" Margin="8,0,0,0"
                                                                 VerticalAlignment="Center" Spacing="2">

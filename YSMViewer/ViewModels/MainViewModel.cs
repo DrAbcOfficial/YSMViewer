@@ -78,6 +78,7 @@ public sealed partial class MainViewModel : ViewModelBase
         LocBones = L.GetString("Bones", culture)!;
         LocTextures = L.GetString("Textures", culture)!;
         LocSounds = L.GetString("Sounds", culture)!;
+        LocVolume = L.GetString("Volume", culture)!;
         LocAnimations = L.GetString("Animations", culture)!;
         LocShowAll = L.GetString("ShowAll", culture)!;
         LocHideAll = L.GetString("HideAll", culture)!;
@@ -128,6 +129,9 @@ public sealed partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial string LocSounds { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocVolume { get; set; } = "";
 
     [ObservableProperty]
     public partial string LocAnimations { get; set; } = "";
@@ -245,6 +249,14 @@ public sealed partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial bool HasSounds { get; set; }
+
+    [ObservableProperty]
+    public partial double GlobalSoundVolume { get; set; } = 1.0;
+
+    partial void OnGlobalSoundVolumeChanged(double value)
+    {
+        _soundPlaybackHost?.SetVolume((float)value);
+    }
 
     [ObservableProperty]
     public partial bool HasModelAuthors { get; set; }
@@ -606,7 +618,10 @@ public sealed partial class MainViewModel : ViewModelBase
         DetachSoundPlaybackHost();
         _soundPlaybackHost = host;
         if (_soundPlaybackHost is not null)
+        {
             _soundPlaybackHost.SoundPlaybackStopped += OnSoundPlaybackStopped;
+            _soundPlaybackHost.SetVolume((float)GlobalSoundVolume);
+        }
     }
 
     private void DetachSoundPlaybackHost()
