@@ -122,3 +122,22 @@ public sealed partial class TextureItemViewModel : ObservableObject
         _ => new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromArgb(255, 122, 162, 247)),
     };
 }
+
+public sealed partial class SoundItemViewModel : ObservableObject
+{
+    [ObservableProperty]
+    public partial string Name { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string Format { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial long DataSize { get; set; }
+
+    public string SizeDisplay => DataSize < 1024
+        ? $"{DataSize} B"
+        : $"{DataSize / 1024.0:F1} KB";
+
+    public Avalonia.Media.IBrush BadgeBrush => new Avalonia.Media.SolidColorBrush(
+        Avalonia.Media.Color.FromArgb(255, 187, 154, 247));
+}

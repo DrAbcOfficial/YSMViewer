@@ -477,6 +477,53 @@
                             </StackPanel>
                         </Expander>
 
+                        <!-- Sounds Section -->
+                        <Expander IsExpanded="False" Padding="0"
+                                  IsVisible="{Binding HasSounds}">
+                            <Expander.Header>
+                                <TextBlock Text="{Binding LocSounds}" FontWeight="SemiBold" FontSize="13"
+                                           Foreground="{DynamicResource ThemeTextPrimary}" />
+                            </Expander.Header>
+                            <StackPanel Spacing="6" Margin="12,8">
+                                <TextBlock Text="Audio resources in this YSM file"
+                                           FontSize="11" Foreground="{DynamicResource ThemeTextMuted}" />
+                                <ItemsControl ItemsSource="{Binding SoundItems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:SoundItemViewModel">
+                                            <Border CornerRadius="6" Margin="0,0,0,6"
+                                                    Padding="8" Background="{DynamicResource ThemeBgElevated}">
+                                                <Grid ColumnDefinitions="56,*,Auto">
+                                                    <Border Grid.Column="0" Width="56" Height="56"
+                                                            CornerRadius="4"
+                                                            Background="{DynamicResource ThemeBgViewport}">
+                                                        <TextBlock Text="SFX" FontSize="13" FontWeight="Bold"
+                                                                   Foreground="{DynamicResource ThemeTextMuted}"
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <StackPanel Grid.Column="1" Margin="8,0,0,0"
+                                                                VerticalAlignment="Center" Spacing="2">
+                                                        <TextBlock Text="{Binding Name}"
+                                                                   FontSize="12" FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource ThemeTextPrimary}"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding SizeDisplay}"
+                                                                   FontSize="10" Foreground="{DynamicResource ThemeTextMuted}" />
+                                                    </StackPanel>
+                                                    <Border Grid.Column="2" CornerRadius="3" Padding="5,2"
+                                                            VerticalAlignment="Center"
+                                                            Background="{Binding BadgeBrush}">
+                                                        <TextBlock Text="{Binding Format}" FontSize="10"
+                                                                   Foreground="White" FontWeight="SemiBold" />
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Expander>
+
                         <!-- Animations Section -->
                         <Expander IsExpanded="True" Padding="0"
                                   IsVisible="{Binding HasAnimations}">

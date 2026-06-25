@@ -11,6 +11,7 @@
   <data name="Components" xml:space="preserve"><value>Components</value></data>
   <data name="Bones" xml:space="preserve"><value>Bones</value></data>
   <data name="Textures" xml:space="preserve"><value>Textures</value></data>
+  <data name="Sounds" xml:space="preserve"><value>Sounds</value></data>
   <data name="Animations" xml:space="preserve"><value>Animations</value></data>
   <data name="ShowAll" xml:space="preserve"><value>Show All</value></data>
   <data name="HideAll" xml:space="preserve"><value>Hide All</value></data>

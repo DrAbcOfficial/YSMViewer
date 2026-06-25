@@ -31,6 +31,7 @@ public sealed partial class MainViewModel : ViewModelBase
     public ObservableCollection<ComponentViewModel> Components { get; } = [];
     public ObservableCollection<ComponentBoneGroupViewModel> BoneGroups { get; } = [];
     public ObservableCollection<TextureItemViewModel> TextureItems { get; } = [];
+    public ObservableCollection<SoundItemViewModel> SoundItems { get; } = [];
 
     private YsmModelDocument? _currentDocument;
 
@@ -72,6 +73,7 @@ public sealed partial class MainViewModel : ViewModelBase
         LocComponents = L.GetString("Components", culture)!;
         LocBones = L.GetString("Bones", culture)!;
         LocTextures = L.GetString("Textures", culture)!;
+        LocSounds = L.GetString("Sounds", culture)!;
         LocAnimations = L.GetString("Animations", culture)!;
         LocShowAll = L.GetString("ShowAll", culture)!;
         LocHideAll = L.GetString("HideAll", culture)!;
@@ -119,6 +121,9 @@ public sealed partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial string LocTextures { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string LocSounds { get; set; } = "";
 
     [ObservableProperty]
     public partial string LocAnimations { get; set; } = "";
@@ -233,6 +238,9 @@ public sealed partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial bool HasTextures { get; set; }
+
+    [ObservableProperty]
+    public partial bool HasSounds { get; set; }
 
     [ObservableProperty]
     public partial bool HasModelAuthors { get; set; }
@@ -430,6 +438,7 @@ public sealed partial class MainViewModel : ViewModelBase
         Components.Clear();
         BoneGroups.Clear();
         TextureItems.Clear();
+        SoundItems.Clear();
         AnimationNames.Clear();
 
         foreach (var tex in document.Textures)
@@ -438,6 +447,11 @@ public sealed partial class MainViewModel : ViewModelBase
             AddTextureEntry(img.Name, img.Data, img.Width, img.Height, img.Category);
 
         HasTextures = TextureItems.Count > 0;
+
+        foreach (var sound in document.Sounds)
+            AddSoundEntry(sound.Name, sound.Data);
+
+        HasSounds = SoundItems.Count > 0;
 
         var nameCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var modelInfo in document.Models)
@@ -539,6 +553,17 @@ public sealed partial class MainViewModel : ViewModelBase
             Width = width,
             Height = height,
             Thumbnail = thumbnail,
+        });
+    }
+
+    private void AddSoundEntry(string name, byte[] data)
+    {
+        var extension = System.IO.Path.GetExtension(name).TrimStart('.');
+        SoundItems.Add(new SoundItemViewModel
+        {
+            Name = name,
+            Format = string.IsNullOrEmpty(extension) ? "Audio" : extension.ToUpperInvariant(),
+            DataSize = data.Length,
         });
     }
 
