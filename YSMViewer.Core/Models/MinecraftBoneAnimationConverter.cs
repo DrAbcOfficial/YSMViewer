@@ -47,13 +47,10 @@ public sealed class MinecraftBoneAnimationConverter : JsonConverter<MinecraftBon
             }
             else
             {
-                kf.IsConstant = true;
-                kf.ConstantValue = 0f;
                 kf.HasMolangExpressions = true;
-                kf.RawEntries[0f] = new KeyframeRawEntry
-                {
-                    Post = [node.GetValue<string>()]
-                };
+                kf.Keyframes[0f] = [0f, 0f, 0f];
+                var expression = node.GetValue<string>();
+                kf.RawEntries[0f] = new KeyframeRawEntry { Post = [expression, expression, expression] };
             }
         }
         else if (node.GetValueKind() == JsonValueKind.Array)
@@ -61,8 +58,6 @@ public sealed class MinecraftBoneAnimationConverter : JsonConverter<MinecraftBon
             var arr = node.AsArray();
             if (arr.Count > 0)
             {
-                kf.IsConstant = true;
-                kf.ConstantValue = 0f;
                 var (vals, rawVals, hasExpr) = ParseArrayComponents(arr);
                 kf.Keyframes[0f] = vals;
                 if (hasExpr)

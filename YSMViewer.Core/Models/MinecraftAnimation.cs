@@ -32,7 +32,7 @@ public sealed class MinecraftAnimation
     {
         get
         {
-            if (LoopRaw is not { } raw) return true;
+            if (LoopRaw is not { } raw) return false;
             if (raw.ValueKind == JsonValueKind.True) return true;
             if (raw.ValueKind == JsonValueKind.False) return false;
             if (raw.ValueKind == JsonValueKind.String)
@@ -42,7 +42,7 @@ public sealed class MinecraftAnimation
                 if (s is "false" or "False") return false;
                 if (s is "hold_on_last_frame") return true;
             }
-            return true;
+            return false;
         }
     }
 
@@ -51,7 +51,7 @@ public sealed class MinecraftAnimation
     {
         get
         {
-            if (LoopRaw is not { } raw) return AnimationLoopMode.Loop;
+            if (LoopRaw is not { } raw) return AnimationLoopMode.PlayOnce;
             if (raw.ValueKind == JsonValueKind.True) return AnimationLoopMode.Loop;
             if (raw.ValueKind == JsonValueKind.False) return AnimationLoopMode.PlayOnce;
             if (raw.ValueKind == JsonValueKind.String)
@@ -61,7 +61,7 @@ public sealed class MinecraftAnimation
                 if (s is "false" or "False") return AnimationLoopMode.PlayOnce;
                 if (s is "hold_on_last_frame") return AnimationLoopMode.HoldOnLastFrame;
             }
-            return AnimationLoopMode.Loop;
+            return AnimationLoopMode.PlayOnce;
         }
     }
 
