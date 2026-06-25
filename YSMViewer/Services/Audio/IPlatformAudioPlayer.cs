@@ -2,6 +2,9 @@ namespace YSMViewer.Services.Audio;
 
 public interface IAudioInstance
 {
+    event Action? PlaybackStopped;
+    void Pause();
+    void Resume();
     void Stop();
     void SetVolume(float volume);
 }

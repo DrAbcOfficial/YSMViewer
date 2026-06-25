@@ -496,10 +496,16 @@
                                                     <Border Grid.Column="0" Width="56" Height="56"
                                                             CornerRadius="4"
                                                             Background="{DynamicResource ThemeBgViewport}">
-                                                        <TextBlock Text="SFX" FontSize="13" FontWeight="Bold"
-                                                                   Foreground="{DynamicResource ThemeTextMuted}"
-                                                                   HorizontalAlignment="Center"
-                                                                   VerticalAlignment="Center" />
+                                                        <Button Content="{Binding PlayPauseText}"
+                                                                Command="{Binding TogglePlaybackCommand}"
+                                                                IsEnabled="{Binding CanPlay}"
+                                                                Width="48" Height="28" Padding="0"
+                                                                CornerRadius="4"
+                                                                Background="{DynamicResource ThemeBgButton}"
+                                                                Foreground="{DynamicResource ThemeTextPrimary}"
+                                                                FontSize="10" FontWeight="SemiBold"
+                                                                HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center" />
                                                     </Border>
                                                     <StackPanel Grid.Column="1" Margin="8,0,0,0"
                                                                 VerticalAlignment="Center" Spacing="2">

@@ -16,7 +16,10 @@ public interface IAnimationStateMachineHost
 
 public interface IAnimationAudioHost
 {
+    event Action<string>? SoundPlaybackStopped;
     void PlaySound(string soundName);
+    void PauseSound(string soundName);
+    void ResumeSound(string soundName);
     void StopSound(string soundName);
     void StopAllSounds();
     void SetVolume(float volume);

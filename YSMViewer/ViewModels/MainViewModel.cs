@@ -1,4 +1,5 @@
 ﻿using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
@@ -6,6 +7,7 @@ using System.Text.Json;
 using YSMViewer.Models.Document;
 using YSMViewer.Rendering;
 using YSMViewer.Services;
+using YSMViewer.Services.Molang;
 
 namespace YSMViewer.ViewModels;
 
@@ -34,6 +36,8 @@ public sealed partial class MainViewModel : ViewModelBase
     public ObservableCollection<SoundItemViewModel> SoundItems { get; } = [];
 
     private YsmModelDocument? _currentDocument;
+    private SoundItemViewModel? _playingSoundItem;
+    private IAnimationAudioHost? _soundPlaybackHost;
 
     public string? StartupFilePath { get; set; }
     public string? StartupFileUrl { get; set; }
@@ -415,6 +419,8 @@ public sealed partial class MainViewModel : ViewModelBase
     private void PopulateModelData(YsmModelDocument document)
     {
         StatusText = "Building scene...";
+        DetachSoundPlaybackHost();
+        StopSoundPlaybackUi();
         ModelName = document.Info.Name;
         ModelVersion = document.Info.Version;
         HasModel = true;
@@ -496,6 +502,8 @@ public sealed partial class MainViewModel : ViewModelBase
 
         Renderer.LoadModel(document);
 
+        AttachSoundPlaybackHost((Renderer as IAnimationRenderer)?.MolangService?.AudioHost);
+
         PopulateAnimationData(document);
 
         HasAnimationController = Renderer is IAnimationRenderer animR && animR.HasAnimationController;
@@ -564,7 +572,76 @@ public sealed partial class MainViewModel : ViewModelBase
             Name = name,
             Format = string.IsNullOrEmpty(extension) ? "Audio" : extension.ToUpperInvariant(),
             DataSize = data.Length,
+            CanPlay = SupportsAudio,
+            OnTogglePlayback = ToggleSoundPlayback,
         });
+    }
+
+    private void ToggleSoundPlayback(SoundItemViewModel item)
+    {
+        if (!SupportsAudio || _soundPlaybackHost is null) return;
+
+        if (item.IsPlaying)
+        {
+            _soundPlaybackHost.PauseSound(item.Name);
+            item.IsPlaying = false;
+            return;
+        }
+
+        if (ReferenceEquals(_playingSoundItem, item))
+        {
+            _soundPlaybackHost.ResumeSound(item.Name);
+            item.IsPlaying = true;
+            return;
+        }
+
+        StopSoundPlaybackUi();
+        _soundPlaybackHost.PlaySound(item.Name);
+        _playingSoundItem = item;
+        item.IsPlaying = true;
+    }
+
+    private void AttachSoundPlaybackHost(IAnimationAudioHost? host)
+    {
+        DetachSoundPlaybackHost();
+        _soundPlaybackHost = host;
+        if (_soundPlaybackHost is not null)
+            _soundPlaybackHost.SoundPlaybackStopped += OnSoundPlaybackStopped;
+    }
+
+    private void DetachSoundPlaybackHost()
+    {
+        if (_soundPlaybackHost is not null)
+            _soundPlaybackHost.SoundPlaybackStopped -= OnSoundPlaybackStopped;
+        _soundPlaybackHost = null;
+    }
+
+    private void OnSoundPlaybackStopped(string soundName)
+    {
+        Dispatcher.UIThread.Post(() => StopSoundPlaybackUi(soundName));
+    }
+
+    private void StopSoundPlaybackUi(string? soundName = null)
+    {
+        if (soundName is null)
+        {
+            if (_playingSoundItem is not null)
+                _playingSoundItem.IsPlaying = false;
+            _playingSoundItem = null;
+            foreach (var item in SoundItems)
+                item.IsPlaying = false;
+            return;
+        }
+
+        foreach (var item in SoundItems)
+        {
+            if (string.Equals(item.Name, soundName, StringComparison.OrdinalIgnoreCase))
+                item.IsPlaying = false;
+        }
+
+        if (_playingSoundItem is not null &&
+            string.Equals(_playingSoundItem.Name, soundName, StringComparison.OrdinalIgnoreCase))
+            _playingSoundItem = null;
     }
 
     private static IEnumerable<string> CollectAllMolangExpressions(YsmModelDocument document)

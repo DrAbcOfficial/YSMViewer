@@ -115,12 +115,15 @@ internal sealed class DesktopAudioInstance : IAudioInstance, IDisposable
     private readonly WaveStream? _stream;
     private readonly MemoryStream? _memStream;
 
+    public event Action? PlaybackStopped;
+
     public DesktopAudioInstance(byte[] oggData, float volume)
     {
         _memStream = new MemoryStream(oggData);
         var reader = new VorbisWaveReader(_memStream, false);
         _stream = reader;
         _output = new WaveOutEvent();
+        _output.PlaybackStopped += (_, _) => PlaybackStopped?.Invoke();
         _output.Init(_stream);
         _output.Volume = float.Clamp(volume, 0f, 1f);
     }
@@ -131,11 +134,16 @@ internal sealed class DesktopAudioInstance : IAudioInstance, IDisposable
         _memStream = new MemoryStream(pcmData);
         _stream = new RawSourceWaveStream(_memStream, format);
         _output = new WaveOutEvent();
+        _output.PlaybackStopped += (_, _) => PlaybackStopped?.Invoke();
         _output.Init(_stream);
         _output.Volume = float.Clamp(volume, 0f, 1f);
     }
 
     public void Play() => _output?.Play();
+
+    public void Pause() => _output?.Pause();
+
+    public void Resume() => _output?.Play();
 
     public void Stop() => _output?.Stop();
 

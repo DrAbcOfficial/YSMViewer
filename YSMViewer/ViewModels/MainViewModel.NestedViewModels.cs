@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 
 namespace YSMViewer.ViewModels;
@@ -134,10 +135,31 @@ public sealed partial class SoundItemViewModel : ObservableObject
     [ObservableProperty]
     public partial long DataSize { get; set; }
 
+    [ObservableProperty]
+    public partial bool IsPlaying { get; set; }
+
+    [ObservableProperty]
+    public partial bool CanPlay { get; set; }
+
+    public Action<SoundItemViewModel>? OnTogglePlayback { get; set; }
+
+    public string PlayPauseText => IsPlaying ? "Pause" : "Play";
+
     public string SizeDisplay => DataSize < 1024
         ? $"{DataSize} B"
         : $"{DataSize / 1024.0:F1} KB";
 
     public Avalonia.Media.IBrush BadgeBrush => new Avalonia.Media.SolidColorBrush(
         Avalonia.Media.Color.FromArgb(255, 187, 154, 247));
+
+    partial void OnIsPlayingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(PlayPauseText));
+    }
+
+    [RelayCommand]
+    private void TogglePlayback()
+    {
+        OnTogglePlayback?.Invoke(this);
+    }
 }
