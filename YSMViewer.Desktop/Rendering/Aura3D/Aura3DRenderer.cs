@@ -54,6 +54,8 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
     {
         _view = new Aura3DView
         {
+            MinWidth = 1,
+            MinHeight = 1,
             CreateRenderPipeline = scene => new YSMPipeline(scene)
         };
         _view.SceneInitialized += OnSceneInitialized;
@@ -61,6 +63,8 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
 
         _gizmoView = new Aura3DView
         {
+            MinWidth = 1,
+            MinHeight = 1,
             IsHitTestVisible = false,
             CreateRenderPipeline = scene => new NoLightPipeline(scene)
         };

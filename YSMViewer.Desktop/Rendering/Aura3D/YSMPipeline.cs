@@ -39,6 +39,8 @@ public sealed class YSMPipeline : RenderPipeline
     {
         if (gl == null) return;
         SortMeshes(VisibleMeshesInCamera, camera);
-        gl.Viewport(0, 0, camera.RenderTarget.Width, camera.RenderTarget.Height);
+        uint width = Math.Max(1u, camera.RenderTarget.Width);
+        uint height = Math.Max(1u, camera.RenderTarget.Height);
+        gl.Viewport(0, 0, width, height);
     }
 }
