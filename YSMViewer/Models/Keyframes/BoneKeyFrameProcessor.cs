@@ -6,7 +6,8 @@ public static class BoneKeyFrameProcessor
 {
     public static BoneKeyFrame[] FromKeyframeSet(MinecraftKeyframeSet kf)
     {
-        if (kf.IsConstant) return [];
+        if (kf.IsConstant)
+            return Process([new RawBoneKeyFrame(0f, null, null, null, kf.ConstantValue, kf.ConstantValue, kf.ConstantValue, null, null)]);
         if (kf.Keyframes.Count == 0) return [];
 
         var sorted = kf.Keyframes.OrderBy(k => k.Key).ToList();
@@ -22,22 +23,14 @@ public static class BoneKeyFrameProcessor
 
             if (rawEntry is not null && rawEntry.Post.Length > 0)
             {
-                postX = rawEntry.Post.Length > 0 ? rawEntry.Post[0] : 0f;
-                postY = rawEntry.Post.Length > 1 ? rawEntry.Post[1] : 0f;
-                postZ = rawEntry.Post.Length > 2 ? rawEntry.Post[2] : 0f;
+                ExpandComponents(rawEntry.Post, out postX, out postY, out postZ);
 
-                if (rawEntry.Pre is not null && rawEntry.Pre.Length >= 3)
-                {
-                    preX = rawEntry.Pre[0];
-                    preY = rawEntry.Pre[1];
-                    preZ = rawEntry.Pre[2];
-                }
+                if (rawEntry.Pre is not null && rawEntry.Pre.Length > 0)
+                    ExpandComponents(rawEntry.Pre, out preX, out preY, out preZ);
             }
             else
             {
-                postX = values.Length > 0 ? values[0] : 0f;
-                postY = values.Length > 1 ? values[1] : 0f;
-                postZ = values.Length > 2 ? values[2] : 0f;
+                ExpandComponents(values, out postX, out postY, out postZ);
             }
 
             rawFrames.Add(new RawBoneKeyFrame(time, preX, preY, preZ, postX, postY, postZ, lerpMode, null));
@@ -147,5 +140,51 @@ public static class BoneKeyFrameProcessor
     private static bool HasPreValues(RawBoneKeyFrame r)
     {
         return r.PreX is not null || r.PreY is not null || r.PreZ is not null;
+    }
+
+    private static void ExpandComponents(float[] values, out object? x, out object? y, out object? z)
+    {
+        switch (values.Length)
+        {
+            case 0:
+                x = y = z = 0f;
+                break;
+            case 1:
+                x = y = z = values[0];
+                break;
+            case 2:
+                x = values[0];
+                y = values[1];
+                z = 0f;
+                break;
+            default:
+                x = values[0];
+                y = values[1];
+                z = values[2];
+                break;
+        }
+    }
+
+    private static void ExpandComponents(object?[] values, out object? x, out object? y, out object? z)
+    {
+        switch (values.Length)
+        {
+            case 0:
+                x = y = z = 0f;
+                break;
+            case 1:
+                x = y = z = values[0];
+                break;
+            case 2:
+                x = values[0];
+                y = values[1];
+                z = 0f;
+                break;
+            default:
+                x = values[0];
+                y = values[1];
+                z = values[2];
+                break;
+        }
     }
 }

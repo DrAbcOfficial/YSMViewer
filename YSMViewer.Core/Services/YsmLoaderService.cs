@@ -398,42 +398,100 @@ public sealed class YsmLoaderService
         foreach (var fn in resources.Functions)
             functionResources.Add(new YsmFunctionResource(fn.Name, fn.Data));
 
-        var extraAnimations = ParseExtraAnimations(resources.YsmJson);
+        var extraAnimations = ParseExtraAnimations(resources.YsmJson, resources.InfoJson, animationResources.Select(a => a.Name));
         return new YsmModelDocument(info, models, textureResources, animationResources, imageResources, animControllerResources, soundResources, functionResources, extraAnimations);
     }
 
-    private static YsmExtraAnimationLayout ParseExtraAnimations(byte[]? ysmJson)
+    private static YsmExtraAnimationLayout ParseExtraAnimations(byte[]? ysmJson, byte[]? infoJson, IEnumerable<string> animationNames)
     {
-        if (ysmJson is not { Length: > 0 })
+        List<YsmExtraAnimationEntry> rootEntries = [];
+        List<YsmExtraAnimationGroup> groups = [];
+        List<YsmExtraAnimationButtonDefinition> buttons = [];
+
+        if (ysmJson is { Length: > 0 })
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(StripJsonComments(System.Text.Encoding.UTF8.GetString(ysmJson)));
+                if (doc.RootElement.TryGetProperty("properties", out var props))
+                {
+                    rootEntries = props.TryGetProperty("extra_animation", out var rootAnim)
+                        ? ParseExtraAnimationObject(rootAnim, string.Empty)
+                        : [];
+
+                    groups = props.TryGetProperty("extra_animation_classify", out var classify)
+                        ? ParseExtraAnimationGroups(classify)
+                        : [];
+
+                    buttons = props.TryGetProperty("extra_animation_buttons", out var buttonsElement)
+                        ? ParseExtraAnimationButtonStubs(buttonsElement)
+                        : [];
+                }
+            }
+            catch
+            {
+                rootEntries = [];
+                groups = [];
+                buttons = [];
+            }
+        }
+
+        if (rootEntries.Count == 0)
+            rootEntries = ParseLegacyExtraAnimationNames(infoJson);
+
+        if (rootEntries.Count == 0)
+            rootEntries = BuildDefaultExtraAnimations(animationNames);
+
+        if (rootEntries.Count == 0 && groups.Count == 0 && buttons.Count == 0)
             return YsmExtraAnimationLayout.Empty;
+
+        return new YsmExtraAnimationLayout(rootEntries, groups, buttons);
+    }
+
+    private static List<YsmExtraAnimationEntry> ParseLegacyExtraAnimationNames(byte[]? infoJson)
+    {
+        var result = new List<YsmExtraAnimationEntry>();
+        if (infoJson is not { Length: > 0 })
+            return result;
 
         try
         {
-            using var doc = JsonDocument.Parse(StripJsonComments(System.Text.Encoding.UTF8.GetString(ysmJson)));
-            if (!doc.RootElement.TryGetProperty("properties", out var props))
-                return YsmExtraAnimationLayout.Empty;
+            using var doc = JsonDocument.Parse(StripJsonComments(System.Text.Encoding.UTF8.GetString(infoJson)));
+            if (!doc.RootElement.TryGetProperty("extra_animation_names", out var extras) || extras.ValueKind != JsonValueKind.Array)
+                return result;
 
-            var rootEntries = props.TryGetProperty("extra_animation", out var rootAnim)
-                ? ParseExtraAnimationObject(rootAnim, string.Empty)
-                : [];
-
-            var groups = props.TryGetProperty("extra_animation_classify", out var classify)
-                ? ParseExtraAnimationGroups(classify)
-                : [];
-
-            var buttons = props.TryGetProperty("extra_animation_buttons", out var buttonsElement)
-                ? ParseExtraAnimationButtonStubs(buttonsElement)
-                : [];
-
-            if (rootEntries.Count == 0 && groups.Count == 0 && buttons.Count == 0)
-                return YsmExtraAnimationLayout.Empty;
-
-            return new YsmExtraAnimationLayout(rootEntries, groups, buttons);
+            int index = 0;
+            foreach (var item in extras.EnumerateArray())
+            {
+                var key = $"extra{index}";
+                var displayName = item.ValueKind == JsonValueKind.String ? item.GetString() ?? string.Empty : string.Empty;
+                result.Add(new YsmExtraAnimationEntry(key, string.IsNullOrWhiteSpace(displayName) ? key : displayName, string.Empty, index));
+                index++;
+            }
         }
         catch
         {
-            return YsmExtraAnimationLayout.Empty;
+            result.Clear();
         }
+
+        return result;
+    }
+
+    private static List<YsmExtraAnimationEntry> BuildDefaultExtraAnimations(IEnumerable<string> animationNames)
+    {
+        var available = new HashSet<string>(animationNames, StringComparer.OrdinalIgnoreCase);
+        var result = new List<YsmExtraAnimationEntry>();
+
+        for (int i = 0; i < 8; i++)
+        {
+            var key = $"extra{i}";
+            if (!available.Contains(key))
+                continue;
+
+            result.Add(new YsmExtraAnimationEntry(key, key, string.Empty, i));
+        }
+
+        return result;
     }
 
     private static List<YsmExtraAnimationEntry> ParseExtraAnimationObject(JsonElement element, string category)
