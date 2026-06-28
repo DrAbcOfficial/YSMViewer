@@ -29,7 +29,7 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 }
 
 # Required DLLs
-$dlls = @("YSMViewer.ThumbnailProvider.dll", "YSMViewer.ThumbnailProvider.Cpp.dll")
+$dlls = @("YSMViewer.ThumbnailProvider.dll", "YSMViewer.ThumbnailProvider.Win.dll")
 $missing = $dlls | Where-Object { -not (Test-Path (Join-Path $srcDir $_)) }
 if ($missing) {
     foreach ($dll in $missing) {
@@ -54,9 +54,9 @@ foreach ($dll in $dlls) {
 
 # Register COM server
 Write-Host "Registering from $dstDir ..." -ForegroundColor Yellow
-$cppDll = Join-Path $dstDir "YSMViewer.ThumbnailProvider.Cpp.dll"
+$winDll = Join-Path $dstDir "YSMViewer.ThumbnailProvider.Win.dll"
 $regsvr = "$env:SystemRoot\System32\regsvr32.exe"
-$proc = Start-Process -FilePath $regsvr -ArgumentList @($cppDll) -Wait -NoNewWindow -PassThru
+$proc = Start-Process -FilePath $regsvr -ArgumentList @($winDll) -Wait -NoNewWindow -PassThru
 if ($proc.ExitCode -eq 0) {
     Write-Host "[OK] Registration successful! / 注册成功！" -ForegroundColor Green
     Write-Host "NOTE: Restart Explorer or log out for changes to take effect." -ForegroundColor Cyan

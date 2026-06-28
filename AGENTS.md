@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - **.NET SDK 10.0** (`net10.0` target). No `global.json`; the SDK version is implied by the TFM.
-- **Windows only** (ThumbnailProvider): Requires `net10.0-windows` + COM host support.
+- **Thumbnail providers**: Windows wrapper requires MSVC/Windows SDK; macOS wrapper builds on macOS; XDG thumbnailer targets Linux.
 
 ## NuGet
 
@@ -21,8 +21,8 @@ dotnet run --project YSMViewer.Desktop
 # Open a file on launch
 dotnet run --project YSMViewer.Desktop -- path\to\file.ysm
 
-# Run thumbnail test harness
-dotnet run --project YSMViewer.ThumbnailProvider -c DebugRuntest -- path\to\file.ysm [output.png] [size]
+# Publish thumbnail rendering library
+dotnet publish ThumbnailProviders/YSMViewer.ThumbnailProvider -c Release -r win-x64
 ```
 
 There are **no tests** in YSMViewer.
@@ -31,12 +31,13 @@ There are **no tests** in YSMViewer.
 
 - **Format**: `.slnx` (not `.sln`).
 - **Central package management**: `Directory.Packages.props` — add new NuGet deps there, not in individual `.csproj` files.
-- **Six projects**: `YSMViewer/` (shared UI), `YSMViewer.Core/` (shared parsing), `YSMViewer.Desktop/` (WinExe), `YSMViewer.Browser/` (WASM), `YSMViewer.ThumbnailProvider/` (C# COM thumbnail handler), `YSMViewer.ThumbnailProvider.Cpp/` (native C++ COM thumbnail handler).
+- **Core app projects**: `YSMViewer/` (shared UI), `YSMViewer.Core/` (shared parsing), `YSMViewer.Desktop/` (WinExe), `YSMViewer.Browser/` (WASM).
+- **Thumbnail providers** live under `ThumbnailProviders/`: shared NativeAOT renderer, Windows COM wrapper, Linux XDG thumbnailer, macOS Quick Look wrapper.
 
 ## CI (`.github/workflows/build.yml`)
 
 - Every push builds `YSMViewer.Desktop -c Release` on ubuntu-latest.
-- `v*` tag triggers full release: cross-platform desktop publish (win-x64, linux-x64, osx-arm64) + browser WASM publish + GitHub Pages deploy to `webpage` branch.
+- `v*` tag triggers full release: cross-platform desktop publish (win-x64, linux-x64, osx-arm64) + parallel thumbnail provider publish (win-x64, linux-x64 XDG, osx-arm64) + browser WASM publish + GitHub Pages deploy to `webpage` branch.
 - Browser publish requires `dotnet workload install wasm-tools`.
 - Desktop Release uses `PublishSingleFile`, `SelfContained`, `PublishTrimmed`.
 
@@ -52,38 +53,58 @@ Shared model library (`net10.0`) consumed by all other projects. Contains:
 
 NuGet: `YSMParser.Core`, `SixLabors.ImageSharp`.
 
-### YSMViewer.ThumbnailProvider
+### ThumbnailProviders/YSMViewer.ThumbnailProvider
 
-Windows COM shell extension (`net10.0-windows`) that generates Explorer thumbnail previews for `.ysm` files using a CPU software renderer.
+Cross-platform NativeAOT rendering library (`net10.0`) that generates `.ysm` thumbnail pixels using a CPU software renderer. Platform wrappers load this library and call exported C ABI functions.
 
-**Two configurations:**
-- **Debug/Release**: `OutputType=Library`, `EnableComHosting=true` — produces `.comhost.dll` for COM registration.
-- **DebugRuntest**: `OutputType=Exe`, `EnableComHosting=false` — standalone CLI test harness for local thumbnail testing.
+**Exports:**
+- `YsmThumbnail_Create`
+- `YsmThumbnail_Render`
+- `YsmThumbnail_Destroy`
 
 **Key files:**
-- `YsmThumbnailProvider.cs` — COM entry point, implements `IThumbnailProvider` + `IInitializeWithStream`.
-- `ComInterfaces.cs` — COM interface definitions + `ComStreamWrapper`.
+- `NativeAotCom/NativeExports.cs` — C ABI exported functions.
 - `Rendering/SoftwareRenderer.cs` — CPU Z-buffer rasterizer with barycentric texture sampling and directional lighting.
 - `Rendering/GeometryBuilder.cs` — bone hierarchy traversal, world-space quad generation from cube faces.
-- `Test/TestHarness.cs` — CLI test harness with timing diagnostics.
-- `Scripts/Register.ps1` — COM registration/unregistration (requires admin).
 
-**NuGet (ThumbnailProvider only):** `System.Drawing.Common` (for `Bitmap.GetHbitmap()` COM interop), `SixLabors.ImageSharp` (via Core).
+**NuGet:** `SixLabors.ImageSharp`.
 
-### YSMViewer.ThumbnailProvider.Cpp
+### ThumbnailProviders/YSMViewer.ThumbnailProvider.Win
 
-Native C++ COM shell extension (`YSMViewer.ThumbnailProvider.Cpp/`) that replaces the .NET version with lower overhead. It co-locates the C# DLL in its build output to produce a single combined thumbnail provider.
+Native C++ COM shell extension for Windows Explorer. It co-locates `YSMViewer.ThumbnailProvider.dll` and loads it with `LoadLibraryW`.
 
-**Build:** Requires Visual Studio x64 Native Tools command prompt. Run `build.bat` to compile the C++ DLL, then `install.bat` (admin) to register.
+**Build:** Requires Visual Studio x64 Native Tools command prompt. CI builds the `.vcxproj` with MSBuild after publishing the shared NativeAOT renderer.
 
 **Key files:**
 - `YsmThumbnailProvider.cpp` / `.h` — COM class factory + `IThumbnailProvider`/`IInitializeWithStream` implementation.
 - `DllMain.cpp` — DLL entry point.
 - `YsmThumbnailProvider.def` — module-definition file exporting `DllGetClassObject`, `DllCanUnloadNow`, `DllRegisterServer`, `DllUnregisterServer`.
-- `build.bat` — MSVC command-line build (copies C# DLL into `build/`).
-- `install.bat` / `uninstall.bat` — COM registration helpers.
+- `install.ps1` / `uninstall.ps1` — COM registration helpers.
 
 **Dependencies:** `shlwapi.lib`, `gdi32.lib`, `ole32.lib`, `advapi32.lib`, `user32.lib` — all Windows SDK, no MSVC redistributable required.
+
+### ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG
+
+Linux XDG thumbnailer CLI. It is a small C/Makefile project that loads `libYSMViewer.ThumbnailProvider.so` with `dlopen`, calls the C ABI renderer, and writes PNG thumbnails for `.thumbnailer` consumers.
+
+**Key files:**
+- `ysm-thumbnailer.c` — CLI entry point: `ysm-thumbnailer INPUT OUTPUT [SIZE]`.
+- `Makefile` — builds the CLI.
+- `ysm.thumbnailer.in` — freedesktop thumbnailer template using MIME `application/vnd.ysm.model+encrypted`.
+- `application-vnd-ysm-model-encrypted.xml` — shared MIME info for `.ysm`.
+- `install.sh` / `uninstall.sh` — user-level install helpers.
+
+KDE Dolphin may require a future KIO plugin for first-class support; none is implemented currently.
+
+### ThumbnailProviders/YSMViewer.ThumbnailProvider.OSX
+
+Minimal Objective-C Quick Look generator. It loads `libYSMViewer.ThumbnailProvider.dylib` from the `.qlgenerator` bundle and calls the C ABI renderer.
+
+**Key files:**
+- `GenerateThumbnailForURL.m` — Quick Look generator entry points.
+- `Info.plist` — bundle metadata and supported types.
+- `Makefile` — builds `YSMViewerThumbnailProvider.qlgenerator`.
+- `install.sh` / `uninstall.sh` — user-level Quick Look install helpers.
 
 ### Two rendering backends
 

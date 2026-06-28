@@ -1,8 +1,9 @@
 using System.Buffers;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using YSMViewer.Models.Document;
 
 namespace YSMViewer.ThumbnailProvider.Rendering;
@@ -61,26 +62,26 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
         {
             try
             {
-                using var img = Image.FromStream(new MemoryStream(texture.Data));
-                using var bmp = new Bitmap(img);
-                _texW = bmp.Width;
-                _texH = bmp.Height;
-                var rect = new Rectangle(0, 0, _texW, _texH);
-                var bd = bmp.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
-                try
+                using var img = Image.Load<Rgba32>(texture.Data);
+                _texW = img.Width;
+                _texH = img.Height;
+                _texPixels = new byte[_texW * _texH * 4];
+
+                for (int y = 0; y < _texH; y++)
                 {
-                    int stride = bd.Stride;
-                    int rowBytes = _texW * 4;
-                    _texPixels = new byte[_texW * _texH * 4];
-                    for (int y = 0; y < _texH; y++)
+                    var row = img.DangerousGetPixelRowMemory(y).Span;
+                    int rowOffset = y * _texW * 4;
+                    for (int x = 0; x < _texW; x++)
                     {
-                        Marshal.Copy(bd.Scan0 + y * stride, _texPixels, y * rowBytes, rowBytes);
+                        var pixel = row[x];
+                        int offset = rowOffset + x * 4;
+                        _texPixels[offset] = pixel.B;
+                        _texPixels[offset + 1] = pixel.G;
+                        _texPixels[offset + 2] = pixel.R;
+                        _texPixels[offset + 3] = pixel.A;
                     }
                 }
-                finally
-                {
-                    bmp.UnlockBits(bd);
-                }
+
                 _texPixelsHandle = GCHandle.Alloc(_texPixels, GCHandleType.Pinned);
                 _texPixelsPtr = (byte*)_texPixelsHandle.AddrOfPinnedObject();
             }

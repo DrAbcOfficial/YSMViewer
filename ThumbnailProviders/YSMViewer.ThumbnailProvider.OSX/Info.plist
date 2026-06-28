@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>English</string>
+  <key>CFBundleExecutable</key>
+  <string>YSMViewerThumbnailProvider</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.drabc.ysmviewer.thumbnailprovider</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>YSMViewer Thumbnail Provider</string>
+  <key>CFBundlePackageType</key>
+  <string>QLGenerator</string>
+  <key>CFBundleShortVersionString</key>
+  <string>1.0</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>QLSupportedContentTypes</key>
+  <array>
+    <string>application/vnd.ysm.model+encrypted</string>
+    <string>dyn.ah62d4rv4ge80k8xs</string>
+  </array>
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeExtensions</key>
+      <array>
+        <string>ysm</string>
+      </array>
+      <key>CFBundleTypeMIMETypes</key>
+      <array>
+        <string>application/vnd.ysm.model+encrypted</string>
+      </array>
+      <key>CFBundleTypeName</key>
+      <string>YSM Model</string>
+      <key>CFBundleTypeRole</key>
+      <string>QLGenerator</string>
+    </dict>
+  </array>
+</dict>
+</plist>

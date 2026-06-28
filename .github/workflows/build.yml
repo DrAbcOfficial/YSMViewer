@@ -49,7 +49,7 @@ jobs:
           name: desktop-${{ matrix.rid }}
           path: publish/desktop-${{ matrix.rid }}/
 
-  publish-thumbnail:
+  publish-thumbnail-win:
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: windows-latest
@@ -61,7 +61,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Publish C# NativeAOT rendering DLL
-        run: dotnet publish YSMViewer.ThumbnailProvider -c Release -r win-x64 -o publish/thumbnail
+        run: dotnet publish ThumbnailProviders/YSMViewer.ThumbnailProvider -c Release -r win-x64 -o publish/thumbnail-win
 
       - name: Setup MSVC
         uses: TheMrMilchmann/setup-msvc-dev@v4
@@ -70,27 +70,88 @@ jobs:
 
       - name: Build C++ COM wrapper DLL
         run: |
-          msbuild YSMViewer.ThumbnailProvider.Cpp\YSMViewer.ThumbnailProvider.Cpp.vcxproj /p:Configuration=Release /p:OutDir="${{ github.workspace }}\publish\thumbnail\" /p:IntDir="${{ runner.temp }}\thumbnail-obj\" /nologo
+          msbuild ThumbnailProviders\YSMViewer.ThumbnailProvider.Win\YSMViewer.ThumbnailProvider.Win.vcxproj /p:Configuration=Release /p:OutDir="${{ github.workspace }}\publish\thumbnail-win\" /p:IntDir="${{ runner.temp }}\thumbnail-win-obj\" /nologo
 
       - name: Copy registration scripts
         shell: pwsh
         run: |
-          Copy-Item YSMViewer.ThumbnailProvider.Cpp/install.ps1 publish/thumbnail/
-          Copy-Item YSMViewer.ThumbnailProvider.Cpp/uninstall.ps1 publish/thumbnail/
+          Copy-Item ThumbnailProviders/YSMViewer.ThumbnailProvider.Win/install.ps1 publish/thumbnail-win/
+          Copy-Item ThumbnailProviders/YSMViewer.ThumbnailProvider.Win/uninstall.ps1 publish/thumbnail-win/
 
       - name: Clean up unnecessary build artifacts
         shell: cmd
         run: |
-          del /f /q publish\thumbnail\*.exp publish\thumbnail\*.lib publish\thumbnail\*.ilk publish\thumbnail\*.pdb 2>nul || ver>nul
+          del /f /q publish\thumbnail-win\*.exp publish\thumbnail-win\*.lib publish\thumbnail-win\*.ilk publish\thumbnail-win\*.pdb 2>nul || ver>nul
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: thumbnail-win-x64
-          path: publish/thumbnail/
+          path: publish/thumbnail-win/
+
+  publish-thumbnail-xdg:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish NativeAOT rendering library
+        run: dotnet publish ThumbnailProviders/YSMViewer.ThumbnailProvider -c Release -r linux-x64 -o publish/thumbnail-xdg
+
+      - name: Build XDG thumbnailer CLI
+        run: |
+          make -C ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG BUILD_DIR="${{ github.workspace }}/publish/thumbnail-xdg"
+
+      - name: Copy XDG metadata and scripts
+        run: |
+          cp ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG/ysm.thumbnailer.in publish/thumbnail-xdg/
+          cp ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG/application-vnd-ysm-model-encrypted.xml publish/thumbnail-xdg/
+          cp ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG/install.sh publish/thumbnail-xdg/
+          cp ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG/uninstall.sh publish/thumbnail-xdg/
+          chmod +x publish/thumbnail-xdg/install.sh publish/thumbnail-xdg/uninstall.sh publish/thumbnail-xdg/ysm-thumbnailer
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: thumbnail-linux-x64-xdg
+          path: publish/thumbnail-xdg/
+
+  publish-thumbnail-osx:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish NativeAOT rendering library
+        run: dotnet publish ThumbnailProviders/YSMViewer.ThumbnailProvider -c Release -r osx-arm64 -o publish/thumbnail-osx/native
+
+      - name: Build Quick Look generator
+        run: |
+          native_lib="${{ github.workspace }}/publish/thumbnail-osx/native/libYSMViewer.ThumbnailProvider.dylib"
+          if [ ! -f "$native_lib" ]; then native_lib="${{ github.workspace }}/publish/thumbnail-osx/native/YSMViewer.ThumbnailProvider.dylib"; fi
+          make -C ThumbnailProviders/YSMViewer.ThumbnailProvider.OSX BUILD_DIR="${{ github.workspace }}/publish/thumbnail-osx" NATIVE_LIB="$native_lib"
+          cp ThumbnailProviders/YSMViewer.ThumbnailProvider.OSX/install.sh publish/thumbnail-osx/
+          cp ThumbnailProviders/YSMViewer.ThumbnailProvider.OSX/uninstall.sh publish/thumbnail-osx/
+          chmod +x publish/thumbnail-osx/install.sh publish/thumbnail-osx/uninstall.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: thumbnail-osx-arm64
+          path: publish/thumbnail-osx/
 
   release:
-    needs: [publish-desktop, publish-thumbnail]
+    needs: [publish-desktop, publish-thumbnail-win, publish-thumbnail-xdg, publish-thumbnail-osx]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
@@ -126,11 +187,23 @@ jobs:
           name: desktop-osx-arm64
           path: publish/desktop/osx-arm64
 
-      - name: Download thumbnail provider
+      - name: Download Windows thumbnail provider
         uses: actions/download-artifact@v7
         with:
           name: thumbnail-win-x64
-          path: publish/thumbnail
+          path: publish/thumbnail/win-x64
+
+      - name: Download XDG thumbnail provider
+        uses: actions/download-artifact@v7
+        with:
+          name: thumbnail-linux-x64-xdg
+          path: publish/thumbnail/linux-x64
+
+      - name: Download macOS thumbnail provider
+        uses: actions/download-artifact@v7
+        with:
+          name: thumbnail-osx-arm64
+          path: publish/thumbnail/osx-arm64
 
       - name: Package desktop assets
         run: |
@@ -147,10 +220,12 @@ jobs:
           cd publish/browser
           zip -r ../YSMViewer-Browser.zip .
 
-      - name: Package thumbnail provider
+      - name: Package thumbnail providers
         run: |
           cd publish/thumbnail
-          zip -r ../YSMViewer-ThumbnailProvider-win-x64.zip .
+          zip -r ../YSMViewer-ThumbnailProvider-win-x64.zip win-x64/
+          zip -r ../YSMViewer-ThumbnailProvider-linux-x64.zip linux-x64/
+          zip -r ../YSMViewer-ThumbnailProvider-osx-arm64.zip osx-arm64/
 
       - name: Create Release
         uses: softprops/action-gh-release@v3
@@ -161,6 +236,8 @@ jobs:
             publish/YSMViewer-osx-arm64.zip
             publish/YSMViewer-Browser.zip
             publish/YSMViewer-ThumbnailProvider-win-x64.zip
+            publish/YSMViewer-ThumbnailProvider-linux-x64.zip
+            publish/YSMViewer-ThumbnailProvider-osx-arm64.zip
           generate_release_notes: true
 
       - name: Deploy to webpage branch

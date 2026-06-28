@@ -9,7 +9,7 @@
 $ErrorActionPreference = 'Stop'
 
 $dllDir = "$env:APPDATA\YSMViewer\Thumbnail"
-$cppDll = Join-Path $dllDir "YSMViewer.ThumbnailProvider.Cpp.dll"
+$winDll = Join-Path $dllDir "YSMViewer.ThumbnailProvider.Win.dll"
 $csDll = Join-Path $dllDir "YSMViewer.ThumbnailProvider.dll"
 
 Write-Host "==============================================" -ForegroundColor Cyan
@@ -30,7 +30,7 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 }
 
 # Check if installed
-if (-not (Test-Path $cppDll) -and -not (Test-Path $csDll)) {
+if (-not (Test-Path $winDll) -and -not (Test-Path $csDll)) {
     Write-Host "[WARN] No DLLs found in $dllDir" -ForegroundColor Yellow
     Write-Host "[WARN] Provider may not be installed." -ForegroundColor Yellow
     Read-Host "Press Enter to exit"
@@ -39,9 +39,9 @@ if (-not (Test-Path $cppDll) -and -not (Test-Path $csDll)) {
 
 # Unregister COM server
 Write-Host "Unregistering COM server..." -ForegroundColor Yellow
-if (Test-Path $cppDll) {
+if (Test-Path $winDll) {
     $regsvr = "$env:SystemRoot\System32\regsvr32.exe"
-    $proc = Start-Process -FilePath $regsvr -ArgumentList @('/u', $cppDll) -Wait -NoNewWindow -PassThru
+    $proc = Start-Process -FilePath $regsvr -ArgumentList @('/u', $winDll) -Wait -NoNewWindow -PassThru
     if ($proc.ExitCode -eq 0) {
         Write-Host "[OK] Unregistration successful! / 卸载成功！" -ForegroundColor Green
     } else {
@@ -55,7 +55,7 @@ if (Test-Path $cppDll) {
 # Clean up files
 Write-Host "Cleaning up $dllDir ..." -ForegroundColor Yellow
 if (Test-Path $csDll) { Remove-Item -Path $csDll -Force }
-if (Test-Path $cppDll) { Remove-Item -Path $cppDll -Force }
+if (Test-Path $winDll) { Remove-Item -Path $winDll -Force }
 if (Test-Path $dllDir) { Remove-Item -Path $dllDir -Recurse -Force }
 
 Write-Host "[OK] Cleanup complete." -ForegroundColor Green

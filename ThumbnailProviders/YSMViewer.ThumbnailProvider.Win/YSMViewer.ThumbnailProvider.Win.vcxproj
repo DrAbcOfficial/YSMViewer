@@ -30,7 +30,7 @@
   <PropertyGroup>
     <OutDir>$(MSBuildProjectDirectory)\build\</OutDir>
     <IntDir>$(MSBuildProjectDirectory)\build\obj\</IntDir>
-    <TargetName>YSMViewer.ThumbnailProvider.Cpp</TargetName>
+    <TargetName>YSMViewer.ThumbnailProvider.Win</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>

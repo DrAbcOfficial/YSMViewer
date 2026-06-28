@@ -43,25 +43,48 @@ dotnet run --project YSMViewer.Desktop -- path/to/model.ysm
 | `YSMViewer.Core/` | `net10.0` | Shared parsing/model library consumed by all other projects |
 | `YSMViewer.Desktop/` | `net10.0` | Desktop launcher |
 | `YSMViewer.Browser/` | `net10.0-browser` (WASM) | Browser launcher |
-| `YSMViewer.ThumbnailProvider/` | `net10.0-windows` | Thumbnail library |
-| `YSMViewer.ThumbnailProvider.Cpp/` | Native (C++/COM) | Native COM thumbnail provider shell extension|
+| `ThumbnailProviders/YSMViewer.ThumbnailProvider/` | `net10.0` | NativeAOT thumbnail rendering library |
+| `ThumbnailProviders/YSMViewer.ThumbnailProvider.Win/` | Native (C++/COM) | Windows Explorer thumbnail provider |
+| `ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG/` | `net10.0` NativeAOT | Linux XDG thumbnailer CLI |
+| `ThumbnailProviders/YSMViewer.ThumbnailProvider.OSX/` | Objective-C | macOS Quick Look thumbnail provider |
 
 ### Windows Thumbnail Provider
 
-Build & register:
+Build & register from a Visual Studio x64 Native Tools command prompt:
 
 ```powershell
-# Build native wrapper(run from Visual Studio x64 Native Tools command prompt)
-.\YSMViewer.ThumbnailProvider.Cpp\build.bat
-
 # Build C# library
-dotnet publish YSMViewer.TumbnailProvider -c Release
+dotnet publish ThumbnailProviders/YSMViewer.ThumbnailProvider -c Release -r win-x64 -o publish/thumbnail-win
+
+# Build native COM wrapper
+msbuild ThumbnailProviders\YSMViewer.ThumbnailProvider.Win\YSMViewer.ThumbnailProvider.Win.vcxproj /p:Configuration=Release /p:OutDir="%cd%\publish\thumbnail-win\"
 
 # Register (admin required)
-.\YSMViewer.ThumbnailProvider.Cpp\install.ps1
+.\publish\thumbnail-win\install.ps1
 
 # Unregister
-.\YSMViewer.ThumbnailProvider.Cpp\uninstall.ps1
+.\publish\thumbnail-win\uninstall.ps1
+```
+
+### Linux XDG Thumbnail Provider
+
+The XDG thumbnailer uses MIME `application/vnd.ysm.model+encrypted` and covers file managers that honor freedesktop thumbnailers, such as Nautilus, Nemo, Caja, and Thunar. KDE Dolphin may require a future KIO plugin for first-class support.
+
+```bash
+dotnet publish ThumbnailProviders/YSMViewer.ThumbnailProvider -c Release -r linux-x64 -o publish/thumbnail-xdg
+make -C ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG BUILD_DIR="$PWD/publish/thumbnail-xdg"
+cp ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG/*.sh ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG/*.in ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG/*.xml publish/thumbnail-xdg/
+cd publish/thumbnail-xdg
+./install.sh
+```
+
+### macOS Thumbnail Provider
+
+The macOS provider is a minimal Objective-C Quick Look generator that loads the NativeAOT rendering library from the generator bundle.
+
+```bash
+dotnet publish ThumbnailProviders/YSMViewer.ThumbnailProvider -c Release -r osx-arm64 -o publish/thumbnail-osx/native
+make -C ThumbnailProviders/YSMViewer.ThumbnailProvider.OSX BUILD_DIR="$PWD/publish/thumbnail-osx" NATIVE_LIB="$PWD/publish/thumbnail-osx/native/libYSMViewer.ThumbnailProvider.dylib"
 ```
 
 ## Tech Stack
