@@ -17,7 +17,36 @@ public sealed record YsmModelDocument(
     IReadOnlyList<YsmImageResource> Images,
     IReadOnlyList<YsmAnimationControllerResource> AnimControllers,
     IReadOnlyList<YsmSoundResource> Sounds,
-    IReadOnlyList<YsmFunctionResource> Functions);
+    IReadOnlyList<YsmFunctionResource> Functions,
+    YsmExtraAnimationLayout ExtraAnimations);
+
+public sealed record YsmExtraAnimationLayout(
+    IReadOnlyList<YsmExtraAnimationEntry> RootEntries,
+    IReadOnlyList<YsmExtraAnimationGroup> Groups,
+    IReadOnlyList<YsmExtraAnimationButtonDefinition> ButtonDefinitions)
+{
+    public static YsmExtraAnimationLayout Empty { get; } = new([], [], []);
+
+    public bool HasEntries => RootEntries.Count > 0 || Groups.Any(g => g.Entries.Count > 0);
+}
+
+public sealed record YsmExtraAnimationGroup(
+    string Id,
+    string DisplayName,
+    IReadOnlyList<YsmExtraAnimationEntry> Entries);
+
+public sealed record YsmExtraAnimationEntry(
+    string Key,
+    string DisplayName,
+    string Category,
+    int OriginalIndex);
+
+// Future extra_animation_buttons implementation hook. The parser preserves only
+// group-level metadata for now; config form execution belongs in the UI layer.
+public sealed record YsmExtraAnimationButtonDefinition(
+    string Id,
+    string Name,
+    string Description);
 
 public sealed record YsmDocumentModelInfo(
     string Name,

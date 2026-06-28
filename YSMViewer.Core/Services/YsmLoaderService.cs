@@ -264,7 +264,8 @@ public sealed class YsmLoaderService
             [],
             [],
             [],
-            []);
+            [],
+            YsmExtraAnimationLayout.Empty);
     }
 
     private static YsmModelDocument LoadDocument(YSMParser.Core.Parsers.YSMParser parser)
@@ -397,7 +398,153 @@ public sealed class YsmLoaderService
         foreach (var fn in resources.Functions)
             functionResources.Add(new YsmFunctionResource(fn.Name, fn.Data));
 
-        return new YsmModelDocument(info, models, textureResources, animationResources, imageResources, animControllerResources, soundResources, functionResources);
+        var extraAnimations = ParseExtraAnimations(resources.YsmJson);
+        return new YsmModelDocument(info, models, textureResources, animationResources, imageResources, animControllerResources, soundResources, functionResources, extraAnimations);
+    }
+
+    private static YsmExtraAnimationLayout ParseExtraAnimations(byte[]? ysmJson)
+    {
+        if (ysmJson is not { Length: > 0 })
+            return YsmExtraAnimationLayout.Empty;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(StripJsonComments(System.Text.Encoding.UTF8.GetString(ysmJson)));
+            if (!doc.RootElement.TryGetProperty("properties", out var props))
+                return YsmExtraAnimationLayout.Empty;
+
+            var rootEntries = props.TryGetProperty("extra_animation", out var rootAnim)
+                ? ParseExtraAnimationObject(rootAnim, string.Empty)
+                : [];
+
+            var groups = props.TryGetProperty("extra_animation_classify", out var classify)
+                ? ParseExtraAnimationGroups(classify)
+                : [];
+
+            var buttons = props.TryGetProperty("extra_animation_buttons", out var buttonsElement)
+                ? ParseExtraAnimationButtonStubs(buttonsElement)
+                : [];
+
+            if (rootEntries.Count == 0 && groups.Count == 0 && buttons.Count == 0)
+                return YsmExtraAnimationLayout.Empty;
+
+            return new YsmExtraAnimationLayout(rootEntries, groups, buttons);
+        }
+        catch
+        {
+            return YsmExtraAnimationLayout.Empty;
+        }
+    }
+
+    private static List<YsmExtraAnimationEntry> ParseExtraAnimationObject(JsonElement element, string category)
+    {
+        var result = new List<YsmExtraAnimationEntry>();
+        if (element.ValueKind != JsonValueKind.Object)
+            return result;
+
+        int index = 0;
+        foreach (var property in element.EnumerateObject())
+        {
+            var key = property.Name;
+            var displayName = property.Value.ValueKind == JsonValueKind.String
+                ? property.Value.GetString() ?? string.Empty
+                : string.Empty;
+
+            if (key.Equals("#return", StringComparison.OrdinalIgnoreCase) || key.StartsWith('#') || displayName.StartsWith('#'))
+            {
+                index++;
+                continue;
+            }
+
+            result.Add(new YsmExtraAnimationEntry(
+                key,
+                string.IsNullOrWhiteSpace(displayName) ? key : displayName,
+                category,
+                index));
+            index++;
+        }
+
+        return result;
+    }
+
+    private static List<YsmExtraAnimationGroup> ParseExtraAnimationGroups(JsonElement element)
+    {
+        var result = new List<YsmExtraAnimationGroup>();
+        if (element.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var groupElement in element.EnumerateArray())
+            {
+                if (TryParseExtraAnimationGroup(groupElement, out var group))
+                    result.Add(group);
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in element.EnumerateObject())
+            {
+                var entries = ParseExtraAnimationObject(property.Value, property.Name);
+                if (entries.Count > 0)
+                    result.Add(new YsmExtraAnimationGroup(property.Name, property.Name, entries));
+            }
+        }
+
+        return result;
+    }
+
+    private static bool TryParseExtraAnimationGroup(JsonElement element, out YsmExtraAnimationGroup group)
+    {
+        group = new YsmExtraAnimationGroup(string.Empty, string.Empty, []);
+        if (element.ValueKind != JsonValueKind.Object)
+            return false;
+
+        var id = GetOptionalString(element, "id")
+            ?? GetOptionalString(element, "name")
+            ?? GetOptionalString(element, "key")
+            ?? string.Empty;
+        var displayName = GetOptionalString(element, "name")
+            ?? GetOptionalString(element, "display_name")
+            ?? id;
+
+        if (!element.TryGetProperty("extra_animation", out var animations))
+            return false;
+
+        var entries = ParseExtraAnimationObject(animations, id);
+        if (entries.Count == 0)
+            return false;
+
+        group = new YsmExtraAnimationGroup(id, string.IsNullOrWhiteSpace(displayName) ? id : displayName, entries);
+        return true;
+    }
+
+    private static List<YsmExtraAnimationButtonDefinition> ParseExtraAnimationButtonStubs(JsonElement element)
+    {
+        var result = new List<YsmExtraAnimationButtonDefinition>();
+        if (element.ValueKind != JsonValueKind.Array)
+            return result;
+
+        foreach (var item in element.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object)
+                continue;
+
+            var id = GetOptionalString(item, "id") ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(id))
+                continue;
+
+            result.Add(new YsmExtraAnimationButtonDefinition(
+                id,
+                GetOptionalString(item, "name") ?? id,
+                GetOptionalString(item, "description") ?? string.Empty));
+        }
+
+        return result;
+    }
+
+    private static string? GetOptionalString(JsonElement element, string propertyName)
+    {
+        return element.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String
+            ? property.GetString()
+            : null;
     }
 
     private static List<YsmBoneInfo> ConvertBones(List<MinecraftBone> bones)

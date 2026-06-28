@@ -11,7 +11,9 @@ public sealed partial class MainViewModel
     private void ResetAnimationState()
     {
         HasAnimations = false;
+        HasExtraAnimations = false;
         AnimationNames.Clear();
+        ExtraAnimationGroups.Clear();
         CurrentAnimationName = string.Empty;
         _suppressAnimChanged = false;
         IsAnimating = false;
@@ -25,13 +27,54 @@ public sealed partial class MainViewModel
         if (document.Animations.Count <= 0)
             return;
 
-        HasAnimations = animRenderer.AnimationNames.Count > 0;
+        PopulateExtraAnimationData(document);
+
+        HasAnimations = animRenderer.AnimationNames.Count > 0 || HasExtraAnimations;
 
         foreach (var name in animRenderer.AnimationNames)
             AnimationNames.Add(name);
 
         CanPreviousAnimation = animRenderer.AnimationNames.Count > 0;
         CanNextAnimation = animRenderer.AnimationNames.Count > 0;
+    }
+
+    private void PopulateExtraAnimationData(Models.Document.YsmModelDocument document)
+    {
+        ExtraAnimationGroups.Clear();
+        HasExtraAnimations = document.ExtraAnimations.HasEntries;
+        if (!HasExtraAnimations)
+            return;
+
+        if (document.ExtraAnimations.RootEntries.Count > 0)
+        {
+            var rootGroup = new ExtraAnimationGroupViewModel { Name = "Root" };
+            foreach (var entry in document.ExtraAnimations.RootEntries)
+                rootGroup.Entries.Add(CreateExtraAnimationItem(entry));
+            ExtraAnimationGroups.Add(rootGroup);
+        }
+
+        foreach (var group in document.ExtraAnimations.Groups)
+        {
+            if (group.Entries.Count == 0)
+                continue;
+
+            var groupVm = new ExtraAnimationGroupViewModel { Name = group.DisplayName };
+            foreach (var entry in group.Entries)
+                groupVm.Entries.Add(CreateExtraAnimationItem(entry));
+            ExtraAnimationGroups.Add(groupVm);
+        }
+    }
+
+    private ExtraAnimationItemViewModel CreateExtraAnimationItem(Models.Document.YsmExtraAnimationEntry entry)
+    {
+        return new ExtraAnimationItemViewModel
+        {
+            DisplayName = entry.DisplayName,
+            AnimationName = entry.Key,
+            Category = entry.Category,
+            OriginalIndex = entry.OriginalIndex,
+            OnSelected = item => SelectAnimation(item.AnimationName),
+        };
     }
 
     partial void OnIsAnimatingChanged(bool value)
@@ -56,7 +99,7 @@ public sealed partial class MainViewModel
     public void SelectAnimation(string name)
     {
         if (Renderer is not IAnimationRenderer animRenderer) return;
-        if (!animRenderer.AnimationNames.Contains(name) && !UseAnimationController) return;
+        if (!animRenderer.AnimationNames.Contains(name) && !UseAnimationController && !HasExtraAnimations) return;
 
         CurrentAnimationName = name;
         animRenderer.PlayAnimation(name);

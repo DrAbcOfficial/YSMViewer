@@ -30,6 +30,7 @@ public sealed partial class MainViewModel : ViewModelBase
     public bool IsBrowserReadOnly => !SupportsComponentVisibility && !SupportsBoneVisibility;
 
     public ObservableCollection<string> AnimationNames { get; } = [];
+    public ObservableCollection<ExtraAnimationGroupViewModel> ExtraAnimationGroups { get; } = [];
     public ObservableCollection<ComponentViewModel> Components { get; } = [];
     public ObservableCollection<ComponentBoneGroupViewModel> BoneGroups { get; } = [];
     public ObservableCollection<TextureItemViewModel> TextureItems { get; } = [];
@@ -47,6 +48,9 @@ public sealed partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial bool UseAnimationController { get; set; }
+
+    [ObservableProperty]
+    public partial bool HasExtraAnimations { get; set; }
 
     partial void OnUseAnimationControllerChanged(bool value)
     {

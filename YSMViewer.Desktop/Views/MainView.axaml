@@ -569,9 +569,46 @@
                                                   OffContent="Manual" OnContent="Auto"
                                                   FontSize="11" />
                                 </Grid>
+                                <ItemsControl ItemsSource="{Binding ExtraAnimationGroups}"
+                                              IsVisible="{Binding HasExtraAnimations}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ExtraAnimationGroupViewModel">
+                                            <StackPanel Spacing="4" Margin="0,0,0,8">
+                                                <TextBlock Text="{Binding Name}"
+                                                           FontSize="11" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource ThemeTextMuted}" />
+                                                <ItemsControl ItemsSource="{Binding Entries}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="vm:ExtraAnimationItemViewModel">
+                                                            <Button Command="{Binding SelectCommand}"
+                                                                    HorizontalAlignment="Stretch"
+                                                                    HorizontalContentAlignment="Left"
+                                                                    Margin="0,0,0,4"
+                                                                    Padding="8,5"
+                                                                    Background="{DynamicResource ThemeBgElevated}">
+                                                                <Grid ColumnDefinitions="*,Auto">
+                                                                    <TextBlock Grid.Column="0"
+                                                                               Text="{Binding DisplayName}"
+                                                                               Foreground="{DynamicResource ThemeTextPrimary}"
+                                                                               TextTrimming="CharacterEllipsis" />
+                                                                    <TextBlock Grid.Column="1"
+                                                                               Text="{Binding AnimationName}"
+                                                                               Margin="8,0,0,0"
+                                                                               FontSize="10"
+                                                                               Foreground="{DynamicResource ThemeTextMuted}" />
+                                                                </Grid>
+                                                            </Button>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                                 <ListBox x:Name="AnimationListBox"
                                          ItemsSource="{Binding AnimationNames}"
                                          SelectedItem="{Binding CurrentAnimationName}"
+                                         IsVisible="{Binding !HasExtraAnimations}"
                                          Background="Transparent" BorderThickness="0"
                                          Foreground="{DynamicResource ThemeTextPrimary}" FontSize="12"
                                          SelectionChanged="OnAnimationSelectionChanged"

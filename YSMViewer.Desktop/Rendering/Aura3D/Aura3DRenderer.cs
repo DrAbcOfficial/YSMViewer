@@ -357,6 +357,8 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
         if (_stateMachine is not null && _useAnimationController)
         {
             _animTime = 0f;
+            ((IAnimationStateMachineHost)_stateMachine).Reset();
+            _stateMachine.SetAnimation(name, 0);
             _animService.IsPlaying = true;
         }
         else
@@ -370,6 +372,8 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
     public void StopAnimation()
     {
         _animService.IsPlaying = false;
+        if (_stateMachine is not null)
+            ((IAnimationStateMachineHost)_stateMachine).Reset();
         _animService.ResetBones();
         _animTime = 0f;
     }

@@ -4,6 +4,36 @@ using System.Collections.ObjectModel;
 
 namespace YSMViewer.ViewModels;
 
+public sealed partial class ExtraAnimationGroupViewModel : ObservableObject
+{
+    [ObservableProperty]
+    public partial string Name { get; set; } = string.Empty;
+
+    public ObservableCollection<ExtraAnimationItemViewModel> Entries { get; } = [];
+}
+
+public sealed partial class ExtraAnimationItemViewModel : ObservableObject
+{
+    [ObservableProperty]
+    public partial string DisplayName { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string AnimationName { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string Category { get; set; } = string.Empty;
+
+    public int OriginalIndex { get; set; }
+
+    public Action<ExtraAnimationItemViewModel>? OnSelected { get; set; }
+
+    [RelayCommand]
+    private void Select()
+    {
+        OnSelected?.Invoke(this);
+    }
+}
+
 public sealed partial class ComponentViewModel : ObservableObject
 {
     [ObservableProperty]
