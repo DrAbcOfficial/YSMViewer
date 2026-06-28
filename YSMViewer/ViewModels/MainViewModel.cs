@@ -52,6 +52,9 @@ public sealed partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool HasExtraAnimations { get; set; }
 
+    [ObservableProperty]
+    public partial bool HasRawAnimations { get; set; }
+
     partial void OnUseAnimationControllerChanged(bool value)
     {
         if (Renderer is IAnimationRenderer animRenderer)

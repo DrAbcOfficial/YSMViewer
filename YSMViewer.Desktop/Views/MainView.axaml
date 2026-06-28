@@ -573,11 +573,13 @@
                                               IsVisible="{Binding HasExtraAnimations}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:ExtraAnimationGroupViewModel">
-                                            <StackPanel Spacing="4" Margin="0,0,0,8">
-                                                <TextBlock Text="{Binding Name}"
-                                                           FontSize="11" FontWeight="SemiBold"
-                                                           Foreground="{DynamicResource ThemeTextMuted}" />
-                                                <ItemsControl ItemsSource="{Binding Entries}">
+                                            <Expander IsExpanded="True" Padding="0" Margin="0,0,0,8">
+                                                <Expander.Header>
+                                                    <TextBlock Text="{Binding Name}"
+                                                               FontSize="11" FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource ThemeTextMuted}" />
+                                                </Expander.Header>
+                                                <ItemsControl ItemsSource="{Binding Entries}" Margin="0,4,0,0">
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate x:DataType="vm:ExtraAnimationItemViewModel">
                                                             <Button Command="{Binding SelectCommand}"
@@ -601,38 +603,45 @@
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
-                                            </StackPanel>
+                                            </Expander>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <ListBox x:Name="AnimationListBox"
-                                         ItemsSource="{Binding AnimationNames}"
-                                         SelectedItem="{Binding CurrentAnimationName}"
-                                         IsVisible="{Binding !HasExtraAnimations}"
-                                         Background="Transparent" BorderThickness="0"
-                                         Foreground="{DynamicResource ThemeTextPrimary}" FontSize="12"
-                                         SelectionChanged="OnAnimationSelectionChanged"
-                                         MaxHeight="200">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" Padding="6,4" />
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                    <ListBox.Styles>
-                                        <Style Selector="ListBoxItem">
-                                            <Setter Property="Background" Value="Transparent" />
-                                            <Setter Property="CornerRadius" Value="4" />
-                                        </Style>
-                                        <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
-                                            <Setter Property="Background" Value="{DynamicResource ThemeAnimSelected}" />
-                                            <Setter Property="CornerRadius" Value="4" />
-                                        </Style>
-                                        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-                                            <Setter Property="Background" Value="{DynamicResource ThemeBgHover}" />
-                                            <Setter Property="CornerRadius" Value="4" />
-                                        </Style>
-                                    </ListBox.Styles>
-                                </ListBox>
+                                <Expander IsExpanded="True" Padding="0" IsVisible="{Binding HasRawAnimations}">
+                                    <Expander.Header>
+                                        <TextBlock Text="Raw Animations"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource ThemeTextMuted}" />
+                                    </Expander.Header>
+                                    <ListBox x:Name="AnimationListBox"
+                                             ItemsSource="{Binding AnimationNames}"
+                                             SelectedItem="{Binding CurrentAnimationName}"
+                                             Background="Transparent" BorderThickness="0"
+                                             Foreground="{DynamicResource ThemeTextPrimary}" FontSize="12"
+                                             SelectionChanged="OnAnimationSelectionChanged"
+                                             MaxHeight="200"
+                                             Margin="0,4,0,0">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" Padding="6,4" />
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                        <ListBox.Styles>
+                                            <Style Selector="ListBoxItem">
+                                                <Setter Property="Background" Value="Transparent" />
+                                                <Setter Property="CornerRadius" Value="4" />
+                                            </Style>
+                                            <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+                                                <Setter Property="Background" Value="{DynamicResource ThemeAnimSelected}" />
+                                                <Setter Property="CornerRadius" Value="4" />
+                                            </Style>
+                                            <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                                <Setter Property="Background" Value="{DynamicResource ThemeBgHover}" />
+                                                <Setter Property="CornerRadius" Value="4" />
+                                            </Style>
+                                        </ListBox.Styles>
+                                    </ListBox>
+                                </Expander>
                             </StackPanel>
                         </Expander>
 

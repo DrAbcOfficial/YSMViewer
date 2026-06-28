@@ -12,6 +12,7 @@ public sealed partial class MainViewModel
     {
         HasAnimations = false;
         HasExtraAnimations = false;
+        HasRawAnimations = false;
         AnimationNames.Clear();
         ExtraAnimationGroups.Clear();
         CurrentAnimationName = string.Empty;
@@ -29,13 +30,14 @@ public sealed partial class MainViewModel
 
         PopulateExtraAnimationData(document);
 
-        HasAnimations = animRenderer.AnimationNames.Count > 0 || HasExtraAnimations;
+        HasRawAnimations = animRenderer.AnimationNames.Count > 0;
+        HasAnimations = HasRawAnimations || HasExtraAnimations;
 
         foreach (var name in animRenderer.AnimationNames)
             AnimationNames.Add(name);
 
-        CanPreviousAnimation = animRenderer.AnimationNames.Count > 0;
-        CanNextAnimation = animRenderer.AnimationNames.Count > 0;
+        CanPreviousAnimation = HasRawAnimations;
+        CanNextAnimation = HasRawAnimations;
     }
 
     private void PopulateExtraAnimationData(Models.Document.YsmModelDocument document)
