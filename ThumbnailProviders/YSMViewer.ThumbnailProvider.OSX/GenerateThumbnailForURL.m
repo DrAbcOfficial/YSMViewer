@@ -9,6 +9,49 @@ typedef void* (*YsmCreateFn)(const uint8_t* data, int length);
 typedef int (*YsmRenderFn)(void* ctx, uint8_t* bgra, int width, int height);
 typedef void (*YsmDestroyFn)(void* ctx);
 
+static CFDataRef ReadFileData(CFURLRef url)
+{
+    CFReadStreamRef stream = CFReadStreamCreateWithFile(kCFAllocatorDefault, url);
+    if (stream == NULL)
+        return NULL;
+
+    if (!CFReadStreamOpen(stream))
+    {
+        CFRelease(stream);
+        return NULL;
+    }
+
+    CFMutableDataRef data = CFDataCreateMutable(kCFAllocatorDefault, 0);
+    if (data == NULL)
+    {
+        CFReadStreamClose(stream);
+        CFRelease(stream);
+        return NULL;
+    }
+
+    UInt8 buffer[16 * 1024];
+    while (true)
+    {
+        CFIndex bytesRead = CFReadStreamRead(stream, buffer, sizeof(buffer));
+        if (bytesRead > 0)
+        {
+            CFDataAppendBytes(data, buffer, bytesRead);
+            continue;
+        }
+
+        if (bytesRead < 0)
+        {
+            CFRelease(data);
+            data = NULL;
+        }
+        break;
+    }
+
+    CFReadStreamClose(stream);
+    CFRelease(stream);
+    return data;
+}
+
 static void* LoadNativeLibrary(void)
 {
     Dl_info info;
@@ -64,9 +107,8 @@ OSStatus GenerateThumbnailForURL(
     (void)contentTypeUTI;
     (void)options;
 
-    CFDataRef fileData = NULL;
-    SInt32 errorCode = 0;
-    if (!CFURLCreateDataAndPropertiesFromResource(kCFAllocatorDefault, url, &fileData, NULL, NULL, &errorCode) || fileData == NULL)
+    CFDataRef fileData = ReadFileData(url);
+    if (fileData == NULL)
         return noErr;
 
     void* library = LoadNativeLibrary();
@@ -134,11 +176,18 @@ OSStatus GenerateThumbnailForURL(
             if (image != NULL)
             {
                 CGRect rect = CGRectMake(0, 0, size, size);
+                // Quick Look generators expose only the legacy context API; Thumbnail Extension is a separate provider model.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
                 CGContextRef context = QLThumbnailRequestCreateContext(thumbnail, CGSizeMake(size, size), false, NULL);
+#pragma clang diagnostic pop
                 if (context != NULL)
                 {
                     CGContextDrawImage(context, rect, image);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
                     QLThumbnailRequestFlushContext(thumbnail, context);
+#pragma clang diagnostic pop
                     CFRelease(context);
                 }
                 CGImageRelease(image);
