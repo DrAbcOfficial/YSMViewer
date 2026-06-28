@@ -213,13 +213,13 @@ public sealed class MolangService
         return _cachedContext!;
     }
 
-    public void ResetFrame()
+    public void ResetFrame(float deltaTime)
     {
         _animVariables.Clear();
         _tempStruct.Clear();
         _contextStruct.Clear();
         _contextDirty = true;
-        PhysicsSimulator.UpdateAll();
+        Physics.UpdateAll(deltaTime);
     }
 
     public double SafeGetUserVar(string name, double defaultValue = 0.0)

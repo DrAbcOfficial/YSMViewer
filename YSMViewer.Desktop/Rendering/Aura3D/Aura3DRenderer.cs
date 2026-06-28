@@ -382,7 +382,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
     {
         if (_stateMachine is not null && _useAnimationController)
         {
-            _molangService?.ResetFrame();
+            _molangService?.ResetFrame(deltaTime);
             _animTime += deltaTime;
             bool isMoving = _molangService?.SafeGetUserVar("is_moving") > 0.5;
             _stateMachine.Process(_animTime, deltaTime, isMoving);
@@ -431,6 +431,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
         }
         else
         {
+            _molangService?.ResetFrame(deltaTime);
             _animService.Update(deltaTime);
         }
     }
