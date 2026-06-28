@@ -218,7 +218,8 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
 
         _molangService = new MolangService
         {
-            BoneNodes = _animBones
+            BoneNodes = _animBones,
+            BasePositions = _basePositions
         };
         _animService.MolangService = _molangService;
 

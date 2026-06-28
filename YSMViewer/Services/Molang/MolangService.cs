@@ -39,6 +39,7 @@ public sealed class MolangService
     public IAnimationStateMachineHost? StateMachineHost { get; set; }
     public IAnimationAudioHost? AudioHost { get; set; }
     public IReadOnlyDictionary<string, IAnimatableBone>? BoneNodes { get; set; }
+    public IReadOnlyDictionary<string, System.Numerics.Vector3>? BasePositions { get; set; }
     public PhysicsSimulator Physics { get; } = new();
 
     private readonly LazyFunctionStruct _fnStruct;

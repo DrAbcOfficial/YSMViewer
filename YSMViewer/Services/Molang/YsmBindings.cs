@@ -45,7 +45,7 @@ internal static class YsmBindings
         var boneName = p.GetString(0);
         if (!service.BoneNodes.TryGetValue(boneName, out var bone)) return 0.0;
 
-        var euler = ToEulerDegrees(bone.RotationQuaternion);
+        var euler = ToBedrockEulerDegrees(bone.RotationQuaternion);
         return p.Contains(1) ? GetAxis(euler, p.GetInt(1)) : euler.Y;
     }
 
@@ -55,9 +55,14 @@ internal static class YsmBindings
         var boneName = p.GetString(0);
         if (!service.BoneNodes.TryGetValue(boneName, out var bone)) return 0.0;
 
+        var basePosition = service.BasePositions is not null && service.BasePositions.TryGetValue(boneName, out var basePos)
+            ? basePos
+            : Vector3.Zero;
+        var delta = bone.Position - basePosition;
+        var bedrockPosition = new Vector3(-delta.X * 16f, delta.Y * 16f, delta.Z * 16f);
         return p.Contains(1)
-            ? GetAxis(bone.Position, p.GetInt(1))
-            : bone.Position.Length();
+            ? GetAxis(bedrockPosition, p.GetInt(1))
+            : bedrockPosition.Length();
     }
 
     private static double QueryBoneScale(MolangService service, MoParams p)
@@ -89,7 +94,7 @@ internal static class YsmBindings
         _ => 0f
     };
 
-    private static Vector3 ToEulerDegrees(Quaternion q)
+    private static Vector3 ToBedrockEulerDegrees(Quaternion q)
     {
         float sinrCosp = 2f * (q.W * q.X + q.Y * q.Z);
         float cosrCosp = 1f - 2f * (q.X * q.X + q.Y * q.Y);
@@ -104,9 +109,10 @@ internal static class YsmBindings
         float cosyCosp = 1f - 2f * (q.Y * q.Y + q.Z * q.Z);
         float yaw = MathF.Atan2(sinyCosp, cosyCosp);
 
+        float toDegrees = 180f / MathF.PI;
         return new Vector3(
-            roll * (180f / MathF.PI),
-            yaw * (180f / MathF.PI),
-            pitch * (180f / MathF.PI));
+            -roll * toDegrees,
+            -pitch * toDegrees,
+            yaw * toDegrees);
     }
 }
