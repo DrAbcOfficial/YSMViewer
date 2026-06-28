@@ -44,7 +44,11 @@ public partial class MainView : UserControl
         {
             Title = "Open YSM Model",
             AllowMultiple = false,
-            FileTypeFilter = [new FilePickerFileType("YSM/ZIP Models") { Patterns = ["*.ysm", "*.zip"] }],
+            FileTypeFilter = [new FilePickerFileType("YSM/ZIP Models")
+            {
+                Patterns = ["*.ysm", "*.zip"],
+                MimeTypes = ["application/vnd.ysm.model+encrypted", "application/zip", "application/x-zip-compressed"],
+            }],
         });
         if (files is not { Count: > 0 }) return;
         await using var stream = await files[0].OpenReadAsync();
