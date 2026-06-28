@@ -25,6 +25,10 @@ public sealed partial class ExtraAnimationItemViewModel : ObservableObject
 
     public int OriginalIndex { get; set; }
 
+    public ExtraAnimationSettingsGroupViewModel? SettingsGroup { get; set; }
+
+    public bool HasSettings => SettingsGroup is not null && SettingsGroup.Forms.Count > 0;
+
     public Action<ExtraAnimationItemViewModel>? OnSelected { get; set; }
 
     [RelayCommand]
@@ -32,6 +36,93 @@ public sealed partial class ExtraAnimationItemViewModel : ObservableObject
     {
         OnSelected?.Invoke(this);
     }
+}
+
+public sealed partial class ExtraAnimationSettingsGroupViewModel : ObservableObject
+{
+    [ObservableProperty]
+    public partial string Name { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string Description { get; set; } = string.Empty;
+
+    public string GroupId { get; set; } = string.Empty;
+    public ObservableCollection<ExtraAnimationFormViewModel> Forms { get; } = [];
+}
+
+public abstract partial class ExtraAnimationFormViewModel : ObservableObject
+{
+    [ObservableProperty]
+    public partial string Title { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string Description { get; set; } = string.Empty;
+}
+
+public sealed partial class ExtraAnimationBooleanFormViewModel : ExtraAnimationFormViewModel
+{
+    private readonly Action<bool> _onValueChanged;
+
+    [ObservableProperty]
+    public partial bool Value { get; set; }
+
+    public ExtraAnimationBooleanFormViewModel(Action<bool> onValueChanged)
+    {
+        _onValueChanged = onValueChanged;
+    }
+
+    partial void OnValueChanged(bool value)
+    {
+        _onValueChanged(value);
+    }
+}
+
+public sealed partial class ExtraAnimationRangeFormViewModel : ExtraAnimationFormViewModel
+{
+    private readonly Action<double> _onValueChanged;
+
+    [ObservableProperty]
+    public partial double Value { get; set; }
+
+    public double Min { get; set; }
+    public double Max { get; set; }
+    public double Step { get; set; }
+
+    public ExtraAnimationRangeFormViewModel(Action<double> onValueChanged)
+    {
+        _onValueChanged = onValueChanged;
+    }
+
+    partial void OnValueChanged(double value)
+    {
+        _onValueChanged(value);
+    }
+}
+
+public sealed partial class ExtraAnimationRadioFormViewModel : ExtraAnimationFormViewModel
+{
+    private readonly Action<ExtraAnimationRadioOptionViewModel?> _onValueChanged;
+
+    [ObservableProperty]
+    public partial ExtraAnimationRadioOptionViewModel? SelectedOption { get; set; }
+
+    public ObservableCollection<ExtraAnimationRadioOptionViewModel> Options { get; } = [];
+
+    public ExtraAnimationRadioFormViewModel(Action<ExtraAnimationRadioOptionViewModel?> onValueChanged)
+    {
+        _onValueChanged = onValueChanged;
+    }
+
+    partial void OnSelectedOptionChanged(ExtraAnimationRadioOptionViewModel? value)
+    {
+        _onValueChanged(value);
+    }
+}
+
+public sealed class ExtraAnimationRadioOptionViewModel
+{
+    public string Label { get; set; } = string.Empty;
+    public string Expression { get; set; } = string.Empty;
 }
 
 public sealed partial class ComponentViewModel : ObservableObject

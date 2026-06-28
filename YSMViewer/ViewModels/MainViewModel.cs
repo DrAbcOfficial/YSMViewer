@@ -31,6 +31,7 @@ public sealed partial class MainViewModel : ViewModelBase
 
     public ObservableCollection<string> AnimationNames { get; } = [];
     public ObservableCollection<ExtraAnimationGroupViewModel> ExtraAnimationGroups { get; } = [];
+    public ObservableCollection<ExtraAnimationSettingsGroupViewModel> OrphanExtraAnimationSettingsGroups { get; } = [];
     public ObservableCollection<ComponentViewModel> Components { get; } = [];
     public ObservableCollection<ComponentBoneGroupViewModel> BoneGroups { get; } = [];
     public ObservableCollection<TextureItemViewModel> TextureItems { get; } = [];
@@ -51,6 +52,9 @@ public sealed partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial bool HasExtraAnimations { get; set; }
+
+    [ObservableProperty]
+    public partial bool HasOrphanExtraAnimationSettings { get; set; }
 
     [ObservableProperty]
     public partial bool HasRawAnimations { get; set; }

@@ -3,6 +3,7 @@ using ConcreteMC.MolangSharp.Parser.Exceptions;
 using ConcreteMC.MolangSharp.Parser.Expressions;
 using ConcreteMC.MolangSharp.Runtime;
 using ConcreteMC.MolangSharp.Runtime.Value;
+using System.Globalization;
 
 namespace YSMViewer.Services.Molang;
 
@@ -76,6 +77,37 @@ public sealed class MolangService
         _contextDirty = true;
     }
 
+    public float EvaluatePreviewExpression(string expression)
+    {
+        return EvaluateString(expression);
+    }
+
+    public bool ExecutePreviewExpression(string expression)
+    {
+        if (string.IsNullOrWhiteSpace(expression))
+            return false;
+
+        bool handledAny = false;
+        bool allHandled = true;
+        var statements = expression.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var statement in statements)
+        {
+            if (TryExecuteSimpleAssignment(statement))
+            {
+                handledAny = true;
+                continue;
+            }
+
+            allHandled = false;
+        }
+
+        if (handledAny && allHandled)
+            return true;
+
+        EvaluateString(expression);
+        return false;
+    }
+
     public IReadOnlyDictionary<string, IMoValue> UserVariables => _userVariables;
 
     public void SetAnimVariable(string name, float value)
@@ -130,6 +162,38 @@ public sealed class MolangService
 
         var expr = Parse(expression);
         return Evaluate(expr);
+    }
+
+    private bool TryExecuteSimpleAssignment(string statement)
+    {
+        var idx = statement.IndexOf('=');
+        if (idx <= 0 || idx != statement.LastIndexOf('='))
+            return false;
+
+        var name = statement[..idx].Trim();
+        var valueExpression = statement[(idx + 1)..].Trim();
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(valueExpression))
+            return false;
+
+        if (!IsVariablePath(name))
+            return false;
+
+        float value = float.TryParse(valueExpression, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : EvaluateString(valueExpression);
+        SetUserVariable(name, value);
+        return true;
+    }
+
+    private static bool IsVariablePath(string name)
+    {
+        var dotIdx = name.IndexOf('.');
+        if (dotIdx <= 0 || dotIdx >= name.Length - 1)
+            return false;
+
+        var prefix = name.AsSpan(0, dotIdx);
+        return prefix.Equals("variable", StringComparison.OrdinalIgnoreCase)
+            || prefix.Equals("v", StringComparison.OrdinalIgnoreCase);
     }
 
     internal Dictionary<string, IMoValue> BuildContext() => GetContext();

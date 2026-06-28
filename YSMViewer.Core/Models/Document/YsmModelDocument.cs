@@ -39,14 +39,28 @@ public sealed record YsmExtraAnimationEntry(
     string Key,
     string DisplayName,
     string Category,
-    int OriginalIndex);
+    int OriginalIndex,
+    string? ConfigGroupId);
 
-// Future extra_animation_buttons implementation hook. The parser preserves only
-// group-level metadata for now; config form execution belongs in the UI layer.
 public sealed record YsmExtraAnimationButtonDefinition(
     string Id,
     string Name,
-    string Description);
+    string Description,
+    IReadOnlyList<YsmExtraAnimationForm> Forms);
+
+public sealed record YsmExtraAnimationForm(
+    string Type,
+    string Title,
+    string Description,
+    string Value,
+    float Step,
+    float Min,
+    float Max,
+    IReadOnlyList<YsmExtraAnimationRadioOption> Labels);
+
+public sealed record YsmExtraAnimationRadioOption(
+    string Label,
+    string Expression);
 
 public sealed record YsmDocumentModelInfo(
     string Name,

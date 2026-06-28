@@ -465,7 +465,7 @@ public sealed class YsmLoaderService
             {
                 var key = $"extra{index}";
                 var displayName = item.ValueKind == JsonValueKind.String ? item.GetString() ?? string.Empty : string.Empty;
-                result.Add(new YsmExtraAnimationEntry(key, string.IsNullOrWhiteSpace(displayName) ? key : displayName, string.Empty, index));
+                result.Add(new YsmExtraAnimationEntry(key, string.IsNullOrWhiteSpace(displayName) ? key : displayName, string.Empty, index, null));
                 index++;
             }
         }
@@ -488,7 +488,7 @@ public sealed class YsmLoaderService
             if (!available.Contains(key))
                 continue;
 
-            result.Add(new YsmExtraAnimationEntry(key, key, string.Empty, i));
+            result.Add(new YsmExtraAnimationEntry(key, key, string.Empty, i, null));
         }
 
         return result;
@@ -508,17 +508,22 @@ public sealed class YsmLoaderService
                 ? property.Value.GetString() ?? string.Empty
                 : string.Empty;
 
-            if (key.Equals("#return", StringComparison.OrdinalIgnoreCase) || key.StartsWith('#') || displayName.StartsWith('#'))
+            if (key.Equals("#return", StringComparison.OrdinalIgnoreCase) || key.StartsWith('#'))
             {
                 index++;
                 continue;
             }
 
+            var configGroupId = displayName.StartsWith('#') && displayName.Length > 1
+                ? displayName[1..]
+                : null;
+
             result.Add(new YsmExtraAnimationEntry(
                 key,
-                string.IsNullOrWhiteSpace(displayName) ? key : displayName,
+                string.IsNullOrWhiteSpace(displayName) || configGroupId is not null ? key : displayName,
                 category,
-                index));
+                index,
+                configGroupId));
             index++;
         }
 
@@ -592,7 +597,55 @@ public sealed class YsmLoaderService
             result.Add(new YsmExtraAnimationButtonDefinition(
                 id,
                 GetOptionalString(item, "name") ?? id,
-                GetOptionalString(item, "description") ?? string.Empty));
+                GetOptionalString(item, "description") ?? string.Empty,
+                ParseExtraAnimationForms(item)));
+        }
+
+        return result;
+    }
+
+    private static List<YsmExtraAnimationForm> ParseExtraAnimationForms(JsonElement buttonElement)
+    {
+        var result = new List<YsmExtraAnimationForm>();
+        if (!buttonElement.TryGetProperty("config_forms", out var formsElement) || formsElement.ValueKind != JsonValueKind.Array)
+            return result;
+
+        foreach (var formElement in formsElement.EnumerateArray())
+        {
+            if (formElement.ValueKind != JsonValueKind.Object)
+                continue;
+
+            var type = GetOptionalString(formElement, "type") ?? string.Empty;
+            var title = GetOptionalString(formElement, "title") ?? string.Empty;
+            var description = GetOptionalString(formElement, "description") ?? string.Empty;
+            var value = GetOptionalString(formElement, "value") ?? string.Empty;
+            var step = GetOptionalFloat(formElement, "step");
+            var min = GetOptionalFloat(formElement, "min");
+            var max = GetOptionalFloat(formElement, "max");
+            var labels = ParseRadioLabels(formElement);
+
+            if (string.IsNullOrWhiteSpace(type) || string.IsNullOrWhiteSpace(value))
+                continue;
+
+            result.Add(new YsmExtraAnimationForm(type, title, description, value, step, min, max, labels));
+        }
+
+        return result;
+    }
+
+    private static List<YsmExtraAnimationRadioOption> ParseRadioLabels(JsonElement formElement)
+    {
+        var result = new List<YsmExtraAnimationRadioOption>();
+        if (!formElement.TryGetProperty("labels", out var labelsElement) || labelsElement.ValueKind != JsonValueKind.Object)
+            return result;
+
+        foreach (var label in labelsElement.EnumerateObject())
+        {
+            var expression = label.Value.ValueKind == JsonValueKind.String
+                ? label.Value.GetString() ?? string.Empty
+                : string.Empty;
+            if (!string.IsNullOrWhiteSpace(expression))
+                result.Add(new YsmExtraAnimationRadioOption(label.Name, expression));
         }
 
         return result;
@@ -603,6 +656,17 @@ public sealed class YsmLoaderService
         return element.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String
             ? property.GetString()
             : null;
+    }
+
+    private static float GetOptionalFloat(JsonElement element, string propertyName)
+    {
+        if (!element.TryGetProperty(propertyName, out var property))
+            return 0f;
+        if (property.ValueKind == JsonValueKind.Number && property.TryGetSingle(out var value))
+            return value;
+        if (property.ValueKind == JsonValueKind.String && float.TryParse(property.GetString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out value))
+            return value;
+        return 0f;
     }
 
     private static List<YsmBoneInfo> ConvertBones(List<MinecraftBone> bones)

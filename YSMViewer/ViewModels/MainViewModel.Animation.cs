@@ -1,4 +1,6 @@
 using Avalonia.Threading;
+using System.Globalization;
+using YSMViewer.Models.Document;
 using YSMViewer.Rendering;
 
 namespace YSMViewer.ViewModels;
@@ -12,9 +14,11 @@ public sealed partial class MainViewModel
     {
         HasAnimations = false;
         HasExtraAnimations = false;
+        HasOrphanExtraAnimationSettings = false;
         HasRawAnimations = false;
         AnimationNames.Clear();
         ExtraAnimationGroups.Clear();
+        OrphanExtraAnimationSettingsGroups.Clear();
         CurrentAnimationName = string.Empty;
         _suppressAnimChanged = false;
         IsAnimating = false;
@@ -44,14 +48,19 @@ public sealed partial class MainViewModel
     {
         ExtraAnimationGroups.Clear();
         HasExtraAnimations = document.ExtraAnimations.HasEntries;
+        var settingsGroups = BuildExtraAnimationSettingsGroups(document);
+        var usedSettingsGroupIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (!HasExtraAnimations)
+        {
+            PopulateOrphanExtraAnimationSettings(settingsGroups, usedSettingsGroupIds);
             return;
+        }
 
         if (document.ExtraAnimations.RootEntries.Count > 0)
         {
             var rootGroup = new ExtraAnimationGroupViewModel { Name = "Root" };
             foreach (var entry in document.ExtraAnimations.RootEntries)
-                rootGroup.Entries.Add(CreateExtraAnimationItem(entry));
+                rootGroup.Entries.Add(CreateExtraAnimationItem(entry, settingsGroups, usedSettingsGroupIds));
             ExtraAnimationGroups.Add(rootGroup);
         }
 
@@ -62,21 +71,148 @@ public sealed partial class MainViewModel
 
             var groupVm = new ExtraAnimationGroupViewModel { Name = group.DisplayName };
             foreach (var entry in group.Entries)
-                groupVm.Entries.Add(CreateExtraAnimationItem(entry));
+                groupVm.Entries.Add(CreateExtraAnimationItem(entry, settingsGroups, usedSettingsGroupIds));
             ExtraAnimationGroups.Add(groupVm);
         }
+
+        PopulateOrphanExtraAnimationSettings(settingsGroups, usedSettingsGroupIds);
     }
 
-    private ExtraAnimationItemViewModel CreateExtraAnimationItem(Models.Document.YsmExtraAnimationEntry entry)
+    private ExtraAnimationItemViewModel CreateExtraAnimationItem(
+        YsmExtraAnimationEntry entry,
+        IReadOnlyDictionary<string, ExtraAnimationSettingsGroupViewModel> settingsGroups,
+        HashSet<string> usedSettingsGroupIds)
     {
+        ExtraAnimationSettingsGroupViewModel? settingsGroup = null;
+        if (!string.IsNullOrWhiteSpace(entry.ConfigGroupId)
+            && settingsGroups.TryGetValue(entry.ConfigGroupId, out settingsGroup))
+        {
+            usedSettingsGroupIds.Add(entry.ConfigGroupId);
+        }
+
         return new ExtraAnimationItemViewModel
         {
             DisplayName = entry.DisplayName,
             AnimationName = entry.Key,
             Category = entry.Category,
             OriginalIndex = entry.OriginalIndex,
+            SettingsGroup = settingsGroup,
             OnSelected = item => SelectAnimation(item.AnimationName),
         };
+    }
+
+    private Dictionary<string, ExtraAnimationSettingsGroupViewModel> BuildExtraAnimationSettingsGroups(YsmModelDocument document)
+    {
+        var result = new Dictionary<string, ExtraAnimationSettingsGroupViewModel>(StringComparer.OrdinalIgnoreCase);
+        foreach (var definition in document.ExtraAnimations.ButtonDefinitions)
+        {
+            var group = new ExtraAnimationSettingsGroupViewModel
+            {
+                GroupId = definition.Id,
+                Name = string.IsNullOrWhiteSpace(definition.Name) ? definition.Id : definition.Name,
+                Description = definition.Description,
+            };
+
+            foreach (var form in definition.Forms)
+            {
+                var formVm = CreateExtraAnimationForm(form);
+                if (formVm is not null)
+                    group.Forms.Add(formVm);
+            }
+
+            if (group.Forms.Count > 0)
+                result[definition.Id] = group;
+        }
+
+        return result;
+    }
+
+    private ExtraAnimationFormViewModel? CreateExtraAnimationForm(YsmExtraAnimationForm form)
+    {
+        if (Renderer is not IAnimationRenderer { MolangService: { } molang })
+            return null;
+
+        var type = form.Type.ToLowerInvariant();
+        return type switch
+        {
+            "checkbox" => CreateBooleanForm(form, molang),
+            "range" => CreateRangeForm(form, molang),
+            "radio" => CreateRadioForm(form, molang),
+            _ => null,
+        };
+    }
+
+    private static ExtraAnimationBooleanFormViewModel CreateBooleanForm(YsmExtraAnimationForm form, Services.Molang.MolangService molang)
+    {
+        var item = new ExtraAnimationBooleanFormViewModel(value => molang.ExecutePreviewExpression($"{form.Value}={(value ? "1" : "0")}"))
+        {
+            Title = FormTitle(form),
+            Description = form.Description,
+            Value = molang.EvaluatePreviewExpression(form.Value) > 0.5f,
+        };
+        return item;
+    }
+
+    private static ExtraAnimationRangeFormViewModel CreateRangeForm(YsmExtraAnimationForm form, Services.Molang.MolangService molang)
+    {
+        var min = form.Min;
+        var max = form.Max > form.Min ? form.Max : form.Min + 1f;
+        var item = new ExtraAnimationRangeFormViewModel(value => molang.ExecutePreviewExpression($"{form.Value}={value.ToString(CultureInfo.InvariantCulture)}"))
+        {
+            Title = FormTitle(form),
+            Description = form.Description,
+            Min = min,
+            Max = max,
+            Step = form.Step > 0f ? form.Step : 0.1f,
+            Value = Math.Clamp(molang.EvaluatePreviewExpression(form.Value), min, max),
+        };
+        return item;
+    }
+
+    private static ExtraAnimationRadioFormViewModel CreateRadioForm(YsmExtraAnimationForm form, Services.Molang.MolangService molang)
+    {
+        var current = Math.Round(molang.EvaluatePreviewExpression(form.Value));
+        var item = new ExtraAnimationRadioFormViewModel(option =>
+        {
+            if (option is not null)
+                molang.ExecutePreviewExpression(option.Expression);
+        })
+        {
+            Title = FormTitle(form),
+            Description = form.Description,
+        };
+
+        foreach (var label in form.Labels)
+        {
+            var option = new ExtraAnimationRadioOptionViewModel { Label = label.Label, Expression = label.Expression };
+            item.Options.Add(option);
+            if (double.TryParse(label.Label, NumberStyles.Float, CultureInfo.InvariantCulture, out var numericLabel)
+                && Math.Abs(numericLabel - current) < 0.001)
+            {
+                item.SelectedOption = option;
+            }
+        }
+
+        item.SelectedOption ??= item.Options.FirstOrDefault();
+        return item;
+    }
+
+    private static string FormTitle(YsmExtraAnimationForm form)
+    {
+        return string.IsNullOrWhiteSpace(form.Title) ? form.Value : form.Title;
+    }
+
+    private void PopulateOrphanExtraAnimationSettings(
+        IReadOnlyDictionary<string, ExtraAnimationSettingsGroupViewModel> settingsGroups,
+        HashSet<string> usedSettingsGroupIds)
+    {
+        OrphanExtraAnimationSettingsGroups.Clear();
+        foreach (var group in settingsGroups.Values.OrderBy(g => g.GroupId, StringComparer.OrdinalIgnoreCase))
+        {
+            if (!usedSettingsGroupIds.Contains(group.GroupId))
+                OrphanExtraAnimationSettingsGroups.Add(group);
+        }
+        HasOrphanExtraAnimationSettings = OrphanExtraAnimationSettingsGroups.Count > 0;
     }
 
     partial void OnIsAnimatingChanged(bool value)
