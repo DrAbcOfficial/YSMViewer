@@ -19,16 +19,8 @@ internal static class YsmBindings
                     p.GetDouble(1),
                     p.Contains(2) ? p.GetDouble(2) : 0.0,
                     p.Contains(3) ? p.GetDouble(3) : 0.0),
-            ["first_order"] = p => service.Physics.FirstOrder(
-                    p.GetString(0), p.GetDouble(1),
-                    p.Contains(2) ? p.GetDouble(2) : 1.0,
-                    0, 0),
-            ["second_order"] = p => service.Physics.SecondOrder(
-                    p.GetString(0), p.GetDouble(1),
-                    p.Contains(2) ? p.GetDouble(2) : 1.0,
-                    p.Contains(3) ? p.GetDouble(3) : 1.0,
-                    p.Contains(4) ? p.GetDouble(4) : 1.0,
-                    p.GetDouble(1)),
+            ["first_order"] = p => FirstOrder(service, p),
+            ["second_order"] = p => SecondOrder(service, p),
             ["play_sound"] = p => { service.AudioHost?.PlaySound(p.GetString(0)); return 0.0; },
             ["stop_sound"] = p => { service.AudioHost?.StopSound(p.GetString(0)); return 0.0; },
             ["stop_all_sounds"] = _ => { service.AudioHost?.StopAllSounds(); return 0.0; },
@@ -37,6 +29,36 @@ internal static class YsmBindings
         };
 
         return new QueryStruct(functions);
+    }
+
+    private static double FirstOrder(MolangService service, MoParams p)
+    {
+        if (!p.Contains(0) || !p.Contains(1)) return 0.0;
+        var id = p.GetString(0);
+        if (string.IsNullOrEmpty(id)) return 0.0;
+
+        return service.Physics.FirstOrder(
+            id,
+            p.GetDouble(1),
+            p.Contains(2) ? p.GetDouble(2) : 1.0,
+            0.0,
+            0.0);
+    }
+
+    private static double SecondOrder(MolangService service, MoParams p)
+    {
+        if (!p.Contains(0) || !p.Contains(1)) return 0.0;
+        var id = p.GetString(0);
+        if (string.IsNullOrEmpty(id)) return 0.0;
+
+        var input = p.GetDouble(1);
+        return service.Physics.SecondOrder(
+            id,
+            input,
+            p.Contains(2) ? p.GetDouble(2) : 1.0,
+            p.Contains(3) ? p.GetDouble(3) : 1.0,
+            p.Contains(4) ? p.GetDouble(4) : 1.0,
+            input);
     }
 
     private static double QueryBoneRotation(MolangService service, MoParams p)

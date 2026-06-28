@@ -13,6 +13,7 @@ public sealed record RenderTheme(
 
 public sealed record RendererCapabilities(
     bool SupportsAnimation,
+    bool SupportsPhysicalMolang,
     bool SupportsComponentVisibility,
     bool SupportsBoneVisibility,
     bool SupportsTextureProjection,
@@ -23,6 +24,7 @@ public sealed record RendererCapabilities(
 {
     public static RendererCapabilities Desktop { get; } = new(
         SupportsAnimation: true,
+        SupportsPhysicalMolang: true,
         SupportsComponentVisibility: true,
         SupportsBoneVisibility: true,
         SupportsTextureProjection: false,
@@ -33,6 +35,7 @@ public sealed record RendererCapabilities(
 
     public static RendererCapabilities Browser { get; } = new(
         SupportsAnimation: true,
+        SupportsPhysicalMolang: false,
         SupportsComponentVisibility: true,
         SupportsBoneVisibility: true,
         SupportsTextureProjection: false,

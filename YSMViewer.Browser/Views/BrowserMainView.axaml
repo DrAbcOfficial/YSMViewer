@@ -90,7 +90,7 @@
                         Background="#CC1b2a4e" Padding="10,8" Margin="0">
                     <Grid>
                         <TextBlock
-                            Text="&#x26A0; Web version features WebGL-accelerated 3D rendering. Performance may vary by browser and device."
+                            Text="&#x26A0; Web version uses WebGL rendering and does not support physical MoLang (ysm.first_order / ysm.second_order). Performance may vary by browser and device."
                             FontSize="11" Foreground="#FFCC00"
                             TextWrapping="Wrap" TextAlignment="Center"
                             HorizontalAlignment="Center" VerticalAlignment="Center"

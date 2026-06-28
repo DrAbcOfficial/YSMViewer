@@ -2,6 +2,7 @@ using ConcreteMC.MolangSharp.Parser;
 using ConcreteMC.MolangSharp.Parser.Exceptions;
 using ConcreteMC.MolangSharp.Parser.Expressions;
 using ConcreteMC.MolangSharp.Runtime;
+using ConcreteMC.MolangSharp.Runtime.Exceptions;
 using ConcreteMC.MolangSharp.Runtime.Value;
 using System.Globalization;
 
@@ -54,6 +55,7 @@ public sealed class MolangService
         env.Structs["q"] = env.Structs["query"];
         env.Structs["ysm"] = YsmBindings.CreateYsmStruct(this);
         env.Structs["ctrl"] = CtrlBindings.CreateCtrlStruct(this);
+        env.Structs["tlm"] = NullMolangStruct.Instance;
 
         _fnStruct = FnBindings.CreateFnStruct(this);
         env.Structs["fn"] = _fnStruct;
@@ -149,8 +151,15 @@ public sealed class MolangService
             return (float)num.Evaluate(null!, _runtime.Environment).AsDouble();
 
         var context = GetContext();
-        var result = _runtime.Execute(expr, context);
-        return (float)result.AsDouble();
+        try
+        {
+            var result = _runtime.Execute(expr, context);
+            return (float)result.AsDouble();
+        }
+        catch (MoLangRuntimeException)
+        {
+            return 0.0f;
+        }
     }
 
     public float EvaluateString(string expression)
@@ -222,6 +231,8 @@ public sealed class MolangService
         _contextDirty = true;
         Physics.UpdateAll(deltaTime);
     }
+
+    public void ResetPhysics() => Physics.Clear();
 
     public double SafeGetUserVar(string name, double defaultValue = 0.0)
     {

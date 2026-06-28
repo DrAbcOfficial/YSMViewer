@@ -132,6 +132,12 @@ public sealed class PhysicsSimulator
             UpdateSecondOrder(state, deltaTime);
     }
 
+    public void Clear()
+    {
+        _firstOrderStates.Clear();
+        _secondOrderStates.Clear();
+    }
+
     public static double PerlinNoise(double seed, double x, double y = 0.0, double z = 0.0)
     {
         int px = FastFloor((float)x);

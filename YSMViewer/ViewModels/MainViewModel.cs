@@ -23,6 +23,7 @@ public sealed partial class MainViewModel : ViewModelBase
         is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime;
 
     public bool SupportsAnimation => Renderer.Capabilities.SupportsAnimation;
+    public bool SupportsPhysicalMolang => Renderer.Capabilities.SupportsPhysicalMolang;
     public bool SupportsComponentVisibility => Renderer.Capabilities.SupportsComponentVisibility;
     public bool SupportsBoneVisibility => Renderer.Capabilities.SupportsBoneVisibility;
     public bool SupportsAutoRotation => Renderer.Capabilities.SupportsAutoRotation;
