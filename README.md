@@ -82,6 +82,8 @@ cd publish/thumbnail-xdg
 
 The macOS provider is a minimal Objective-C Quick Look generator that loads the NativeAOT rendering library from the generator bundle.
 
+> **Note:** I do not have a macOS machine. The OSX thumbnail provider can only be compile-checked via CI; no runtime testing is possible.
+
 ```bash
 dotnet publish ThumbnailProviders/YSMViewer.ThumbnailProvider -c Release -r osx-arm64 -o publish/thumbnail-osx/native
 make -C ThumbnailProviders/YSMViewer.ThumbnailProvider.OSX BUILD_DIR="$PWD/publish/thumbnail-osx" NATIVE_LIB="$PWD/publish/thumbnail-osx/native/libYSMViewer.ThumbnailProvider.dylib"
