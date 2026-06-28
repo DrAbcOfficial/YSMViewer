@@ -57,7 +57,7 @@ public sealed class MolangService
         _fnStruct = FnBindings.CreateFnStruct(this);
         env.Structs["fn"] = _fnStruct;
 
-        env.Structs["variable"] = new MolangVariableStruct(_userVariables, _animVariables);
+        env.Structs["variable"] = new MolangVariableStruct(_userVariables, _animVariables, () => _contextDirty = true);
         env.Structs["temp"] = _tempStruct;
         env.Structs["context"] = _contextStruct;
         env.Structs["c"] = _contextStruct;

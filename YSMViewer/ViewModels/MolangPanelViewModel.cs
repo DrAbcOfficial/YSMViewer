@@ -95,6 +95,7 @@ public sealed partial class MolangPanelViewModel : ObservableObject
             var item = CreateDefaultItem(name);
             item.ValueChanged += OnVariableValueChanged;
             Variables.Add(item);
+            OnVariableValueChanged(item, item.Value);
         }
     }
 

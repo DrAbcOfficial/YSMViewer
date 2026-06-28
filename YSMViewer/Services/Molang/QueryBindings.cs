@@ -15,8 +15,8 @@ internal static class QueryBindings
             ["frame_time"] = _ => service.SafeGetUserOrAnimVar("frame_time"),
             ["anim_time_scale"] = _ => service.SafeGetUserVar("anim_time_scale", 1.0),
 
-            ["all_animations_finished"] = _ => service.SafeGetUserVar("all_animations_finished"),
-            ["any_animation_finished"] = _ => service.SafeGetUserVar("any_animation_finished"),
+            ["all_animations_finished"] = _ => service.SafeGetUserOrAnimVar("all_animations_finished"),
+            ["any_animation_finished"] = _ => service.SafeGetUserOrAnimVar("any_animation_finished"),
 
             ["ground_speed"] = _ => service.SafeGetUserVar("ground_speed"),
             ["vertical_speed"] = _ => service.SafeGetUserVar("vertical_speed"),

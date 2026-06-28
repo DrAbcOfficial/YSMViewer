@@ -7,7 +7,8 @@ namespace YSMViewer.Services.Molang;
 
 internal sealed class MolangVariableStruct(
     Dictionary<string, IMoValue> userVars,
-    Dictionary<string, IMoValue> animVars) : IMoStruct
+    Dictionary<string, IMoValue> animVars,
+    Action markDirty) : IMoStruct
 {
     public object Value => this;
 
@@ -27,12 +28,18 @@ internal sealed class MolangVariableStruct(
     {
         if (key.HasChildren)
         {
-            if (TryGetFlat(key.Value, out var parent) && parent is IMoStruct childStruct)
-                childStruct.Set(key.Next, value);
+            if (!userVars.TryGetValue(key.Value, out var parent) || parent is not IMoStruct childStruct)
+            {
+                childStruct = new VariableStruct();
+                userVars[key.Value] = childStruct;
+            }
+            childStruct.Set(key.Next, value);
+            markDirty();
             return;
         }
 
-        animVars[key.Value] = value;
+        userVars[key.Value] = value;
+        markDirty();
     }
 
     public void Clear() { }
