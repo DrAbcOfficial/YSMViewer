@@ -224,7 +224,7 @@ jobs:
         run: |
           cd publish/thumbnail
           zip -r ../YSMViewer-ThumbnailProvider-win-x64.zip win-x64/
-          zip -r ../YSMViewer-ThumbnailProvider-linux-x64.zip linux-x64/
+          zip -r ../YSMViewer-ThumbnailProvider-linux-x64-xdg.zip linux-x64/
           zip -r ../YSMViewer-ThumbnailProvider-osx-arm64.zip osx-arm64/
 
       - name: Create Release
@@ -236,7 +236,7 @@ jobs:
             publish/YSMViewer-osx-arm64.zip
             publish/YSMViewer-Browser.zip
             publish/YSMViewer-ThumbnailProvider-win-x64.zip
-            publish/YSMViewer-ThumbnailProvider-linux-x64.zip
+            publish/YSMViewer-ThumbnailProvider-linux-x64-xdg.zip
             publish/YSMViewer-ThumbnailProvider-osx-arm64.zip
           generate_release_notes: true
 

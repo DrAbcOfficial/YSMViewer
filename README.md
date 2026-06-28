@@ -45,7 +45,7 @@ dotnet run --project YSMViewer.Desktop -- path/to/model.ysm
 | `YSMViewer.Browser/` | `net10.0-browser` (WASM) | Browser launcher |
 | `ThumbnailProviders/YSMViewer.ThumbnailProvider/` | `net10.0` | NativeAOT thumbnail rendering library |
 | `ThumbnailProviders/YSMViewer.ThumbnailProvider.Win/` | Native (C++/COM) | Windows Explorer thumbnail provider |
-| `ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG/` | `net10.0` NativeAOT | Linux XDG thumbnailer CLI |
+| `ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG/` | Native (C) | Linux XDG thumbnailer CLI |
 | `ThumbnailProviders/YSMViewer.ThumbnailProvider.OSX/` | Objective-C | macOS Quick Look thumbnail provider |
 
 ### Windows Thumbnail Provider
@@ -71,11 +71,21 @@ msbuild ThumbnailProviders\YSMViewer.ThumbnailProvider.Win\YSMViewer.ThumbnailPr
 The XDG thumbnailer uses MIME `application/vnd.ysm.model+encrypted` and covers file managers that honor freedesktop thumbnailers, such as Nautilus, Nemo, Caja, and Thunar. KDE Dolphin may require a future KIO plugin for first-class support.
 
 ```bash
+# Publish NativeAOT rendering library
 dotnet publish ThumbnailProviders/YSMViewer.ThumbnailProvider -c Release -r linux-x64 -o publish/thumbnail-xdg
+
+# Build CLI
 make -C ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG BUILD_DIR="$PWD/publish/thumbnail-xdg"
-cp ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG/*.sh ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG/*.in ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG/*.xml publish/thumbnail-xdg/
-cd publish/thumbnail-xdg
-./install.sh
+
+# Copy metadata and install scripts
+cp ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG/ysm.thumbnailer.in publish/thumbnail-xdg/
+cp ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG/application-vnd-ysm-model-encrypted.xml publish/thumbnail-xdg/
+cp ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG/install.sh publish/thumbnail-xdg/
+cp ThumbnailProviders/YSMViewer.ThumbnailProvider.XDG/uninstall.sh publish/thumbnail-xdg/
+chmod +x publish/thumbnail-xdg/ysm-thumbnailer
+
+# Install (user-level)
+./publish/thumbnail-xdg/install.sh
 ```
 
 ### macOS Thumbnail Provider

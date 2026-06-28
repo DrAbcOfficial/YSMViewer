@@ -13,6 +13,7 @@
     <PublishAot>true</PublishAot>
     <IsTrimmable>true</IsTrimmable>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <OptimizationPreference>Size</OptimizationPreference>
     <IlcOptimizationPreference>Size</IlcOptimizationPreference>
     <IlcFoldIdenticalMethods>true</IlcFoldIdenticalMethods>
     <EnableComHosting>false</EnableComHosting>
