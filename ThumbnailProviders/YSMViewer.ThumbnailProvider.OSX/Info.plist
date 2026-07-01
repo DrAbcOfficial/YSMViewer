@@ -7,7 +7,7 @@
   <key>CFBundleExecutable</key>
   <string>YSMViewerThumbnailProvider</string>
   <key>CFBundleIdentifier</key>
-  <string>com.drabc.ysmviewer.thumbnailprovider</string>
+  <string>net.drabc.ysmviewer.thumbnailprovider</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
