@@ -41,6 +41,9 @@ public partial class ModelToolBar : UserControl
     private async void OnOpenButtonClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
+        if (vm.TryOpenPlatformFilePickerAsync is not null && await vm.TryOpenPlatformFilePickerAsync())
+            return;
+
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel?.StorageProvider is not { } storage) return;
         var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions

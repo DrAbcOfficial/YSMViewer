@@ -44,6 +44,7 @@ public sealed partial class MainViewModel : ViewModelBase
 
     public string? StartupFilePath { get; set; }
     public string? StartupFileUrl { get; set; }
+    public Func<Task<bool>>? TryOpenPlatformFilePickerAsync { get; set; }
 
     [ObservableProperty]
     public partial bool HasAnimationController { get; set; }

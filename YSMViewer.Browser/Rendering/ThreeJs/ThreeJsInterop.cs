@@ -64,12 +64,23 @@ public static partial class ThreeJsInterop
     [JSImport("globalThis.ysmHideRestoreBtn")]
     public static partial void HideRestoreButton();
 
+    [JSImport("globalThis.ysmOpenAndroidFile")]
+    public static partial bool OpenAndroidFilePicker();
+
     [JSExport]
     public static void OnRestoreButtonClicked()
     {
         RestoreButtonClicked?.Invoke();
     }
 
+    [JSExport]
+    public static Task LoadAndroidFile(byte[] data)
+    {
+        return AndroidFileLoaded?.Invoke(data) ?? Task.CompletedTask;
+    }
+
     public static event Action? RestoreButtonClicked;
+
+    public static event Func<byte[], Task>? AndroidFileLoaded;
 
 }

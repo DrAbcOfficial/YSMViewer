@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
@@ -29,6 +30,8 @@ public partial class BrowserMainView : UserControl
         DragDrop.AddDragLeaveHandler(this, OnDragLeaveHandler);
 
         ThreeJsInterop.RestoreButtonClicked += OnRestoreButtonFromHtml;
+        ThreeJsInterop.AndroidFileLoaded += OnAndroidFileLoaded;
+        Unloaded += (_, _) => ThreeJsInterop.AndroidFileLoaded -= OnAndroidFileLoaded;
 
         ThemeService.Instance.ModeChanged += _ => UpdateSceneAppearance();
     }
@@ -36,6 +39,9 @@ public partial class BrowserMainView : UserControl
     private async void OnOpenButtonClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
+        if (vm.TryOpenPlatformFilePickerAsync is not null && await vm.TryOpenPlatformFilePickerAsync())
+            return;
+
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel?.StorageProvider is not { } storage) return;
         var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -55,14 +61,46 @@ public partial class BrowserMainView : UserControl
         await vm.LoadFromBytesAsync(ms.ToArray());
     }
 
+    private Task OnAndroidFileLoaded(byte[] data)
+    {
+        var completion = new TaskCompletionSource();
+        Dispatcher.UIThread.Post(async () =>
+        {
+            try
+            {
+                if (DataContext is MainViewModel vm)
+                    await vm.LoadFromBytesAsync(data);
+                completion.SetResult();
+            }
+            catch (Exception ex)
+            {
+                completion.SetException(ex);
+            }
+        });
+        return completion.Task;
+    }
+
     private void OnLoaded(object? sender, RoutedEventArgs e)
     {
         UpdateSceneAppearance();
         if (DataContext is MainViewModel vm)
         {
+            vm.TryOpenPlatformFilePickerAsync = TryOpenAndroidFilePicker;
             UpdateMobileState();
             SyncButtonVisibility();
             _ = vm.LoadStartupFileIfNeeded();
+        }
+    }
+
+    private Task<bool> TryOpenAndroidFilePicker()
+    {
+        try
+        {
+            return Task.FromResult(ThreeJsInterop.OpenAndroidFilePicker());
+        }
+        catch
+        {
+            return Task.FromResult(false);
         }
     }
 

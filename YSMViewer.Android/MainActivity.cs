@@ -88,7 +88,20 @@ public sealed class MainActivity : Activity
             return;
         }
 
-        base.OnBackPressed();
+        Finish();
+    }
+
+    protected override void OnDestroy()
+    {
+        if (_webView is not null)
+        {
+            _webView.RemoveJavascriptInterface("YSMAndroid");
+            _webView.StopLoading();
+            _webView.Destroy();
+            _webView = null;
+        }
+
+        base.OnDestroy();
     }
 
     internal void OpenModelFilePicker()
@@ -227,7 +240,9 @@ public sealed class MainActivity : Activity
     {
         public override WebResourceResponse? ShouldInterceptRequest(WebView? view, IWebResourceRequest? request)
         {
-            if (request?.Url is not { } uri || uri.Host != "ysmviewer.app")
+            if (request?.Url is not { } uri ||
+                uri.Scheme != "https" ||
+                uri.Host != "ysmviewer.app")
                 return base.ShouldInterceptRequest(view, request);
 
             try
@@ -247,6 +262,26 @@ public sealed class MainActivity : Activity
         {
             base.OnPageFinished(view, url);
             activity.TryLoadSelectedFileInWebView();
+        }
+
+        public override bool ShouldOverrideUrlLoading(WebView? view, IWebResourceRequest? request)
+        {
+            if (request?.Url is not { } uri)
+                return true;
+
+            if (uri.Scheme == "https" && uri.Host == "ysmviewer.app")
+                return false;
+
+            try
+            {
+                activity.StartActivity(new Intent(Intent.ActionView, uri));
+            }
+            catch
+            {
+                Toast.MakeText(activity, "Unable to open link.", ToastLength.Short)?.Show();
+            }
+
+            return true;
         }
 
         private static string? GetEncoding(string mimeType)

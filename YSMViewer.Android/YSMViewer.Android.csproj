@@ -9,6 +9,7 @@
     <ApplicationVersion>1</ApplicationVersion>
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <RuntimeIdentifier>android-arm64</RuntimeIdentifier>
+    <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
     <BrowserPublishRoot>browser-publish</BrowserPublishRoot>
     <MonoAndroidAssetsPrefix>Assets;$(BrowserPublishRoot)</MonoAndroidAssetsPrefix>
   </PropertyGroup>
@@ -19,6 +20,9 @@
 
   <Target Name="PublishBrowserForAndroid" BeforeTargets="AssignTargetPaths">
     <RemoveDir Directories="$(BrowserPublishRoot)" />
+    <ItemGroup>
+      <AndroidAsset Remove="$(BrowserPublishRoot)\**\*" />
+    </ItemGroup>
     <Exec Command="dotnet publish &quot;..\YSMViewer.Browser\YSMViewer.Browser.csproj&quot; -c $(Configuration) -o &quot;$(MSBuildProjectDirectory)\$(BrowserPublishRoot)&quot;" />
     <ItemGroup>
       <RedundantBrowserAsset Include="$(BrowserPublishRoot)\wwwroot\**\*.br;$(BrowserPublishRoot)\wwwroot\**\*.gz" />

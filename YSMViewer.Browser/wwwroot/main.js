@@ -33,14 +33,34 @@ globalThis.ysmHideRestoreBtn = () => {
     if (restoreBtn) restoreBtn.style.display = 'none';
 };
 
+// ── Android WebView bridge ──────────────────────────────────────────────────
+globalThis.ysmOpenAndroidFile = () => {
+    if (globalThis.YSMAndroid?.openModelFile) {
+        globalThis.YSMAndroid.openModelFile();
+        return true;
+    }
+    return false;
+};
+
 // ── Dotnet WASM runtime ─────────────────────────────────────────────────────
 const { getAssemblyExports, getConfig, runMain } = await dotnet
     .withDiagnosticTracing(false)
     .withApplicationArgumentsFromQuery()
     .create();
 
+const exportsPromise = getAssemblyExports("YSMViewer.Browser.dll");
+
+globalThis.ysmLoadAndroidFile = async (url) => {
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Failed to load Android file: ${response.status}`);
+
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const exports = await exportsPromise;
+    await exports.YSMViewer.Rendering.ThreeJs.ThreeJsInterop.LoadAndroidFile(bytes);
+};
+
 // Wire up the restore button click to call back into C#
-getAssemblyExports("YSMViewer.Browser.dll").then(exports => {
+exportsPromise.then(exports => {
     const interop = exports.YSMViewer.Rendering.ThreeJs.ThreeJsInterop;
     if (restoreBtn && interop) {
         restoreBtn.addEventListener('click', () => {
