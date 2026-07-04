@@ -154,6 +154,8 @@ export function loadModelGeometry(specJson) {
         boneGroups.clear();
         animationBoneGroups.clear();
         disposeAnimations();
+        textureCache.forEach(t => t.dispose());
+        textureCache.clear();
 
         for (const model of spec.models || []) {
             buildModelComponent(model);
@@ -272,6 +274,12 @@ function getOrCreateMaterial(textureId) {
 }
 
 export function addTextureData(textureId, uint8Array) {
+    const existing = textureCache.get(textureId);
+    if (existing) {
+        existing.dispose();
+        textureCache.delete(textureId);
+    }
+
     const dataCopy = uint8Array.slice(0);
     loadTextureAsync(textureId, dataCopy);
 }
@@ -295,6 +303,8 @@ async function loadTextureAsync(textureId, dataCopy) {
         tex.colorSpace = THREE.SRGBColorSpace;
         tex.needsUpdate = true;
 
+        const existing = textureCache.get(textureId);
+        if (existing) existing.dispose();
         textureCache.set(textureId, tex);
         applyTextureToMaterials(textureId, tex);
         requestRender();
@@ -315,6 +325,8 @@ async function loadTextureViaLoader(textureId, blob) {
         tex.colorSpace  = THREE.SRGBColorSpace;
         tex.needsUpdate = true;
 
+        const existing = textureCache.get(textureId);
+        if (existing) existing.dispose();
         textureCache.set(textureId, tex);
         applyTextureToMaterials(textureId, tex);
         requestRender();

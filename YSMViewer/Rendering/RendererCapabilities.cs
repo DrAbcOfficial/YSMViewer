@@ -40,7 +40,7 @@ public sealed record RendererCapabilities(
         SupportsBoneVisibility: true,
         SupportsTextureProjection: false,
         SupportsAutoRotation: false,
-        SupportsFreeCamera: true,
+        SupportsFreeCamera: false,
         SupportsGizmo: false,
         SupportsAudio: false);
 }

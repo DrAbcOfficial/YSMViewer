@@ -25,7 +25,12 @@ internal sealed partial class Program
                         {
                             var fileValue = Uri.UnescapeDataString(kv[1]);
                             if (!string.IsNullOrEmpty(fileValue))
-                                App.StartupFileUrl = fileValue;
+                            {
+                                var baseUri = new Uri(url, UriKind.Absolute);
+                                App.StartupFileUrl = Uri.TryCreate(fileValue, UriKind.Absolute, out var absoluteUri)
+                                    ? absoluteUri.ToString()
+                                    : new Uri(baseUri, fileValue).ToString();
+                            }
                             break;
                         }
                     }

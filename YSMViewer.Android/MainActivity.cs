@@ -32,13 +32,35 @@ namespace YSMViewer.Android;
 [IntentFilter(
     [Intent.ActionView],
     Categories = [Intent.CategoryDefault, Intent.CategoryBrowsable],
+    DataScheme = "file",
+    DataHost = "*",
+    DataPathPattern = ".*\\.zip")]
+[IntentFilter(
+    [Intent.ActionView],
+    Categories = [Intent.CategoryDefault, Intent.CategoryBrowsable],
+    DataScheme = "content",
+    DataHost = "*",
+    DataPathPattern = ".*\\.zip")]
+[IntentFilter(
+    [Intent.ActionView],
+    Categories = [Intent.CategoryDefault, Intent.CategoryBrowsable],
     DataScheme = "content",
     DataMimeType = "application/vnd.ysm.model+encrypted")]
 [IntentFilter(
     [Intent.ActionView],
     Categories = [Intent.CategoryDefault, Intent.CategoryBrowsable],
+    DataScheme = "content",
+    DataMimeType = "application/zip")]
+[IntentFilter(
+    [Intent.ActionView],
+    Categories = [Intent.CategoryDefault, Intent.CategoryBrowsable],
     DataScheme = "file",
     DataMimeType = "application/vnd.ysm.model+encrypted")]
+[IntentFilter(
+    [Intent.ActionView],
+    Categories = [Intent.CategoryDefault, Intent.CategoryBrowsable],
+    DataScheme = "file",
+    DataMimeType = "application/zip")]
 public sealed class MainActivity : Activity
 {
     private const int OpenModelRequestCode = 1001;

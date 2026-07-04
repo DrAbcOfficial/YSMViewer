@@ -31,9 +31,21 @@ public partial class BrowserMainView : UserControl
 
         ThreeJsInterop.RestoreButtonClicked += OnRestoreButtonFromHtml;
         ThreeJsInterop.AndroidFileLoaded += OnAndroidFileLoaded;
-        Unloaded += (_, _) => ThreeJsInterop.AndroidFileLoaded -= OnAndroidFileLoaded;
+        Unloaded += OnUnloaded;
 
-        ThemeService.Instance.ModeChanged += _ => UpdateSceneAppearance();
+        ThemeService.Instance.ModeChanged += OnThemeModeChanged;
+    }
+
+    private void OnUnloaded(object? sender, RoutedEventArgs e)
+    {
+        ThreeJsInterop.RestoreButtonClicked -= OnRestoreButtonFromHtml;
+        ThreeJsInterop.AndroidFileLoaded -= OnAndroidFileLoaded;
+        ThemeService.Instance.ModeChanged -= OnThemeModeChanged;
+    }
+
+    private void OnThemeModeChanged(AppThemeMode mode)
+    {
+        UpdateSceneAppearance();
     }
 
     private async void OnOpenButtonClick(object? sender, RoutedEventArgs e)
@@ -296,6 +308,7 @@ public partial class BrowserMainView : UserControl
             col.Width = new GridLength(_rightPanelSavedWidth);
             vm.IsRightPanelVisible = true;
         }
+        SyncButtonVisibility();
     }
 
     private void OnBrowserShowAllComponentsClick(object? sender, RoutedEventArgs e)

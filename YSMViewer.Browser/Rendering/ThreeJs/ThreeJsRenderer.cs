@@ -190,7 +190,20 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimatio
 
     public void Update(float deltaTime)
     {
-        if (_isInitialized && _animationDuration > 0f)
+        if (!_isInitialized || _animationDuration <= 0f)
+            return;
+
+        try
+        {
+            var progressJson = ThreeJsInterop.GetAnimationProgress();
+            using var doc = System.Text.Json.JsonDocument.Parse(progressJson);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("time", out var timeElement) && timeElement.TryGetSingle(out var time))
+                _animationCurrentTime = time;
+            if (root.TryGetProperty("duration", out var durationElement) && durationElement.TryGetSingle(out var duration) && duration > 0f)
+                _animationDuration = duration;
+        }
+        catch
         {
             _animationCurrentTime += deltaTime;
             if (_animationCurrentTime >= _animationDuration)
