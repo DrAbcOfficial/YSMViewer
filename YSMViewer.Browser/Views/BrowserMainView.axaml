@@ -507,33 +507,189 @@
                                            Foreground="{DynamicResource ThemeTextPrimary}" />
                             </Expander.Header>
                             <StackPanel Spacing="6" Margin="12,8">
-                                <ListBox x:Name="AnimationListBox"
-                                         ItemsSource="{Binding AnimationNames}"
-                                         SelectedItem="{Binding CurrentAnimationName}"
-                                         Background="Transparent" BorderThickness="0"
-                                         Foreground="{DynamicResource ThemeTextPrimary}" FontSize="12"
-                                         SelectionChanged="OnAnimationSelectionChanged"
-                                         MaxHeight="200">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" Padding="6,4" />
+                                <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasAnimationController}"
+                                      Margin="0,0,0,4">
+                                    <TextBlock Grid.Column="0" Text="Controller Mode"
+                                               FontSize="12" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource ThemeTextSecondary}" />
+                                    <ToggleSwitch Grid.Column="1"
+                                                  IsChecked="{Binding UseAnimationController}"
+                                                  OffContent="Manual" OnContent="Auto"
+                                                  FontSize="11" />
+                                </Grid>
+                                <ItemsControl ItemsSource="{Binding ExtraAnimationGroups}"
+                                              IsVisible="{Binding HasExtraAnimations}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ExtraAnimationGroupViewModel">
+                                            <Expander IsExpanded="True" Padding="0" Margin="0,0,0,8">
+                                                <Expander.Header>
+                                                    <TextBlock Text="{Binding Name}"
+                                                               FontSize="11" FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource ThemeTextMuted}" />
+                                                </Expander.Header>
+                                                <ItemsControl ItemsSource="{Binding Entries}" Margin="0,4,0,0">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="vm:ExtraAnimationItemViewModel">
+                                                            <StackPanel Spacing="2" Margin="0,0,0,4">
+                                                                <Button Command="{Binding SelectCommand}"
+                                                                        HorizontalAlignment="Stretch"
+                                                                        HorizontalContentAlignment="Left"
+                                                                        Padding="8,5"
+                                                                        Background="{DynamicResource ThemeBgElevated}">
+                                                                    <Grid ColumnDefinitions="*,Auto">
+                                                                        <TextBlock Grid.Column="0"
+                                                                                   Text="{Binding DisplayName}"
+                                                                                   Foreground="{DynamicResource ThemeTextPrimary}"
+                                                                                   TextTrimming="CharacterEllipsis" />
+                                                                        <TextBlock Grid.Column="1"
+                                                                                   Text="{Binding AnimationName}"
+                                                                                   Margin="8,0,0,0"
+                                                                                   FontSize="10"
+                                                                                   Foreground="{DynamicResource ThemeTextMuted}" />
+                                                                    </Grid>
+                                                                </Button>
+                                                                <Expander IsVisible="{Binding HasSettings}"
+                                                                          IsExpanded="False" Padding="0"
+                                                                          Margin="8,2,0,0">
+                                                                    <Expander.Header>
+                                                                        <TextBlock Text="Settings"
+                                                                                   FontSize="10"
+                                                                                   Foreground="{DynamicResource ThemeAccent}" />
+                                                                    </Expander.Header>
+                                                                    <ContentControl Content="{Binding SettingsGroup}"
+                                                                                    Margin="0,4,0,0">
+                                                                        <ContentControl.DataTemplates>
+                                                                            <DataTemplate x:DataType="vm:ExtraAnimationSettingsGroupViewModel">
+                                                                                <StackPanel Spacing="4">
+                                                                                    <ItemsControl ItemsSource="{Binding Forms}">
+                                                                                        <ItemsControl.DataTemplates>
+                                                                                            <DataTemplate x:DataType="vm:ExtraAnimationBooleanFormViewModel">
+                                                                                                <Border CornerRadius="4" Padding="6,4"
+                                                                                                        Background="{DynamicResource ThemeBgElevated}">
+                                                                                                    <Grid ColumnDefinitions="*,Auto">
+                                                                                                        <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
+                                                                                                            <TextBlock Text="{Binding Title}"
+                                                                                                                       FontSize="11"
+                                                                                                                       Foreground="{DynamicResource ThemeTextPrimary}" />
+                                                                                                            <TextBlock Text="{Binding Description}"
+                                                                                                                       FontSize="9"
+                                                                                                                       Foreground="{DynamicResource ThemeTextMuted}"
+                                                                                                                       TextTrimming="CharacterEllipsis" />
+                                                                                                        </StackPanel>
+                                                                                                        <ToggleSwitch Grid.Column="1"
+                                                                                                                      IsChecked="{Binding Value}"
+                                                                                                                      VerticalAlignment="Center" />
+                                                                                                    </Grid>
+                                                                                                </Border>
+                                                                                            </DataTemplate>
+                                                                                            <DataTemplate x:DataType="vm:ExtraAnimationRangeFormViewModel">
+                                                                                                <Border CornerRadius="4" Padding="6,4"
+                                                                                                        Background="{DynamicResource ThemeBgElevated}">
+                                                                                                    <StackPanel Spacing="4">
+                                                                                                        <StackPanel Spacing="1">
+                                                                                                            <TextBlock Text="{Binding Title}"
+                                                                                                                       FontSize="11"
+                                                                                                                       Foreground="{DynamicResource ThemeTextPrimary}" />
+                                                                                                            <TextBlock Text="{Binding Description}"
+                                                                                                                       FontSize="9"
+                                                                                                                       Foreground="{DynamicResource ThemeTextMuted}"
+                                                                                                                       TextTrimming="CharacterEllipsis" />
+                                                                                                        </StackPanel>
+                                                                                                        <Grid ColumnDefinitions="40,*,40">
+                                                                                                            <TextBlock Grid.Column="0" Text="{Binding Min}"
+                                                                                                                       FontSize="9" VerticalAlignment="Center"
+                                                                                                                       Foreground="{DynamicResource ThemeTextMuted}" />
+                                                                                                            <Slider Grid.Column="1"
+                                                                                                                    Minimum="{Binding Min}"
+                                                                                                                    Maximum="{Binding Max}"
+                                                                                                                    Value="{Binding Value}"
+                                                                                                                    TickFrequency="{Binding Step}"
+                                                                                                                    Margin="4,0" />
+                                                                                                            <TextBlock Grid.Column="2" Text="{Binding Max}"
+                                                                                                                       FontSize="9" VerticalAlignment="Center"
+                                                                                                                       Foreground="{DynamicResource ThemeTextMuted}"
+                                                                                                                       HorizontalAlignment="Right" />
+                                                                                                        </Grid>
+                                                                                                    </StackPanel>
+                                                                                                </Border>
+                                                                                            </DataTemplate>
+                                                                                            <DataTemplate x:DataType="vm:ExtraAnimationRadioFormViewModel">
+                                                                                                <Border CornerRadius="4" Padding="6,4"
+                                                                                                        Background="{DynamicResource ThemeBgElevated}">
+                                                                                                    <StackPanel Spacing="4">
+                                                                                                        <StackPanel Spacing="1">
+                                                                                                            <TextBlock Text="{Binding Title}"
+                                                                                                                       FontSize="11"
+                                                                                                                       Foreground="{DynamicResource ThemeTextPrimary}" />
+                                                                                                            <TextBlock Text="{Binding Description}"
+                                                                                                                       FontSize="9"
+                                                                                                                       Foreground="{DynamicResource ThemeTextMuted}"
+                                                                                                                       TextTrimming="CharacterEllipsis" />
+                                                                                                        </StackPanel>
+                                                                                                        <ComboBox ItemsSource="{Binding Options}"
+                                                                                                                  SelectedItem="{Binding SelectedOption}"
+                                                                                                                  HorizontalAlignment="Stretch"
+                                                                                                                  FontSize="11"
+                                                                                                                  Padding="4,2">
+                                                                                                            <ComboBox.ItemTemplate>
+                                                                                                                <DataTemplate x:DataType="vm:ExtraAnimationRadioOptionViewModel">
+                                                                                                                    <TextBlock Text="{Binding Label}" />
+                                                                                                                </DataTemplate>
+                                                                                                            </ComboBox.ItemTemplate>
+                                                                                                        </ComboBox>
+                                                                                                    </StackPanel>
+                                                                                                </Border>
+                                                                                            </DataTemplate>
+                                                                                        </ItemsControl.DataTemplates>
+                                                                                    </ItemsControl>
+                                                                                </StackPanel>
+                                                                            </DataTemplate>
+                                                                        </ContentControl.DataTemplates>
+                                                                    </ContentControl>
+                                                                </Expander>
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </Expander>
                                         </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                    <ListBox.Styles>
-                                        <Style Selector="ListBoxItem">
-                                            <Setter Property="Background" Value="Transparent" />
-                                            <Setter Property="CornerRadius" Value="4" />
-                                        </Style>
-                                        <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
-                                            <Setter Property="Background" Value="{DynamicResource ThemeAnimSelected}" />
-                                            <Setter Property="CornerRadius" Value="4" />
-                                        </Style>
-                                        <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-                                            <Setter Property="Background" Value="{DynamicResource ThemeBgHover}" />
-                                            <Setter Property="CornerRadius" Value="4" />
-                                        </Style>
-                                    </ListBox.Styles>
-                                </ListBox>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Expander IsExpanded="True" Padding="0" IsVisible="{Binding HasRawAnimations}">
+                                    <Expander.Header>
+                                        <TextBlock Text="Raw Animations"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource ThemeTextMuted}" />
+                                    </Expander.Header>
+                                    <ListBox x:Name="AnimationListBox"
+                                             ItemsSource="{Binding AnimationNames}"
+                                             SelectedItem="{Binding CurrentAnimationName}"
+                                             Background="Transparent" BorderThickness="0"
+                                             Foreground="{DynamicResource ThemeTextPrimary}" FontSize="12"
+                                             SelectionChanged="OnAnimationSelectionChanged"
+                                             MaxHeight="200"
+                                             Margin="0,4,0,0">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" Padding="6,4" />
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                        <ListBox.Styles>
+                                            <Style Selector="ListBoxItem">
+                                                <Setter Property="Background" Value="Transparent" />
+                                                <Setter Property="CornerRadius" Value="4" />
+                                            </Style>
+                                            <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+                                                <Setter Property="Background" Value="{DynamicResource ThemeAnimSelected}" />
+                                                <Setter Property="CornerRadius" Value="4" />
+                                            </Style>
+                                            <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                                                <Setter Property="Background" Value="{DynamicResource ThemeBgHover}" />
+                                                <Setter Property="CornerRadius" Value="4" />
+                                            </Style>
+                                        </ListBox.Styles>
+                                    </ListBox>
+                                </Expander>
                             </StackPanel>
                         </Expander>
 
