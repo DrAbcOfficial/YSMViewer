@@ -86,6 +86,9 @@ public sealed class MainActivity : Activity
         settings.AllowFileAccess = false;
         settings.AllowContentAccess = false;
         settings.MediaPlaybackRequiresUserGesture = false;
+        settings.LoadWithOverviewMode = false;
+        settings.UseWideViewPort = false;
+        settings.TextZoom = 100;
 
         _webView.SetWebViewClient(new YsmWebViewClient(this));
         _webView.SetWebChromeClient(new WebChromeClient());

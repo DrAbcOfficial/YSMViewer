@@ -1,7 +1,9 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
 using System.Runtime.Versioning;
@@ -154,11 +156,46 @@ public partial class BrowserMainView : UserControl
             if (isMobile)
             {
                 vm.IsRightPanelVisible = false;
-                if (BrowserMainContentGrid.ColumnDefinitions.Count > 2)
-                    BrowserMainContentGrid.ColumnDefinitions[2].Width = new GridLength(0);
             }
         }
+        ApplyResponsiveLayout(vm);
         SyncButtonVisibility();
+    }
+
+    private void ApplyResponsiveLayout(MainViewModel vm)
+    {
+        if (BrowserMainContentGrid.ColumnDefinitions.Count <= 2) return;
+
+        var splitterColumn = BrowserMainContentGrid.ColumnDefinitions[1];
+        var panelColumn = BrowserMainContentGrid.ColumnDefinitions[2];
+
+        if (vm.IsMobileView)
+        {
+            splitterColumn.Width = new GridLength(0);
+            panelColumn.Width = new GridLength(0);
+            Grid.SetColumn(BrowserSidePanel, 0);
+            Grid.SetColumnSpan(BrowserSidePanel, 3);
+            BrowserSidePanel.Margin = new Thickness(10);
+            BrowserSidePanel.CornerRadius = new CornerRadius(16);
+            BrowserSidePanel.BorderThickness = new Thickness(1);
+            BrowserSidePanel.VerticalAlignment = VerticalAlignment.Stretch;
+            BrowserSidePanel.HorizontalAlignment = HorizontalAlignment.Stretch;
+            BrowserSidePanel.MaxHeight = Math.Max(0, Bounds.Height - 20);
+            BrowserSidePanel.SetValue(Panel.ZIndexProperty, 20);
+            return;
+        }
+
+        splitterColumn.Width = new GridLength(4);
+        panelColumn.Width = vm.IsRightPanelVisible ? new GridLength(_rightPanelSavedWidth) : new GridLength(0);
+        Grid.SetColumn(BrowserSidePanel, 2);
+        Grid.SetColumnSpan(BrowserSidePanel, 1);
+        BrowserSidePanel.Margin = new Thickness(0);
+        BrowserSidePanel.CornerRadius = new CornerRadius(0);
+        BrowserSidePanel.BorderThickness = new Thickness(1, 0, 0, 0);
+        BrowserSidePanel.VerticalAlignment = VerticalAlignment.Stretch;
+        BrowserSidePanel.HorizontalAlignment = HorizontalAlignment.Stretch;
+        BrowserSidePanel.MaxHeight = double.PositiveInfinity;
+        BrowserSidePanel.SetValue(Panel.ZIndexProperty, 0);
     }
 
     private async void OnDrop(object? sender, DragEventArgs e)
@@ -308,6 +345,7 @@ public partial class BrowserMainView : UserControl
             col.Width = new GridLength(_rightPanelSavedWidth);
             vm.IsRightPanelVisible = true;
         }
+        ApplyResponsiveLayout(vm);
         SyncButtonVisibility();
     }
 

@@ -178,6 +178,24 @@
                     </StackPanel>
                 </Border>
 
+                <Button x:Name="MobileToolsButton"
+                        IsVisible="{Binding IsMobileView}"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Bottom"
+                        Margin="0,0,16,16"
+                        Padding="14,10"
+                        CornerRadius="18"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        Background="{DynamicResource ThemeAccentRed}"
+                        Foreground="White"
+                        Click="OnBrowserToggleRightPanelClick">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="Tools" />
+                        <TextBlock Text="≡" FontSize="15" />
+                    </StackPanel>
+                </Button>
+
 
             </Panel>
 
@@ -188,9 +206,11 @@
                           IsVisible="{Binding IsRightPanelVisible}" />
 
             <!-- Side Panel -->
-            <Border Grid.Column="2"
+            <Border x:Name="BrowserSidePanel"
+                    Grid.Column="2"
                     Background="{DynamicResource ThemeBgSurface}"
                     BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="1,0,0,0"
+                    CornerRadius="0"
                     IsVisible="{Binding IsRightPanelVisible}">
                 <Grid RowDefinitions="Auto,*">
                     <Border Grid.Row="0" Padding="8,6"

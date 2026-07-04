@@ -5,7 +5,7 @@
              x:DataType="vm:MainViewModel"
              Background="{DynamicResource ThemeBgSurface}"
              BorderBrush="{DynamicResource ThemeBorder}" BorderThickness="0,1,0,0"
-             Padding="16,0" Height="48">
+             Padding="8,4" MinHeight="48">
     <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" VerticalAlignment="Center">
 
         <!-- Animation controls -->
@@ -40,6 +40,7 @@
 
             <!-- Animation name -->
             <Border Background="{DynamicResource ThemeAnimTransport}"
+                    IsVisible="{Binding !IsMobileView}"
                     CornerRadius="4" Padding="10,4" Margin="12,0,0,0"
                     VerticalAlignment="Center">
                 <TextBlock Text="{Binding CurrentAnimationName, FallbackValue=''}"
@@ -49,6 +50,7 @@
 
             <!-- Progress + time -->
             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"
+                        IsVisible="{Binding !IsMobileView}"
                         Margin="8,0,0,0">
                 <ProgressBar Value="{Binding AnimationProgress}" Maximum="1.0"
                              Height="4" Width="120" VerticalAlignment="Center" />
