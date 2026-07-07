@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Svg.Skia;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Svg.Model;
 using YSMViewer.Services;
@@ -11,11 +12,14 @@ namespace YSMViewer.Views.Shared;
 
 public partial class ModelToolBar : UserControl
 {
+    private static ThemeService ThemeSvc => App.Services.GetRequiredService<ThemeService>();
+    private static LocalizationService Loc => App.Services.GetRequiredService<LocalizationService>();
+
     public ModelToolBar()
     {
         InitializeComponent();
         Loaded += (_, _) => ApplyAllSvgColors();
-        ThemeService.Instance.ModeChanged += _ => ApplyAllSvgColors();
+        ThemeSvc.ModeChanged += _ => ApplyAllSvgColors();
     }
 
     private void ApplyAllSvgColors()
@@ -25,11 +29,11 @@ public partial class ModelToolBar : UserControl
         ApplySvgColor(GitHubSvgImage, "avares://YSMViewer/Assets/svg/github.svg");
     }
 
-    private static string ThemeSvgPath() => $"avares://YSMViewer/Assets/svg/mode-{ThemeService.Instance.CurrentMode switch { AppThemeMode.Dark => "dark", AppThemeMode.System => "system", _ => "light" }}.svg";
+    private static string ThemeSvgPath() => $"avares://YSMViewer/Assets/svg/mode-{ThemeSvc.CurrentMode switch { AppThemeMode.Dark => "dark", AppThemeMode.System => "system", _ => "light" }}.svg";
 
     private static void ApplySvgColor(Image image, string svgPath)
     {
-        var color = ThemeService.Instance.IsDarkTheme() ? "#8b949e" : "#656d76";
+        var color = ThemeSvc.IsDarkTheme() ? "#8b949e" : "#656d76";
         try
         {
             var source = SvgSource.Load(svgPath, new Uri("avares://YSMViewer/"));
@@ -69,7 +73,7 @@ public partial class ModelToolBar : UserControl
 
     private void OnThemeToggleClick(object? sender, RoutedEventArgs e)
     {
-        ThemeService.Instance.CycleTheme();
+        ThemeSvc.CycleTheme();
     }
 
     private void OnGitHubClick(object? sender, RoutedEventArgs e)
@@ -82,10 +86,10 @@ public partial class ModelToolBar : UserControl
     {
         var menu = new ContextMenu();
         var enItem = new MenuItem { Header = "English" };
-        enItem.Click += (_, _) => { LocalizationService.Instance.SetLanguage("en"); menu.Close(); };
+        enItem.Click += (_, _) => { Loc.SetLanguage("en"); menu.Close(); };
         menu.Items.Add(enItem);
         var zhItem = new MenuItem { Header = "中文" };
-        zhItem.Click += (_, _) => { LocalizationService.Instance.SetLanguage("zh"); menu.Close(); };
+        zhItem.Click += (_, _) => { Loc.SetLanguage("zh"); menu.Close(); };
         menu.Items.Add(zhItem);
         menu.Open(sender as Control ?? this);
     }

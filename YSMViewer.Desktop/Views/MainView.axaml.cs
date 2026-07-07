@@ -5,6 +5,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
+using Microsoft.Extensions.DependencyInjection;
 using YSMViewer.Rendering;
 using YSMViewer.Services;
 using YSMViewer.ViewModels;
@@ -13,6 +14,7 @@ namespace YSMViewer.Desktop.Views;
 
 public partial class MainView : UserControl
 {
+    private static ThemeService ThemeSvc => App.Services.GetRequiredService<ThemeService>();
     private bool _isDragging;
     private bool _isPanning;
     private bool _isZooming;
@@ -83,10 +85,10 @@ public partial class MainView : UserControl
 
     private void UpdateSceneAppearance()
     {
-        var rgba = ThemeService.Instance.GetViewportBackgroundColor();
+        var rgba = ThemeSvc.GetViewportBackgroundColor();
         if (DataContext is MainViewModel vm)
             vm.Renderer.SetTheme(new RenderTheme(rgba[1], rgba[2], rgba[3], rgba[0],
-                ThemeService.Instance.IsDarkTheme()));
+                ThemeSvc.IsDarkTheme()));
     }
 
     private async void OnDrop(object? sender, DragEventArgs e)

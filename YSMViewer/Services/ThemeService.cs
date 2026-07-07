@@ -13,9 +13,6 @@ public enum AppThemeMode
 
 public sealed class ThemeService
 {
-    private static ThemeService? _instance;
-    public static ThemeService Instance => _instance ??= new ThemeService();
-
     private AppThemeMode _currentMode = AppThemeMode.System;
     public AppThemeMode CurrentMode
     {
@@ -30,7 +27,7 @@ public sealed class ThemeService
 
     public event Action<AppThemeMode>? ModeChanged;
 
-    private ThemeService()
+    public ThemeService()
     {
         Application.Current?.ActualThemeVariantChanged += OnActualThemeVariantChanged;
     }

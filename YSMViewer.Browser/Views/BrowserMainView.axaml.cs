@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Runtime.Versioning;
 using YSMViewer.Rendering;
@@ -19,6 +20,7 @@ namespace YSMViewer.Browser.Views;
 public partial class BrowserMainView : UserControl
 {
     private static readonly ILogger Logger = YsmLog.For<BrowserMainView>();
+    private static ThemeService ThemeSvc => App.Services.GetRequiredService<ThemeService>();
     private double _rightPanelSavedWidth = 300;
     private const double MobileBreakpoint = 768;
 
@@ -37,14 +39,14 @@ public partial class BrowserMainView : UserControl
         ThreeJsInterop.AndroidFileLoaded += OnAndroidFileLoaded;
         Unloaded += OnUnloaded;
 
-        ThemeService.Instance.ModeChanged += OnThemeModeChanged;
+        ThemeSvc.ModeChanged += OnThemeModeChanged;
     }
 
     private void OnUnloaded(object? sender, RoutedEventArgs e)
     {
         ThreeJsInterop.RestoreButtonClicked -= OnRestoreButtonFromHtml;
         ThreeJsInterop.AndroidFileLoaded -= OnAndroidFileLoaded;
-        ThemeService.Instance.ModeChanged -= OnThemeModeChanged;
+        ThemeSvc.ModeChanged -= OnThemeModeChanged;
     }
 
     private void OnThemeModeChanged(AppThemeMode mode)
@@ -123,10 +125,10 @@ public partial class BrowserMainView : UserControl
 
     private void UpdateSceneAppearance()
     {
-        var rgba = ThemeService.Instance.GetViewportBackgroundColor();
+        var rgba = ThemeSvc.GetViewportBackgroundColor();
         if (DataContext is MainViewModel vm)
             vm.Renderer.SetTheme(new RenderTheme(rgba[1], rgba[2], rgba[3], rgba[0],
-                ThemeService.Instance.IsDarkTheme()));
+                ThemeSvc.IsDarkTheme()));
     }
 
     private void SyncButtonVisibility()

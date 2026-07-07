@@ -12,6 +12,7 @@ public enum FileSortColumn { None, Name, Complexity }
 public sealed partial class FolderBrowserViewModel : ViewModelBase
 {
     private static readonly ILogger Logger = YsmLog.For<FolderBrowserViewModel>();
+    private readonly LocalizationService _localization;
     [ObservableProperty]
     public partial string FolderPath { get; set; } = string.Empty;
 
@@ -49,16 +50,17 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
     public event Func<string, Task>? FileSelected;
     public event Action<string>? ScanError;
 
-    public FolderBrowserViewModel()
+    public FolderBrowserViewModel(LocalizationService localizationService)
     {
+        _localization = localizationService;
         RefreshLocStrings();
-        Services.LocalizationService.Instance.CultureChanged += RefreshLocStrings;
+        _localization.CultureChanged += RefreshLocStrings;
     }
 
     private void RefreshLocStrings()
     {
         var r = Resources.Strings.ResourceManager;
-        var c = Services.LocalizationService.Instance.CurrentCulture;
+        var c = _localization.CurrentCulture;
         LocOpenFolder = r.GetString("OpenFolder", c)!;
         LocSearchPrompt = r.GetString("SearchPrompt", c)!;
         LocName = r.GetString("Name", c)!;

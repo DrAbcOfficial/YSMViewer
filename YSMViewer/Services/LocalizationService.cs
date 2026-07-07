@@ -8,9 +8,6 @@ namespace YSMViewer.Services;
 public sealed class LocalizationService
 {
     private static readonly ILogger Logger = YsmLog.For(nameof(LocalizationService));
-    private static LocalizationService? _instance;
-    public static LocalizationService Instance => _instance ??= new();
-
     private readonly ResourceManager _resourceManager;
     private CultureInfo _currentCulture = CultureInfo.GetCultureInfo("en");
 
@@ -34,7 +31,7 @@ public sealed class LocalizationService
         ("zh", "中文"),
     ]);
 
-    private LocalizationService()
+    public LocalizationService()
     {
         _resourceManager = new ResourceManager("YSMViewer.Resources.Strings", typeof(LocalizationService).Assembly);
     }

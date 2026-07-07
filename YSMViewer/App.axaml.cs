@@ -44,10 +44,9 @@ public partial class App : Application
         fontStyle.Setters.Add(new Setter(TextBlock.FontFamilyProperty, fontFamily));
         Application.Current!.Styles.Add(fontStyle);
 
-        ThemeService.Instance.ApplyTheme();
+        Services.GetRequiredService<ThemeService>().ApplyTheme();
 
-        var renderer = Services.GetRequiredService<Rendering.IRenderer>();
-        var vm = new MainViewModel(renderer);
+        var vm = Services.GetRequiredService<MainViewModel>();
 
         if (StartupFilePath is not null)
             vm.StartupFilePath = StartupFilePath;

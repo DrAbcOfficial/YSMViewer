@@ -44,6 +44,7 @@ public sealed partial class MainViewModel : ViewModelBase
     private YsmModelDocument? _currentDocument;
     private SoundItemViewModel? _playingSoundItem;
     private IAnimationAudioHost? _soundPlaybackHost;
+    private readonly LocalizationService _localization;
 
     public string? StartupFilePath { get; set; }
     public string? StartupFileUrl { get; set; }
@@ -70,20 +71,21 @@ public sealed partial class MainViewModel : ViewModelBase
             animRenderer.UseAnimationController = value;
     }
 
-    public MainViewModel(IRenderer renderer)
+    public MainViewModel(IRenderer renderer, LocalizationService localizationService)
     {
         Renderer = renderer;
-        FolderBrowser = new FolderBrowserViewModel();
+        _localization = localizationService;
+        FolderBrowser = new FolderBrowserViewModel(localizationService);
         FolderBrowser.FileSelected += OnFileSelectedFromBrowser;
         FolderBrowser.ScanError += OnScanError;
         RefreshLocalizedStrings();
-        LocalizationService.Instance.CultureChanged += RefreshLocalizedStrings;
+        localizationService.CultureChanged += RefreshLocalizedStrings;
     }
 
     private void RefreshLocalizedStrings()
     {
         var L = Resources.Strings.ResourceManager;
-        var culture = LocalizationService.Instance.CurrentCulture;
+        var culture = _localization.CurrentCulture;
         LocOpenFile = L.GetString("OpenFile", culture)!;
         LocStatusReady = L.GetString("ReadyStatus", culture)!;
         LocToggleTheme = L.GetString("ToggleTheme", culture)!;

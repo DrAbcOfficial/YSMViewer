@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using YSMViewer.ViewModels;
 
 namespace YSMViewer.Services;
 
@@ -7,8 +8,9 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddYsmViewerServices(this IServiceCollection services)
     {
-        services.AddSingleton(ThemeService.Instance);
-        services.AddSingleton(LocalizationService.Instance);
+        services.AddSingleton<ThemeService>();
+        services.AddSingleton<LocalizationService>();
+        services.AddTransient<MainViewModel>();
 
         return services;
     }

@@ -22,6 +22,7 @@ namespace YSMViewer.Desktop.Rendering.Aura3D;
 public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, IDisposable
 {
     private static readonly ILogger Logger = YsmLog.For<Aura3DRenderer>();
+    private readonly ThemeService _theme;
     private readonly Aura3DView _view;
     private readonly Aura3DView _gizmoView;
     private Model? _loadedModel;
@@ -52,8 +53,9 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
     private float _cameraYaw = 180f;
     private float _cameraPitch = -15f;
 
-    public Aura3DRenderer()
+    public Aura3DRenderer(ThemeService theme)
     {
+        _theme = theme;
         _view = new Aura3DView
         {
             MinWidth = 1,
@@ -96,7 +98,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
 
         try
         {
-            var rgba = ThemeService.Instance.GetViewportBackgroundColor();
+            var rgba = _theme.GetViewportBackgroundColor();
             scene.Background = Texture.CreateFromColor(
                 Color.FromArgb(rgba[0], rgba[1], rgba[2], rgba[3]));
             scene.RenderPipeline.EnableFrustumCulling = true;

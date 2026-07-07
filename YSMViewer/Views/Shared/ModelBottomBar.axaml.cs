@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Svg.Skia;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Svg.Model;
 using YSMViewer.Rendering;
@@ -12,11 +13,13 @@ namespace YSMViewer.Views.Shared;
 
 public partial class ModelBottomBar : UserControl
 {
+    private static ThemeService ThemeSvc => App.Services.GetRequiredService<ThemeService>();
+
     public ModelBottomBar()
     {
         InitializeComponent();
         Loaded += (_, _) => ApplyAllSvgColors();
-        ThemeService.Instance.ModeChanged += _ => ApplyAllSvgColors();
+        ThemeSvc.ModeChanged += _ => ApplyAllSvgColors();
     }
 
     private void ApplyAllSvgColors()
@@ -29,7 +32,7 @@ public partial class ModelBottomBar : UserControl
 
     private static void ApplySvgColor(Image image, string svgPath)
     {
-        var color = ThemeService.Instance.IsDarkTheme() ? "#8b949e" : "#656d76";
+        var color = ThemeSvc.IsDarkTheme() ? "#8b949e" : "#656d76";
         try
         {
             var source = SvgSource.Load(svgPath, new Uri("avares://YSMViewer/"));
