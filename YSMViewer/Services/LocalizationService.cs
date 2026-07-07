@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Resources;
@@ -6,6 +7,7 @@ namespace YSMViewer.Services;
 
 public sealed class LocalizationService
 {
+    private static readonly ILogger Logger = YsmLog.For(nameof(LocalizationService));
     private static LocalizationService? _instance;
     public static LocalizationService Instance => _instance ??= new();
 
@@ -40,7 +42,7 @@ public sealed class LocalizationService
     public string GetString(string key)
     {
         try { return _resourceManager.GetString(key, _currentCulture) ?? key; }
-        catch { return key; }
+        catch (Exception ex) { Logger.LogWarning(ex, "Failed to get localized string for key '{Key}'", key); return key; }
     }
 
     public void SetLanguage(string code)
@@ -54,9 +56,9 @@ public sealed class LocalizationService
             };
             CurrentCulture = culture;
         }
-        catch
+        catch (Exception ex)
         {
-            // keep current
+            Logger.LogWarning(ex, "Failed to set language to '{Code}'", code);
         }
     }
 }

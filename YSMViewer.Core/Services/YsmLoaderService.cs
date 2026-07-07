@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Text.Json;
 using YSMParser.Core.Parsers;
@@ -8,6 +9,13 @@ namespace YSMViewer.Services;
 
 public sealed class YsmLoaderService
 {
+    private static readonly ILogger Logger = YsmLog.For(nameof(YsmLoaderService));
+
+    private static readonly JsonDocumentOptions s_jsonDocOptions = new()
+    {
+        CommentHandling = JsonCommentHandling.Skip,
+    };
+
     public enum ModelCategory
     {
         Main,
@@ -52,42 +60,13 @@ public sealed class YsmLoaderService
 
     private static List<MinecraftGeometry> ParseAllGeometries(byte[] jsonData)
     {
-        var json = StripJsonComments(System.Text.Encoding.UTF8.GetString(jsonData));
-        var cleanData = System.Text.Encoding.UTF8.GetBytes(json);
-
-        var file = JsonSerializer.Deserialize(cleanData, YsmJsonContext.Default.MinecraftGeometryFile)
+        var file = JsonSerializer.Deserialize(jsonData, YsmJsonContext.Default.MinecraftGeometryFile)
                    ?? throw new InvalidOperationException("Failed to parse geometry JSON");
 
         if (file.Geometries is not { Count: > 0 })
             throw new InvalidOperationException("No geometry definitions found");
 
         return file.Geometries;
-    }
-
-    private static string StripJsonComments(string json)
-    {
-        var sb = new System.Text.StringBuilder(json.Length);
-        var lines = json.Split('\n');
-        foreach (var line in lines)
-        {
-            var trimmed = line.TrimStart();
-            if (trimmed.StartsWith("//"))
-                continue;
-            var commentIdx = line.IndexOf("//");
-            if (commentIdx >= 0)
-            {
-                var before = line[..commentIdx];
-                if (before.Any(c => c == '"'))
-                    sb.AppendLine(line);
-                else
-                    sb.AppendLine(before.TrimEnd());
-            }
-            else
-            {
-                sb.AppendLine(line);
-            }
-        }
-        return sb.ToString();
     }
 
     private static byte[]? FindTextureForModel(string modelName, IReadOnlyList<YsmResourceEntry> textures)
@@ -329,7 +308,7 @@ public sealed class YsmLoaderService
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[YsmLoaderService] Skipping non-geometry model '{modelEntry.Name}': {ex.Message}");
+                Logger.LogWarning(ex, "Skipping non-geometry model '{ModelName}'", modelEntry.Name);
                 continue;
             }
 
@@ -412,7 +391,7 @@ public sealed class YsmLoaderService
         {
             try
             {
-                using var doc = JsonDocument.Parse(StripJsonComments(System.Text.Encoding.UTF8.GetString(ysmJson)));
+                using var doc = JsonDocument.Parse(ysmJson, s_jsonDocOptions);
                 if (doc.RootElement.TryGetProperty("properties", out var props))
                 {
                     rootEntries = props.TryGetProperty("extra_animation", out var rootAnim)
@@ -428,8 +407,9 @@ public sealed class YsmLoaderService
                         : [];
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Logger.LogWarning(ex, "Failed to parse extra animations from ysmJson");
                 rootEntries = [];
                 groups = [];
                 buttons = [];
@@ -456,7 +436,7 @@ public sealed class YsmLoaderService
 
         try
         {
-            using var doc = JsonDocument.Parse(StripJsonComments(System.Text.Encoding.UTF8.GetString(infoJson)));
+            using var doc = JsonDocument.Parse(infoJson, s_jsonDocOptions);
             if (!doc.RootElement.TryGetProperty("extra_animation_names", out var extras) || extras.ValueKind != JsonValueKind.Array)
                 return result;
 
@@ -469,8 +449,9 @@ public sealed class YsmLoaderService
                 index++;
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Failed to parse legacy extra animation names");
             result.Clear();
         }
 

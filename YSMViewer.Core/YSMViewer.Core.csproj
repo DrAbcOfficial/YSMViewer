@@ -11,5 +11,6 @@
   <ItemGroup>
     <PackageReference Include="YSMParser.Core" />
     <PackageReference Include="SixLabors.ImageSharp" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 </Project>

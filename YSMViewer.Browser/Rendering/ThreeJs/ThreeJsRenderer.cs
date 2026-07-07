@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Microsoft.Extensions.Logging;
 using YSMViewer.Models.Document;
 using YSMViewer.Rendering;
 using YSMViewer.Rendering.ThreeJs;
@@ -9,6 +10,7 @@ namespace YSMViewer.Browser.Rendering.ThreeJs;
 
 public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimationRenderer, IDisposable
 {
+    private static readonly ILogger Logger = YsmLog.For<ThreeJsRenderer>();
     private readonly ThreeJsViewHost _viewHost;
     private bool _isInitialized;
     private YsmModelDocument? _currentDocument;
@@ -48,8 +50,10 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimatio
                         _animationCurrentTime = (float)timeEl.GetDouble();
                 }
             }
-            catch { }
-            return _animationCurrentTime;
+            catch (Exception ex)
+            {
+                Logger.LogDebug(ex, "Failed to get animation progress from Three.js");
+            }
         }
     }
 
@@ -203,8 +207,9 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimatio
             if (root.TryGetProperty("duration", out var durationElement) && durationElement.TryGetSingle(out var duration) && duration > 0f)
                 _animationDuration = duration;
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogDebug(ex, "Failed to read animation progress from Three.js, using fallback timer");
             _animationCurrentTime += deltaTime;
             if (_animationCurrentTime >= _animationDuration)
                 _animationCurrentTime = 0f;

@@ -26,8 +26,9 @@ public static unsafe class NativeExports
             var handle = GCHandle.Alloc(ctx);
             return (void*)GCHandle.ToIntPtr(handle);
         }
-        catch
+        catch (Exception ex)
         {
+            Console.Error.WriteLine($"[YsmThumbnail] Create failed: {ex.Message}");
             return null;
         }
     }
@@ -65,8 +66,9 @@ public static unsafe class NativeExports
 
             return 0;
         }
-        catch
+        catch (Exception ex)
         {
+            Console.Error.WriteLine($"[YsmThumbnail] Render failed: {ex.Message}");
             return -1;
         }
     }

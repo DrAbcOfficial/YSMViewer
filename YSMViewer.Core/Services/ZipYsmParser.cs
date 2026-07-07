@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.IO.Compression;
 using YSMParser.Core.Parsers;
 
@@ -5,6 +6,7 @@ namespace YSMViewer.Services;
 
 public sealed class ZipYsmParser(byte[] buffer) : YSMParser.Core.Parsers.YSMParser
 {
+    private static readonly ILogger Logger = YsmLog.For(nameof(ZipYsmParser));
     private readonly byte[] _buffer = buffer;
     private Dictionary<string, byte[]> _resources = [];
 
@@ -44,7 +46,10 @@ public sealed class ZipYsmParser(byte[] buffer) : YSMParser.Core.Parsers.YSMPars
                 }
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to peek ZIP archive");
+        }
 
         return new YsmPeekResult(0, _buffer.Length, infoJson, ysmJson, resourceNames, null, null, null, null, null, null, null);
     }
@@ -71,7 +76,10 @@ public sealed class ZipYsmParser(byte[] buffer) : YSMParser.Core.Parsers.YSMPars
                 resources[entry.FullName] = mem.ToArray();
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to parse ZIP archive entries");
+        }
 
         _resources = resources;
     }

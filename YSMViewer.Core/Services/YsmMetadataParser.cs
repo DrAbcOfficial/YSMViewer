@@ -1,9 +1,11 @@
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace YSMViewer.Services;
 
 public static class YsmMetadataParser
 {
+    private static readonly ILogger Logger = YsmLog.For(nameof(YsmMetadataParser));
     public static YsmMetadata? Parse(byte[]? ysmJson, byte[]? infoJson)
     {
         var ysm = TryParse(ysmJson, ParseYsmJson);
@@ -15,7 +17,7 @@ public static class YsmMetadataParser
     {
         if (data is not { Length: > 0 }) return null;
         try { return parse(data); }
-        catch { return null; }
+        catch (Exception ex) { Logger.LogWarning(ex, "Failed to parse metadata JSON"); return null; }
     }
 
     private static YsmMetadata? Merge(YsmMetadata? primary, YsmMetadata? fallback)

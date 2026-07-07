@@ -2,6 +2,7 @@
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using YSMViewer.Models.Document;
@@ -13,6 +14,8 @@ namespace YSMViewer.ViewModels;
 
 public sealed partial class MainViewModel : ViewModelBase
 {
+    private static readonly ILogger Logger = YsmLog.For<MainViewModel>();
+
     public IRenderer Renderer { get; }
 
     public FolderBrowserViewModel FolderBrowser { get; }
@@ -575,7 +578,7 @@ public sealed partial class MainViewModel : ViewModelBase
         if (data is { Length: > 0 })
         {
             try { thumbnail = new Bitmap(new MemoryStream(data)); }
-            catch { }
+            catch (Exception ex) { Logger.LogWarning(ex, "Failed to create texture thumbnail for '{Name}'", name); }
         }
 
         TextureItems.Add(new TextureItemViewModel
@@ -683,7 +686,7 @@ public sealed partial class MainViewModel : ViewModelBase
                 var json = JsonDocument.Parse(anim.Data);
                 CollectStringsRecursive(json.RootElement, expressions);
             }
-            catch { }
+            catch (Exception ex) { Logger.LogDebug(ex, "Failed to parse animation JSON for MoLang discovery"); }
         }
 
         foreach (var ac in document.AnimControllers)
@@ -693,7 +696,7 @@ public sealed partial class MainViewModel : ViewModelBase
                 var json = JsonDocument.Parse(ac.Data);
                 CollectStringsRecursive(json.RootElement, expressions);
             }
-            catch { }
+            catch (Exception ex) { Logger.LogDebug(ex, "Failed to parse anim controller JSON for MoLang discovery"); }
         }
 
         return expressions;

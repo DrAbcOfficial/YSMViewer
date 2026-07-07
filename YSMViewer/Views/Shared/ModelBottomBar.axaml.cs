@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Svg.Skia;
+using Microsoft.Extensions.Logging;
 using Svg.Model;
 using YSMViewer.Rendering;
 using YSMViewer.Services;
@@ -35,7 +36,10 @@ public partial class ModelBottomBar : UserControl
             source.ReLoad(new SvgParameters(null, $":root {{ color: {color}; }}"));
             image.Source = new SvgImage { Source = source };
         }
-        catch { }
+        catch (Exception ex)
+        {
+            YsmLog.For<ModelBottomBar>().LogWarning(ex, "Failed to load SVG icon '{Path}'", svgPath);
+        }
     }
 
     private void OnPlayPauseClick(object? sender, RoutedEventArgs e)

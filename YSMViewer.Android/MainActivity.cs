@@ -277,8 +277,9 @@ public sealed class MainActivity : Activity
                     ? new WebResourceResponse("text/plain", "UTF-8", new MemoryStream())
                     : new WebResourceResponse(mimeType, GetEncoding(mimeType), stream);
             }
-            catch
+            catch (Exception ex)
             {
+                Console.Error.WriteLine($"[YSMViewer.Android] Failed to intercept request: {ex.Message}");
                 return new WebResourceResponse("text/plain", "UTF-8", new MemoryStream());
             }
         }
@@ -301,8 +302,9 @@ public sealed class MainActivity : Activity
             {
                 activity.StartActivity(new Intent(Intent.ActionView, uri));
             }
-            catch
+            catch (Exception ex)
             {
+                Console.Error.WriteLine($"[YSMViewer.Android] Failed to open link: {ex.Message}");
                 Toast.MakeText(activity, "Unable to open link.", ToastLength.Short)?.Show();
             }
 

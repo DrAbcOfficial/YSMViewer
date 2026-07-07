@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using YSMViewer.Services;
@@ -10,6 +11,7 @@ public enum FileSortColumn { None, Name, Complexity }
 
 public sealed partial class FolderBrowserViewModel : ViewModelBase
 {
+    private static readonly ILogger Logger = YsmLog.For<FolderBrowserViewModel>();
     [ObservableProperty]
     public partial string FolderPath { get; set; } = string.Empty;
 
@@ -213,8 +215,9 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
                         ScanProgressText = $"{current}/{total}";
                     });
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Logger.LogDebug(ex, "Failed to parse YSM file in scan '{FilePath}'", file);
                     Interlocked.Increment(ref processed);
                 }
                 finally
@@ -268,8 +271,9 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
                 complexity = ComputeComplexityV1V2(parser, peekResult);
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogDebug(ex, "Failed to parse YSM file metadata '{FilePath}'", filePath);
         }
 
         return (displayName, complexity);
@@ -301,7 +305,10 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Logger.LogDebug(ex, "Failed to parse geometry for complexity calculation");
+            }
         }
 
         return complexity;
@@ -320,7 +327,10 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
             if (root.TryGetProperty("name", out var rootName))
                 return rootName.GetString();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Logger.LogDebug(ex, "Failed to parse meta name from JSON");
+        }
         return null;
     }
 

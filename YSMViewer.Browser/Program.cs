@@ -1,9 +1,11 @@
 ﻿using Avalonia;
 using Avalonia.Browser;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using YSMViewer;
 using YSMViewer.Browser.Rendering.ThreeJs;
 using YSMViewer.Browser.Views;
+using YSMViewer.Services;
 
 internal sealed partial class Program
 {
@@ -36,12 +38,18 @@ internal sealed partial class Program
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[YSMViewer.Browser] Failed to parse startup URL: {ex.Message}");
+            }
         }
 
         var services = new ServiceCollection();
+        services.AddPlatformLogging();
+        services.AddYsmViewerServices();
         services.AddSingleton<YSMViewer.Rendering.IRenderer, ThreeJsRenderer>();
         App.Services = services.BuildServiceProvider();
+        ServiceCollectionExtensions.InitializeLogging(App.Services);
 
         App.CreateDesktopMainView = null;
         App.CreateBrowserMainView = vm => new BrowserMainView { DataContext = vm };

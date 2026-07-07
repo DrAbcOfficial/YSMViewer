@@ -1,11 +1,14 @@
 using NAudio.Vorbis;
 using NAudio.Wave;
+using Microsoft.Extensions.Logging;
+using YSMViewer;
 using YSMViewer.Services.Audio;
 
 namespace YSMViewer.Desktop.Services.Audio;
 
 public sealed class DesktopAudioPlayer : IPlatformAudioPlayer
 {
+    private static readonly ILogger Logger = YsmLog.For<DesktopAudioPlayer>();
     private readonly List<DesktopAudioInstance> _instances = [];
     private readonly Dictionary<string, CachedPcm> _pcmCache = [];
     private readonly Lock _cacheLock = new();
@@ -81,8 +84,9 @@ public sealed class DesktopAudioPlayer : IPlatformAudioPlayer
                     };
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Logger.LogWarning(ex, "Failed to decode OGG audio data");
             }
         });
     }

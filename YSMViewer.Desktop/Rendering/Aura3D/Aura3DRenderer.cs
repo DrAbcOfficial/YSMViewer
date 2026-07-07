@@ -3,6 +3,7 @@ using Aura3D.Core.Nodes;
 using Aura3D.Core.Renderers;
 using Aura3D.Core.Resources;
 using Avalonia.Controls;
+using Microsoft.Extensions.Logging;
 using System.Drawing;
 using System.Numerics;
 using System.Text.Json;
@@ -20,6 +21,7 @@ namespace YSMViewer.Desktop.Rendering.Aura3D;
 
 public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, IDisposable
 {
+    private static readonly ILogger Logger = YsmLog.For<Aura3DRenderer>();
     private readonly Aura3DView _view;
     private readonly Aura3DView _gizmoView;
     private Model? _loadedModel;
@@ -107,7 +109,10 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
             var gizmo = new SphericalGizmo();
             _gizmoView.AddNode(gizmo);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to initialize gizmo scene");
+        }
     }
 
     private void SyncGizmoCamera()
@@ -264,8 +269,9 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
             var first = file.Controllers.First();
             return (first.Key, first.Value, file.Controllers);
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Failed to parse animation controller data");
             return (null, null, null);
         }
     }
@@ -510,7 +516,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[Aura3DRenderer] Scene init error: {ex.Message}");
+            Logger.LogError(ex, "Scene init error");
         }
     }
 

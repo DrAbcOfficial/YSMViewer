@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Text.Json;
 using YSMViewer.Models;
@@ -10,6 +11,7 @@ public sealed class AnimationService(
     Dictionary<string, IAnimatableBone> boneNodes,
     Dictionary<string, Vector3> baseEulers)
 {
+    private static readonly ILogger Logger = YsmLog.For<AnimationService>();
     private readonly Dictionary<string, IAnimatableBone> _boneNodes = boneNodes;
     private readonly Dictionary<string, Vector3> _basePositions = [];
     private readonly Dictionary<string, Vector3> _baseEulers = baseEulers;
@@ -66,8 +68,9 @@ public sealed class AnimationService(
         {
             file = JsonSerializer.Deserialize(animationJsonData, YsmJsonContext.Default.MinecraftAnimationFile);
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Failed to deserialize animation JSON");
             return;
         }
         if (file is null) return;

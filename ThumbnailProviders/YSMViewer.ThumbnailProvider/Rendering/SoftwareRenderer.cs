@@ -85,8 +85,9 @@ public sealed unsafe class ThumbnailRenderer : IDisposable
                 _texPixelsHandle = GCHandle.Alloc(_texPixels, GCHandleType.Pinned);
                 _texPixelsPtr = (byte*)_texPixelsHandle.AddrOfPinnedObject();
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[ThumbnailRenderer] Failed to load texture: {ex.Message}");
                 _texPixels = null;
                 _texPixelsPtr = null;
             }

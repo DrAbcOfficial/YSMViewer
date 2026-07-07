@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
+using Microsoft.Extensions.Logging;
 using System.Runtime.Versioning;
 using YSMViewer.Rendering;
 using YSMViewer.Rendering.ThreeJs;
@@ -17,6 +18,7 @@ namespace YSMViewer.Browser.Views;
 [SupportedOSPlatform("browser")]
 public partial class BrowserMainView : UserControl
 {
+    private static readonly ILogger Logger = YsmLog.For<BrowserMainView>();
     private double _rightPanelSavedWidth = 300;
     private const double MobileBreakpoint = 768;
 
@@ -112,8 +114,9 @@ public partial class BrowserMainView : UserControl
         {
             return Task.FromResult(ThreeJsInterop.OpenAndroidFilePicker());
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogDebug(ex, "Failed to open Android file picker");
             return Task.FromResult(false);
         }
     }
@@ -136,7 +139,10 @@ public partial class BrowserMainView : UserControl
             else
                 ThreeJsInterop.ShowRestoreButton();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Logger.LogDebug(ex, "Failed to sync restore button visibility");
+        }
     }
 
     private void OnSizeChanged(object? sender, SizeChangedEventArgs e)

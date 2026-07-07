@@ -1,9 +1,11 @@
+using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 
 namespace YSMViewer.Services;
 
 public static class YsmImageHelper
 {
+    private static readonly ILogger Logger = YsmLog.For(nameof(YsmImageHelper));
     public static byte[]? EnsurePng(byte[]? data)
     {
         if (data is null or { Length: 0 }) return null;
@@ -28,8 +30,9 @@ public static class YsmImageHelper
             image.SaveAsPng(ms);
             return ms.ToArray();
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Image conversion failed, returning raw data");
             return imageData;
         }
     }
