@@ -151,14 +151,24 @@ public sealed class MainActivity : Activity
         if (requestCode != OpenModelRequestCode || resultCode != Result.Ok || data?.Data is not { } uri)
             return;
 
-        try
+        Task.Run(() =>
         {
-            OpenModelFromUri(uri);
-        }
-        catch (Exception ex)
-        {
-            Toast.MakeText(this, ex.Message, ToastLength.Long)?.Show();
-        }
+            try
+            {
+                var file = CopySelectedFileToCache(uri);
+                RunOnUiThread(() =>
+                {
+                    _selectedModelFile = file;
+                    _pendingModelLoad = true;
+                    TryLoadSelectedFileInWebView();
+                });
+            }
+            catch (Exception ex)
+            {
+                RunOnUiThread(() =>
+                    Toast.MakeText(this, ex.Message, ToastLength.Long)?.Show());
+            }
+        });
     }
 
     internal void TryLoadSelectedFileInWebView()
@@ -211,21 +221,24 @@ public sealed class MainActivity : Activity
         if (intent?.Action != Intent.ActionView || intent.Data is not { } uri)
             return;
 
-        try
+        Task.Run(() =>
         {
-            OpenModelFromUri(uri);
-        }
-        catch (Exception ex)
-        {
-            Toast.MakeText(this, ex.Message, ToastLength.Long)?.Show();
-        }
-    }
-
-    private void OpenModelFromUri(Uri uri)
-    {
-        _selectedModelFile = CopySelectedFileToCache(uri);
-        _pendingModelLoad = true;
-        TryLoadSelectedFileInWebView();
+            try
+            {
+                var file = CopySelectedFileToCache(uri);
+                RunOnUiThread(() =>
+                {
+                    _selectedModelFile = file;
+                    _pendingModelLoad = true;
+                    TryLoadSelectedFileInWebView();
+                });
+            }
+            catch (Exception ex)
+            {
+                RunOnUiThread(() =>
+                    Toast.MakeText(this, ex.Message, ToastLength.Long)?.Show());
+            }
+        });
     }
 
     private static string GetMimeType(string path)

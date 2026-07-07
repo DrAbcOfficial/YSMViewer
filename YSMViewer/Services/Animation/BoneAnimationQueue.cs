@@ -180,9 +180,9 @@ public sealed class BoneAnimationQueue(string boneName, Vector3 basePos, Vector3
             {
                 Vector3 snapshotDeltaGltf = _snapshotPos - _basePos;
                 Vector3 snapshotDeltaBedrock = new(
-                    snapshotDeltaGltf.X * -16f,
-                    snapshotDeltaGltf.Y * 16f,
-                    snapshotDeltaGltf.Z * 16f);
+                    snapshotDeltaGltf.X * -BedrockUnits.PixelsPerBlock,
+                    snapshotDeltaGltf.Y * BedrockUnits.PixelsPerBlock,
+                    snapshotDeltaGltf.Z * BedrockUnits.PixelsPerBlock);
                 result = Vector3.Lerp(snapshotDeltaBedrock, destValue, progress);
             }
 

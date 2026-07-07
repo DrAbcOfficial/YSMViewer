@@ -1,5 +1,6 @@
 using ConcreteMC.MolangSharp.Runtime;
 using ConcreteMC.MolangSharp.Runtime.Struct;
+using YSMViewer.Models.AnimationController;
 
 namespace YSMViewer.Services.Molang;
 
@@ -9,13 +10,13 @@ internal static class CtrlBindings
     {
         var functions = new Dictionary<string, Func<MoParams, object>>(StringComparer.OrdinalIgnoreCase)
         {
-            ["loop"] = _ => (object)10,
-            ["play_once"] = _ => (object)11,
-            ["hold_on_last_frame"] = _ => (object)12,
-            ["state_continue"] = _ => (object)2,
-            ["state_stop"] = _ => (object)3,
-            ["state_pause"] = _ => (object)4,
-            ["state_bypass"] = _ => (object)5,
+            ["loop"] = _ => (object)(int)ControllerSetAnimationLoopType.Loop,
+            ["play_once"] = _ => (object)(int)ControllerSetAnimationLoopType.PlayOnce,
+            ["hold_on_last_frame"] = _ => (object)(int)ControllerSetAnimationLoopType.HoldOnLastFrame,
+            ["state_continue"] = _ => (object)(int)ControllerStateAction.Continue,
+            ["state_stop"] = _ => (object)(int)ControllerStateAction.Stop,
+            ["state_pause"] = _ => (object)(int)ControllerStateAction.Pause,
+            ["state_bypass"] = _ => (object)(int)ControllerStateAction.Bypass,
             ["set_animation"] = p =>
             {
                 service.StateMachineHost?.SetAnimation(p.GetString(0), (int)p.GetDouble(1));

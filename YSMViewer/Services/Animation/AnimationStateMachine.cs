@@ -342,13 +342,15 @@ public sealed class AnimationStateMachine(
                 currentBoneStates[boneName] = (bone.Position, bone.RotationQuaternion, bone.Scale);
 
             var instance = new AnimationControllerInstance(anim, _context);
-            if (loopType == 10 || loopType == 11 || loopType == 12)
+            if (loopType == (int)ControllerSetAnimationLoopType.Loop
+                || loopType == (int)ControllerSetAnimationLoopType.PlayOnce
+                || loopType == (int)ControllerSetAnimationLoopType.HoldOnLastFrame)
             {
                 instance.LoopModeOverride = loopType switch
                 {
-                    10 => AnimationLoopMode.Loop,
-                    11 => AnimationLoopMode.PlayOnce,
-                    12 => AnimationLoopMode.HoldOnLastFrame,
+                    (int)ControllerSetAnimationLoopType.Loop => AnimationLoopMode.Loop,
+                    (int)ControllerSetAnimationLoopType.PlayOnce => AnimationLoopMode.PlayOnce,
+                    (int)ControllerSetAnimationLoopType.HoldOnLastFrame => AnimationLoopMode.HoldOnLastFrame,
                     _ => (AnimationLoopMode?)null
                 };
             }

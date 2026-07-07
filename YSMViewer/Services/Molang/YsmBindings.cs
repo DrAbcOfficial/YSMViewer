@@ -1,6 +1,7 @@
 using ConcreteMC.MolangSharp.Runtime;
 using ConcreteMC.MolangSharp.Runtime.Struct;
 using System.Numerics;
+using YSMViewer.Models;
 
 namespace YSMViewer.Services.Molang;
 
@@ -81,7 +82,7 @@ internal static class YsmBindings
             ? basePos
             : Vector3.Zero;
         var delta = bone.Position - basePosition;
-        var bedrockPosition = new Vector3(-delta.X * 16f, delta.Y * 16f, delta.Z * 16f);
+        var bedrockPosition = new Vector3(-delta.X * BedrockUnits.PixelsPerBlock, delta.Y * BedrockUnits.PixelsPerBlock, delta.Z * BedrockUnits.PixelsPerBlock);
         return p.Contains(1)
             ? GetAxis(bedrockPosition, p.GetInt(1))
             : bedrockPosition.Length();

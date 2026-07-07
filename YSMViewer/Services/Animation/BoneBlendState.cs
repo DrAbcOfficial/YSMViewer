@@ -1,4 +1,5 @@
 using System.Numerics;
+using YSMViewer.Models;
 using YSMViewer.Services.Molang;
 
 namespace YSMViewer.Services.Animation;
@@ -83,7 +84,7 @@ public sealed class BoneBlendState(string boneName)
                     effectiveWeight *= MathF.Max(0f, 1f - queue.PositionTransitionLerp);
 
                 Vector3 posBedrock = queue.PositionValue;
-                Vector3 posGltf = new Vector3(-posBedrock.X, posBedrock.Y, posBedrock.Z) / 16f;
+                Vector3 posGltf = new Vector3(-posBedrock.X, posBedrock.Y, posBedrock.Z) / BedrockUnits.PixelsPerBlock;
                 positionAccum += posGltf * effectiveWeight;
                 totalPositionWeight += effectiveWeight;
             }

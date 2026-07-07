@@ -194,7 +194,7 @@ public sealed class AnimationService(
             if (boneAnim.Position is not null)
             {
                 var animDeltaBedrock = Sanitize(EvaluateKeyframeSet(boneAnim.Position, _currentTime));
-                var animDeltaGltf = new Vector3(-animDeltaBedrock.X, animDeltaBedrock.Y, animDeltaBedrock.Z) / 16f;
+                var animDeltaGltf = new Vector3(-animDeltaBedrock.X, animDeltaBedrock.Y, animDeltaBedrock.Z) / BedrockUnits.PixelsPerBlock;
                 node.Position = Sanitize(basePos + animDeltaGltf);
             }
             if (boneAnim.Scale is not null)
