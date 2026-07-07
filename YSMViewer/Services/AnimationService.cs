@@ -43,6 +43,9 @@ public sealed class AnimationService(
         Dictionary<string, IAnimatableBone> boneNodes,
         IReadOnlyDictionary<string, Vector3>? baseEulers = null)
     {
+        Logger.LogInformation("Setting bone nodes: {Count} bones, {EulerCount} base eulers",
+            boneNodes.Count, baseEulers?.Count ?? 0);
+
         _boneNodes.Clear();
         _basePositions.Clear();
         _baseEulers.Clear();
@@ -87,6 +90,9 @@ public sealed class AnimationService(
                 _allAnimations[name] = anim;
             }
         }
+
+        Logger.LogInformation("Loaded {Count} animations from JSON ({RawCount} raw entries)",
+            _allAnimations.Count, file.Animations.Count);
     }
 
     private static Dictionary<string, MinecraftBoneAnimation> ParseBones(JsonElement bonesElement)
@@ -127,8 +133,12 @@ public sealed class AnimationService(
         if (_allAnimations.TryGetValue(name, out var anim))
         {
             if (!IsValidLength(anim.AnimationLength))
+            {
+                Logger.LogWarning("Skipping invalid animation '{Name}' with length {Length}", name, anim.AnimationLength);
                 return;
+            }
 
+            Logger.LogDebug("Playing animation '{Name}' ({Length}s, loop={LoopMode})", name, anim.AnimationLength, anim.LoopMode);
             _currentAnimation = anim;
             _currentTime = 0f;
             _isPlaying = true;
@@ -265,7 +275,10 @@ public sealed class AnimationService(
             return Vector3.Zero;
 
         if (MolangService is null)
+        {
+            Logger.LogDebug("MolangService not available, using simple evaluation fallback");
             return EvaluateKeyframeSetSimple(kf, time);
+        }
 
         var molang = MolangService;
 

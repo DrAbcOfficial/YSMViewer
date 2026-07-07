@@ -10,6 +10,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<ThemeService>();
         services.AddSingleton<LocalizationService>();
+        services.AddTransient<NotificationService>();
         services.AddTransient<MainViewModel>();
 
         return services;

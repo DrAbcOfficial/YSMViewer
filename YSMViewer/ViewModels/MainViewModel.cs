@@ -20,7 +20,7 @@ public sealed partial class MainViewModel : ViewModelBase
 
     public FolderBrowserViewModel FolderBrowser { get; }
 
-    public NotificationService Notifications { get; } = new();
+    public NotificationService Notifications { get; }
 
     public bool IsDesktop { get; } = Avalonia.Application.Current?.ApplicationLifetime
         is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime;
@@ -71,10 +71,11 @@ public sealed partial class MainViewModel : ViewModelBase
             animRenderer.UseAnimationController = value;
     }
 
-    public MainViewModel(IRenderer renderer, LocalizationService localizationService)
+    public MainViewModel(IRenderer renderer, LocalizationService localizationService, NotificationService notifications)
     {
         Renderer = renderer;
         _localization = localizationService;
+        Notifications = notifications;
         FolderBrowser = new FolderBrowserViewModel(localizationService);
         FolderBrowser.FileSelected += OnFileSelectedFromBrowser;
         FolderBrowser.ScanError += OnScanError;

@@ -3,6 +3,7 @@
   <Project Path="YSMViewer.Browser/YSMViewer.Browser.csproj" />
   <Project Path="YSMViewer.Core/YSMViewer.Core.csproj" />
   <Project Path="YSMViewer.Desktop/YSMViewer.Desktop.csproj" />
+  <Project Path="YSMViewer.Core.Tests/YSMViewer.Core.Tests.csproj" />
   <Project Path="ThumbnailProviders/YSMViewer.ThumbnailProvider/YSMViewer.ThumbnailProvider.csproj" />
   <Project Path="YSMViewer/YSMViewer.csproj" />
 </Solution>

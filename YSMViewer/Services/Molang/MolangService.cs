@@ -4,6 +4,7 @@ using ConcreteMC.MolangSharp.Parser.Expressions;
 using ConcreteMC.MolangSharp.Runtime;
 using ConcreteMC.MolangSharp.Runtime.Exceptions;
 using ConcreteMC.MolangSharp.Runtime.Value;
+using Microsoft.Extensions.Logging;
 using System.Globalization;
 
 namespace YSMViewer.Services.Molang;
@@ -30,6 +31,7 @@ public interface IAnimationAudioHost
 
 public sealed class MolangService
 {
+    private static readonly ILogger Logger = YsmLog.For<MolangService>();
     private readonly MoLangRuntime _runtime;
     private readonly Dictionary<string, IMoValue> _userVariables = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, IMoValue> _animVariables = new(StringComparer.OrdinalIgnoreCase);
@@ -138,8 +140,9 @@ public sealed class MolangService
             _parseCache[expression] = expr;
             return expr;
         }
-        catch (MoLangParserException)
+        catch (MoLangParserException ex)
         {
+            Logger.LogDebug(ex, "MoLang parse failed for expression '{Expression}'", expression);
             _parseCache[expression] = new NumberExpression(0.0);
             return new NumberExpression(0.0);
         }
@@ -156,8 +159,9 @@ public sealed class MolangService
             var result = _runtime.Execute(expr, context);
             return (float)result.AsDouble();
         }
-        catch (MoLangRuntimeException)
+        catch (MoLangRuntimeException ex)
         {
+            Logger.LogDebug(ex, "MoLang evaluate failed for expression");
             return 0.0f;
         }
     }
