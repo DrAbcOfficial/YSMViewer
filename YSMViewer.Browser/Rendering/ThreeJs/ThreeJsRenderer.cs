@@ -54,6 +54,7 @@ public sealed class ThreeJsRenderer : IRenderer, IInteractiveRenderer, IAnimatio
             {
                 Logger.LogDebug(ex, "Failed to get animation progress from Three.js");
             }
+            return _animationCurrentTime;
         }
     }
 

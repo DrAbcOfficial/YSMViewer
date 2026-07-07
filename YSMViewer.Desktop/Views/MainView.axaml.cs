@@ -4,7 +4,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
-using Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
 using YSMViewer.Rendering;
 using YSMViewer.Services;
@@ -264,54 +263,6 @@ public partial class MainView : UserControl
                 vm.Notifications.Show("Copied to clipboard", NotificationType.Info, 2000);
             }
         }
-    }
-
-    private void OnShowAllComponentsClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-        {
-            foreach (var comp in vm.Components)
-                comp.IsVisible = true;
-        }
-    }
-
-    private void OnHideAllComponentsClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-        {
-            foreach (var comp in vm.Components)
-                comp.IsVisible = false;
-        }
-    }
-
-    private void OnExpandAllBonesClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-        {
-            vm.ExpandAllBones();
-            SetGeneratedTreeItemsExpanded(true);
-        }
-    }
-
-    private void OnCollapseAllBonesClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-        {
-            vm.CollapseAllBones();
-            SetGeneratedTreeItemsExpanded(false);
-        }
-    }
-
-    private void SetGeneratedTreeItemsExpanded(bool expanded)
-    {
-        foreach (var item in this.GetVisualDescendants().OfType<TreeViewItem>())
-            item.IsExpanded = expanded;
-    }
-
-    private void OnAnimationSelectionChanged(object? sender, SelectionChangedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm && e.AddedItems.Count > 0 && e.AddedItems[0] is string name)
-            vm.SelectAnimation(name);
     }
 
     private static void SyncGizmoCamera(IInteractiveRenderer interactive)

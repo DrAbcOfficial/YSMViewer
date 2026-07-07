@@ -1,3 +1,4 @@
+using CommunityToolkit.Mvvm.Input;
 using YSMViewer.Models.Document;
 
 namespace YSMViewer.ViewModels;
@@ -69,13 +70,29 @@ public sealed partial class MainViewModel
         return item;
     }
 
-    public void ExpandAllBones()
+    [RelayCommand]
+    private void ShowAllComponents()
+    {
+        foreach (var comp in Components)
+            comp.IsVisible = true;
+    }
+
+    [RelayCommand]
+    private void HideAllComponents()
+    {
+        foreach (var comp in Components)
+            comp.IsVisible = false;
+    }
+
+    [RelayCommand]
+    private void ExpandAllBones()
     {
         foreach (var group in BoneGroups)
             group.ExpandAll();
     }
 
-    public void CollapseAllBones()
+    [RelayCommand]
+    private void CollapseAllBones()
     {
         foreach (var group in BoneGroups)
             group.CollapseAll();

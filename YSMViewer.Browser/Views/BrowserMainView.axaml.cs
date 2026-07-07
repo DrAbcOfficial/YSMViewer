@@ -5,7 +5,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
-using Avalonia.VisualTree;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Runtime.Versioning;
@@ -288,54 +287,6 @@ public partial class BrowserMainView : UserControl
         banner?.IsVisible = false;
     }
 
-    private void OnShowAllComponentsClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-        {
-            foreach (var comp in vm.Components)
-                comp.IsVisible = true;
-        }
-    }
-
-    private void OnHideAllComponentsClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-        {
-            foreach (var comp in vm.Components)
-                comp.IsVisible = false;
-        }
-    }
-
-    private void OnExpandAllBonesClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-        {
-            vm.ExpandAllBones();
-            SetGeneratedTreeItemsExpanded(true);
-        }
-    }
-
-    private void OnCollapseAllBonesClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-        {
-            vm.CollapseAllBones();
-            SetGeneratedTreeItemsExpanded(false);
-        }
-    }
-
-    private void SetGeneratedTreeItemsExpanded(bool expanded)
-    {
-        foreach (var item in this.GetVisualDescendants().OfType<TreeViewItem>())
-            item.IsExpanded = expanded;
-    }
-
-    private void OnAnimationSelectionChanged(object? sender, SelectionChangedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm && e.AddedItems.Count > 0 && e.AddedItems[0] is string name)
-            vm.SelectAnimation(name);
-    }
-
     private void OnBrowserToggleRightPanelClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
@@ -355,16 +306,6 @@ public partial class BrowserMainView : UserControl
         }
         ApplyResponsiveLayout(vm);
         SyncButtonVisibility();
-    }
-
-    private void OnBrowserShowAllComponentsClick(object? sender, RoutedEventArgs e)
-    {
-        OnShowAllComponentsClick(sender, e);
-    }
-
-    private void OnBrowserHideAllComponentsClick(object? sender, RoutedEventArgs e)
-    {
-        OnHideAllComponentsClick(sender, e);
     }
 
     private void OnRestoreButtonFromHtml()

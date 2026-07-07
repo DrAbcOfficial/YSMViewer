@@ -177,7 +177,7 @@ public sealed class AnimationService(
 
             if (boneAnim.Rotation is not null)
             {
-                var animDeltaBedrock = Sanitize(EvaluateKeyframeSet(boneAnim.Rotation, _currentTime));
+                var animDeltaBedrock = KeyframeEvaluator.Sanitize(EvaluateKeyframeSet(boneAnim.Rotation, _currentTime));
                 var animDeltaGltf = new Vector3(-animDeltaBedrock.X, -animDeltaBedrock.Y, animDeltaBedrock.Z);
 
                 Vector3 combinedGltf;
@@ -193,13 +193,13 @@ public sealed class AnimationService(
             }
             if (boneAnim.Position is not null)
             {
-                var animDeltaBedrock = Sanitize(EvaluateKeyframeSet(boneAnim.Position, _currentTime));
+                var animDeltaBedrock = KeyframeEvaluator.Sanitize(EvaluateKeyframeSet(boneAnim.Position, _currentTime));
                 var animDeltaGltf = new Vector3(-animDeltaBedrock.X, animDeltaBedrock.Y, animDeltaBedrock.Z) / BedrockUnits.PixelsPerBlock;
-                node.Position = Sanitize(basePos + animDeltaGltf);
+                node.Position = KeyframeEvaluator.Sanitize(basePos + animDeltaGltf);
             }
             if (boneAnim.Scale is not null)
             {
-                var animScale = Sanitize(EvaluateKeyframeSet(boneAnim.Scale, _currentTime));
+                var animScale = KeyframeEvaluator.Sanitize(EvaluateKeyframeSet(boneAnim.Scale, _currentTime));
                 node.Scale = animScale;
             }
         }
@@ -220,14 +220,6 @@ public sealed class AnimationService(
         return Quaternion.CreateFromRotationMatrix(m);
     }
 
-    private static Vector3 Sanitize(Vector3 v)
-    {
-        return new Vector3(
-            float.IsNaN(v.X) || float.IsInfinity(v.X) ? 0f : v.X,
-            float.IsNaN(v.Y) || float.IsInfinity(v.Y) ? 0f : v.Y,
-            float.IsNaN(v.Z) || float.IsInfinity(v.Z) ? 0f : v.Z);
-    }
-
     private Vector3 EvaluateKeyframeSet(MinecraftKeyframeSet kf, float time)
     {
         if (kf.IsConstant)
@@ -238,29 +230,10 @@ public sealed class AnimationService(
 
         if (kf.HasMolangExpressions || kf.HasAdvancedInterpolation)
         {
-            return Sanitize(EvaluateKeyframeSetAdvanced(kf, time));
+            return KeyframeEvaluator.Sanitize(EvaluateKeyframeSetAdvanced(kf, time));
         }
 
-        var sorted = kf.Keyframes.OrderBy(k => k.Key).ToList();
-
-        if (time <= sorted[0].Key)
-            return Sanitize(ToVector3(sorted[0].Value));
-
-        if (time >= sorted[^1].Key)
-            return Sanitize(ToVector3(sorted[^1].Value));
-
-        for (int i = 0; i < sorted.Count - 1; i++)
-        {
-            if (time >= sorted[i].Key && time <= sorted[i + 1].Key)
-            {
-                float t = (time - sorted[i].Key) / (sorted[i + 1].Key - sorted[i].Key);
-                var a = ToVector3(sorted[i].Value);
-                var b = ToVector3(sorted[i + 1].Value);
-                return Sanitize(Vector3.Lerp(a, b, t));
-            }
-        }
-
-        return Sanitize(ToVector3(sorted[^1].Value));
+        return KeyframeEvaluator.EvaluateLinear(kf, time);
     }
 
     private Vector3 EvaluateKeyframeSetAdvanced(MinecraftKeyframeSet kf, float time)
@@ -277,72 +250,36 @@ public sealed class AnimationService(
         if (MolangService is null)
         {
             Logger.LogDebug("MolangService not available, using simple evaluation fallback");
-            return EvaluateKeyframeSetSimple(kf, time);
+            return KeyframeEvaluator.EvaluateLinear(kf, time);
         }
 
         var molang = MolangService;
 
         if (frames.Length == 1)
-            return Sanitize(frames[0].Evaluate(molang, 1f));
+            return KeyframeEvaluator.Sanitize(frames[0].Evaluate(molang, 1f));
 
         if (time <= frames[0].StartTime)
-            return Sanitize(frames[0].GetValue(molang, true));
+            return KeyframeEvaluator.Sanitize(frames[0].GetValue(molang, true));
 
         if (time >= frames[^1].EndTime)
-            return Sanitize(frames[^1].GetValue(molang, false));
+            return KeyframeEvaluator.Sanitize(frames[^1].GetValue(molang, false));
 
         for (int i = 0; i < frames.Length; i++)
         {
             if (time >= frames[i].StartTime && time <= frames[i].EndTime)
             {
-                float progress = (time - frames[i].StartTime) / frames[i].Duration;
-                return Sanitize(frames[i].Evaluate(molang, progress));
+                float progress = frames[i].Duration > 0f
+                    ? (time - frames[i].StartTime) / frames[i].Duration
+                    : 0f;
+                return KeyframeEvaluator.Sanitize(frames[i].Evaluate(molang, progress));
             }
         }
 
-        return Sanitize(frames[^1].GetValue(molang, false));
+        return KeyframeEvaluator.Sanitize(frames[^1].GetValue(molang, false));
     }
 
     private static BoneKeyFrame[] BuildKeyFrames(MinecraftKeyframeSet kf)
     {
         return BoneKeyFrameProcessor.FromKeyframeSet(kf);
-    }
-
-    private static Vector3 EvaluateKeyframeSetSimple(MinecraftKeyframeSet kf, float time)
-    {
-        if (kf.IsConstant)
-            return new Vector3(kf.ConstantValue);
-
-        if (kf.Keyframes.Count == 0)
-            return Vector3.Zero;
-
-        var sorted = kf.Keyframes.OrderBy(k => k.Key).ToList();
-
-        if (time <= sorted[0].Key)
-            return Sanitize(ToVector3(sorted[0].Value));
-
-        if (time >= sorted[^1].Key)
-            return Sanitize(ToVector3(sorted[^1].Value));
-
-        for (int i = 0; i < sorted.Count - 1; i++)
-        {
-            if (time >= sorted[i].Key && time <= sorted[i + 1].Key)
-            {
-                float t = (time - sorted[i].Key) / (sorted[i + 1].Key - sorted[i].Key);
-                var a = ToVector3(sorted[i].Value);
-                var b = ToVector3(sorted[i + 1].Value);
-                return Sanitize(Vector3.Lerp(a, b, t));
-            }
-        }
-
-        return Sanitize(ToVector3(sorted[^1].Value));
-    }
-
-    private static Vector3 ToVector3(float[] values)
-    {
-        if (values.Length == 0) return Vector3.Zero;
-        if (values.Length == 1) return new Vector3(values[0]);
-        if (values.Length == 2) return new Vector3(values[0], values[1], 0);
-        return new Vector3(values[0], values[1], values[2]);
     }
 }
