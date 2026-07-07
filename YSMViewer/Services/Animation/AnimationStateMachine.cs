@@ -26,6 +26,7 @@ public sealed class AnimationStateMachine(
     private readonly Dictionary<string, IExpression> _conditionCache = [];
     private readonly HashSet<string> _visitedStates = [];
     private float _dynamicTransitionLength;
+    private float _currentStateEnterTick;
 
     private AnimationStateMachine? _childController;
     private string _controllerName = "";
@@ -126,7 +127,7 @@ public sealed class AnimationStateMachine(
             {
                 if (_blendStates.TryGetValue(queue.BoneName, out var blendState))
                 {
-                    blendState.AddSource(queue, slot.BlendWeight > 0f ? 1f : 0f);
+                    blendState.AddSource(queue, Math.Clamp(slot.BlendWeight, 0f, 1f));
                     blendState.BlendViaShortestPath = slot.BlendViaShortestPath;
                 }
             }
@@ -139,7 +140,7 @@ public sealed class AnimationStateMachine(
             {
                 if (_blendStates.TryGetValue(queue.BoneName, out var blendState))
                 {
-                    blendState.AddSource(queue, slot.BlendWeight > 0f ? 1f : 0f);
+                    blendState.AddSource(queue, Math.Clamp(slot.BlendWeight, 0f, 1f));
                     if (!blendState.BlendViaShortestPath)
                         blendState.BlendViaShortestPath = slot.BlendViaShortestPath;
                 }
@@ -250,7 +251,7 @@ public sealed class AnimationStateMachine(
             ? _dynamicTransitionLength
             : newState.BlendTransition.Constant;
         if (_dynamicTransitionLength <= 0f && !newState.BlendTransition.IsConstant && newState.BlendTransition.Curve is not null)
-            blendTransitionDuration = EvaluateBlendTransitionCurve(newState.BlendTransition.Curve);
+            blendTransitionDuration = EvaluateBlendTransitionCurve(newState.BlendTransition.Curve, currentTick - _currentStateEnterTick);
         _dynamicTransitionLength = 0f;
 
         foreach (var slot in _activeSlots)
@@ -259,6 +260,7 @@ public sealed class AnimationStateMachine(
         _activeSlots.Clear();
 
         _currentState = stateName;
+        _currentStateEnterTick = currentTick;
 
         var subName = ExtractSubControllerName(stateName);
         if (subName is not null && _depth < MaxSubControllerDepth && _context.AllControllers is not null)
@@ -375,12 +377,26 @@ public sealed class AnimationStateMachine(
             slot.Instance.BeginEnd(_currentTick);
     }
 
-    private static float EvaluateBlendTransitionCurve(Dictionary<float, float> curve)
+    private static float EvaluateBlendTransitionCurve(Dictionary<float, float> curve, float time)
     {
         if (curve.Count == 0) return 0f;
         var sorted = curve.OrderBy(kv => kv.Key).ToList();
         if (sorted.Count == 1) return sorted[0].Value;
-        return sorted[0].Value;
+
+        if (time <= sorted[0].Key) return sorted[0].Value;
+        if (time >= sorted[^1].Key) return sorted[^1].Value;
+
+        for (int i = 0; i < sorted.Count - 1; i++)
+        {
+            if (time >= sorted[i].Key && time <= sorted[i + 1].Key)
+            {
+                float span = sorted[i + 1].Key - sorted[i].Key;
+                float t = span > 0f ? (time - sorted[i].Key) / span : 0f;
+                return sorted[i].Value + (sorted[i + 1].Value - sorted[i].Value) * t;
+            }
+        }
+
+        return sorted[^1].Value;
     }
 
     private static string? ExtractSubControllerName(string stateName)

@@ -17,10 +17,12 @@ public sealed class NoLightTranslucentPass(RenderPipeline renderPipeline) : YSMN
 
     public override void Render(Camera camera)
     {
+        CurrentBoneCapacity = ComputeSkinnedBoneCapacity();
+
         UseShader("BLENDMODE_TRANSLUCENT");
         RenderVisibleMeshesInCamera(mesh => mesh.IsStaticMesh && IsMaterialBlendMode(mesh, BlendMode.Translucent), camera.View, camera.Projection);
 
-        UseShader("SKINNED_MESH", "BLENDMODE_TRANSLUCENT");
+        UseShader("SKINNED_MESH", "BLENDMODE_TRANSLUCENT", $"BONE_NUMBER {CurrentBoneCapacity}");
         RenderVisibleMeshesInCamera(mesh => mesh.IsSkinnedMesh && IsMaterialBlendMode(mesh, BlendMode.Translucent), camera.View, camera.Projection);
 
         UseShader("INSTANCED_MESH", "BLENDMODE_TRANSLUCENT");

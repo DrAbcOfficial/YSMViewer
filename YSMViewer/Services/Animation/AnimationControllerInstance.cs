@@ -44,8 +44,6 @@ public sealed class AnimationControllerInstance(
 
     public float EvaluateBlendWeight(MolangService molang)
     {
-        if (_animation.BlendWeight <= 0f && _animation.Loop)
-            return 1f;
         return _animation.BlendWeight > 0f ? _animation.BlendWeight : 1f;
     }
 
@@ -78,7 +76,9 @@ public sealed class AnimationControllerInstance(
     public void BeginStart(float blendTransitionDuration, float currentTick,
         IReadOnlyDictionary<string, (Vector3 pos, Quaternion rot, Vector3 scale)> currentBoneStates)
     {
-        _beginningTransitionDuration = blendTransitionDuration > 0f ? blendTransitionDuration : DefaultEndingTransitionDuration;
+        _beginningTransitionDuration = blendTransitionDuration >= 0f
+            ? blendTransitionDuration
+            : DefaultEndingTransitionDuration;
         _tickOffset = currentTick;
         _currentTick = 0f;
         _beginningTransitionElapsed = 0f;

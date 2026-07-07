@@ -39,6 +39,11 @@ public sealed class MolangService
     private Dictionary<string, IMoValue>? _cachedContext;
     private bool _contextDirty = true;
 
+    static MolangService()
+    {
+        MoLangParser.Factory = iterator => new MoLangParser(iterator);
+    }
+
     public IAnimationStateMachineHost? StateMachineHost { get; set; }
     public IAnimationAudioHost? AudioHost { get; set; }
     public IReadOnlyDictionary<string, IAnimatableBone>? BoneNodes { get; set; }
@@ -68,12 +73,6 @@ public sealed class MolangService
         env.Structs["c"] = _contextStruct;
 
         _runtime = new MoLangRuntime(env);
-
-        MoLangParser.Factory = iterator =>
-        {
-            var parser = new MoLangParser(iterator);
-            return parser;
-        };
     }
 
     public void SetUserVariable(string name, float value)

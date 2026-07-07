@@ -11,8 +11,17 @@ namespace YSMViewer.Desktop.Rendering.Aura3D;
 public static class Aura3DModelBuilder
 {
     private const float ExportScale = 1f / 16f;
+    private const int MaxCachedTextures = 32;
     private static readonly Dictionary<string, Texture> _textureCache = [];
     private static readonly Lock _textureCacheLock = new();
+
+    public static void ClearTextureCache()
+    {
+        lock (_textureCacheLock)
+        {
+            _textureCache.Clear();
+        }
+    }
 
     public sealed record BuildResult(
         Model RootModel,
@@ -38,6 +47,11 @@ public static class Aura3DModelBuilder
                 {
                     if (!_textureCache.TryGetValue(hash, out sharedTexture))
                     {
+                        if (_textureCache.Count >= MaxCachedTextures)
+                        {
+                            _textureCache.Clear();
+                        }
+
                         sharedTexture = TextureLoader.LoadTexture(texture.Data)
                             .SetMinFilter(TextureFilterMode.Nearest)
                             .SetMagFilter(TextureFilterMode.Nearest)

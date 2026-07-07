@@ -10,11 +10,18 @@ namespace YSMViewer.Desktop.Rendering.Aura3D;
 
 public class YSMNoLightPass : NoLightPass
 {
+    private const int MaxShaderBones = 256;
     private readonly global::Aura3D.Core.Resources.Texture _defaultBaseColor;
     private bool _defaultBaseColorUploaded;
 
     /// <summary>0 = off, >0 = simple shading intensity</summary>
     public float SimpleShadingIntensity { get; set; } = 0.5f;
+
+    /// <summary>
+    /// Bone capacity injected into the skinned shader as <c>#define BONE_NUMBER N</c>.
+    /// Updated each frame from the visible skinned meshes; clamped to MaxShaderBones.
+    /// </summary>
+    protected int CurrentBoneCapacity { get; set; } = MaxShaderBones;
 
     public YSMNoLightPass(RenderPipeline renderPipeline) : base(renderPipeline)
     {
@@ -26,8 +33,6 @@ public class YSMNoLightPass : NoLightPass
 
     private const string _VertexShader = @"#version 300 es
 precision mediump float;
-
-#define BONE_NUMBER 120
 
 //{{defines}}
 
@@ -167,10 +172,12 @@ void main()
         UseShader("BLENDMODE_MASKED");
         RenderVisibleMeshesInCamera(mesh => mesh.IsStaticMesh && IsMaterialBlendMode(mesh, BlendMode.Masked), camera.View, camera.Projection);
 
-        UseShader("SKINNED_MESH");
+        CurrentBoneCapacity = ComputeSkinnedBoneCapacity();
+
+        UseShader("SKINNED_MESH", $"BONE_NUMBER {CurrentBoneCapacity}");
         RenderVisibleMeshesInCamera(mesh => mesh.IsSkinnedMesh && IsMaterialBlendMode(mesh, BlendMode.Opaque), camera.View, camera.Projection);
 
-        UseShader("SKINNED_MESH", "BLENDMODE_MASKED");
+        UseShader("SKINNED_MESH", "BLENDMODE_MASKED", $"BONE_NUMBER {CurrentBoneCapacity}");
         RenderVisibleMeshesInCamera(mesh => mesh.IsSkinnedMesh && IsMaterialBlendMode(mesh, BlendMode.Masked), camera.View, camera.Projection);
 
         UseShader("INSTANCED_MESH");
@@ -178,6 +185,23 @@ void main()
 
         UseShader("INSTANCED_MESH", "BLENDMODE_MASKED");
         RenderVisibleInstancedMeshesInCamera(instancedMesh => IsMaterialBlendMode(instancedMesh.Material, BlendMode.Masked), camera.View, camera.Projection);
+    }
+
+    /// <summary>
+    /// Scans currently visible skinned meshes and returns the maximum bone count,
+    /// clamped to <see cref="MaxShaderBones"/>. Falls back to <see cref="MaxShaderBones"/>
+    /// when no skinned mesh is visible so the cached default shader remains reusable.
+    /// </summary>
+    protected int ComputeSkinnedBoneCapacity()
+    {
+        int max = 0;
+        foreach (var mesh in VisibleMeshesInCamera)
+        {
+            if (!mesh.IsSkinnedMesh) continue;
+            int count = mesh.Skeleton?.Bones.Count ?? 0;
+            if (count > max) max = count;
+        }
+        return Math.Clamp(Math.Max(max, 1), 1, MaxShaderBones);
     }
 
     public override void RenderMesh(Mesh mesh, Matrix4x4 view, Matrix4x4 projection)
@@ -194,14 +218,15 @@ void main()
         if (mesh.IsSkinnedMesh)
         {
             var skeleton = mesh.Skeleton;
+            int uploadCount = Math.Min(skeleton.Bones.Count, CurrentBoneCapacity);
             if (mesh.Model.AnimationSampler != null)
             {
-                for (int i = 0; i < skeleton.Bones.Count; i++)
+                for (int i = 0; i < uploadCount; i++)
                     UniformMatrix4($"BoneMatrices[{i}]", skeleton.Bones[i].InverseWorldMatrix * mesh.Model.AnimationSampler.BonesTransform[i]);
             }
             else
             {
-                for (int i = 0; i < skeleton.Bones.Count; i++)
+                for (int i = 0; i < uploadCount; i++)
                     UniformMatrix4($"BoneMatrices[{i}]", skeleton.Bones[i].InverseWorldMatrix * skeleton.Bones[i].WorldMatrix);
             }
         }

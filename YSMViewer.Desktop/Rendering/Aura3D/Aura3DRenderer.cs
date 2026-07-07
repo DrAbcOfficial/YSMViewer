@@ -323,6 +323,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
         _boneNameToNodes.Clear();
         _baseBoneEulers.Clear();
         _basePositions.Clear();
+        Aura3DModelBuilder.ClearTextureCache();
     }
 
     public void Clear()

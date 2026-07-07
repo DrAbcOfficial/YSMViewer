@@ -18,9 +18,22 @@ public partial class ModelBottomBar : UserControl
     public ModelBottomBar()
     {
         InitializeComponent();
-        Loaded += (_, _) => ApplyAllSvgColors();
-        ThemeSvc.ModeChanged += _ => ApplyAllSvgColors();
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
     }
+
+    private void OnLoaded(object? sender, RoutedEventArgs e)
+    {
+        ApplyAllSvgColors();
+        ThemeSvc.ModeChanged += OnThemeModeChanged;
+    }
+
+    private void OnUnloaded(object? sender, RoutedEventArgs e)
+    {
+        ThemeSvc.ModeChanged -= OnThemeModeChanged;
+    }
+
+    private void OnThemeModeChanged(AppThemeMode mode) => ApplyAllSvgColors();
 
     private void ApplyAllSvgColors()
     {
