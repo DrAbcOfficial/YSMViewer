@@ -16,7 +16,6 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
-          cache: true
 
       - name: Test Core
         run: dotnet test YSMViewer.Core.Tests/YSMViewer.Core.Tests.csproj --nologo --configuration Release
@@ -46,7 +45,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
-          cache: true
+
 
       - name: Install Android workloads
         run: dotnet workload install android wasm-tools
@@ -73,7 +72,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
-          cache: true
+
 
       - name: Publish Desktop (${{ matrix.rid }})
         run: dotnet publish YSMViewer.Desktop -c Release -r ${{ matrix.rid }} -o publish/desktop-${{ matrix.rid }}
@@ -94,7 +93,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
-          cache: true
+
 
       - name: Publish C# NativeAOT rendering DLL
         run: dotnet publish ThumbnailProviders/YSMViewer.ThumbnailProvider -c Release -r win-x64 -o publish/thumbnail-win
@@ -135,7 +134,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
-          cache: true
+
 
       - name: Publish NativeAOT rendering library
         run: dotnet publish ThumbnailProviders/YSMViewer.ThumbnailProvider -c Release -r linux-x64 -o publish/thumbnail-xdg
@@ -168,7 +167,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
-          cache: true
+
 
       - name: Publish NativeAOT rendering library
         run: dotnet publish ThumbnailProviders/YSMViewer.ThumbnailProvider -c Release -r osx-arm64 -o publish/thumbnail-osx/native
@@ -228,7 +227,7 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
-          cache: true
+
 
       - name: Install wasm-tools
         run: dotnet workload install wasm-tools
