@@ -30,8 +30,11 @@ public static class YsmMetadataParser
             Name = string.IsNullOrWhiteSpace(primary.Name) ? fallback.Name : primary.Name,
             Tips = string.IsNullOrWhiteSpace(primary.Tips) ? fallback.Tips : primary.Tips,
             LicenseType = string.IsNullOrWhiteSpace(primary.LicenseType) ? fallback.LicenseType : primary.LicenseType,
+            LicenseDescription = string.IsNullOrWhiteSpace(primary.LicenseDescription) ? fallback.LicenseDescription : primary.LicenseDescription,
             IsFree = primary.IsFree || fallback.IsFree,
             Authors = primary.Authors.Length > 0 ? primary.Authors : fallback.Authors,
+            AuthorDetails = primary.AuthorDetails.Count > 0 ? primary.AuthorDetails : fallback.AuthorDetails,
+            Links = primary.Links.Count > 0 ? primary.Links : fallback.Links,
         };
     }
 
@@ -43,8 +46,11 @@ public static class YsmMetadataParser
         string? name = null;
         string? tips = null;
         string? licenseType = null;
+        string? licenseDescription = null;
         bool isFree = false;
         var authors = new List<string>();
+        var authorDetails = new List<YsmAuthorInfo>();
+        var links = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         float widthScale = 1f;
         float heightScale = 1f;
 
@@ -52,13 +58,55 @@ public static class YsmMetadataParser
         {
             if (meta.TryGetProperty("name", out var n)) name = n.GetString();
             if (meta.TryGetProperty("tips", out var t)) tips = t.GetString();
-            if (meta.TryGetProperty("license", out var lic)
-                && lic.TryGetProperty("type", out var lt)) licenseType = lt.GetString();
+            if (meta.TryGetProperty("license", out var lic))
+            {
+                if (lic.TryGetProperty("type", out var lt)) licenseType = lt.GetString();
+                if (lic.TryGetProperty("desc", out var ld)) licenseDescription = ld.GetString();
+            }
             if (meta.TryGetProperty("authors", out var auths))
             {
                 foreach (var a in auths.EnumerateArray())
                 {
-                    if (a.TryGetProperty("name", out var an)) authors.Add(an.GetString() ?? "");
+                    if (a.ValueKind == JsonValueKind.String)
+                    {
+                        var plain = a.GetString() ?? "";
+                        authors.Add(plain);
+                        authorDetails.Add(new YsmAuthorInfo(plain, null, null, null, new Dictionary<string, string>()));
+                        continue;
+                    }
+                    if (a.ValueKind != JsonValueKind.Object) continue;
+
+                    string? authorName = null, role = null, comment = null, avatar = null;
+                    if (a.TryGetProperty("name", out var an)) authorName = an.GetString();
+                    if (a.TryGetProperty("role", out var ar)) role = ar.GetString();
+                    if (a.TryGetProperty("comment", out var ac)) comment = ac.GetString();
+                    if (a.TryGetProperty("avatar", out var av)) avatar = av.GetString();
+
+                    var contacts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    if (a.TryGetProperty("contact", out var contact) && contact.ValueKind == JsonValueKind.Object)
+                    {
+                        foreach (var c in contact.EnumerateObject())
+                        {
+                            if (c.Value.ValueKind == JsonValueKind.String)
+                                contacts[c.Name] = c.Value.GetString() ?? "";
+                        }
+                    }
+
+                    authors.Add(authorName ?? "");
+                    authorDetails.Add(new YsmAuthorInfo(
+                        authorName ?? string.Empty,
+                        string.IsNullOrWhiteSpace(role) ? null : role,
+                        string.IsNullOrWhiteSpace(comment) ? null : comment,
+                        string.IsNullOrWhiteSpace(avatar) ? null : avatar,
+                        contacts));
+                }
+            }
+            if (meta.TryGetProperty("link", out var link) && link.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var l in link.EnumerateObject())
+                {
+                    if (l.Value.ValueKind == JsonValueKind.String)
+                        links[l.Name] = l.Value.GetString() ?? "";
                 }
             }
         }
@@ -72,7 +120,8 @@ public static class YsmMetadataParser
                 && hs.TryGetSingle(out var hsv)) heightScale = hsv;
         }
 
-        return new YsmMetadata(name, tips, licenseType, isFree, [.. authors], widthScale, heightScale);
+        return new YsmMetadata(name, tips, licenseType, isFree, [.. authors], widthScale, heightScale,
+            licenseDescription, authorDetails, links);
     }
 
     private static YsmMetadata? ParseInfoJson(byte[] data)
@@ -101,7 +150,8 @@ public static class YsmMetadataParser
             }
         }
 
-        return new YsmMetadata(name, tips, licenseType, isFree, [.. authors], 1f, 1f);
+        return new YsmMetadata(name, tips, licenseType, isFree, [.. authors], 1f, 1f,
+            null, [], new Dictionary<string, string>());
     }
 
     public sealed record YsmMetadata(
@@ -111,5 +161,20 @@ public static class YsmMetadataParser
         bool IsFree,
         string[] Authors,
         float WidthScale,
-        float HeightScale);
+        float HeightScale,
+        string? LicenseDescription = null,
+        IReadOnlyList<YsmAuthorInfo> AuthorDetails = null!,
+        IReadOnlyDictionary<string, string> Links = null!)
+    {
+        public IReadOnlyList<YsmAuthorInfo> AuthorDetails { get; init; } = AuthorDetails ?? [];
+        public IReadOnlyDictionary<string, string> Links { get; init; } = Links ?? new Dictionary<string, string>();
+    }
 }
+
+/// <summary>One rich metadata.authors[] entry from ysm.json (GUI YsmInfoPreview schema).</summary>
+public sealed record YsmAuthorInfo(
+    string Name,
+    string? Role,
+    string? Comment,
+    string? Avatar,
+    IReadOnlyDictionary<string, string> Contacts);

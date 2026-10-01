@@ -195,7 +195,11 @@ public sealed class YsmLoaderService
             Authors: meta?.Authors is { Length: > 0 } ? string.Join(", ", meta.Authors) : string.Empty,
             License: meta?.LicenseType ?? string.Empty,
             Tips: meta?.Tips ?? string.Empty,
-            IsFree: meta?.IsFree ?? false);
+            IsFree: meta?.IsFree ?? false,
+            InnerFormat: document.InnerFormat,
+            LicenseDescription: meta?.LicenseDescription ?? string.Empty,
+            AuthorDetails: meta?.AuthorDetails ?? [],
+            Links: meta?.Links ?? new Dictionary<string, string>());
 
         var textureResources = new List<YsmTextureResource>();
         var models = new List<YsmGeometryModel>();
@@ -278,7 +282,11 @@ public sealed class YsmLoaderService
             Authors: meta?.Authors is { Length: > 0 } ? string.Join(", ", meta.Authors) : string.Empty,
             License: meta?.LicenseType ?? string.Empty,
             Tips: meta?.Tips ?? string.Empty,
-            IsFree: meta?.IsFree ?? false);
+            IsFree: meta?.IsFree ?? false,
+            InnerFormat: document.InnerFormat,
+            LicenseDescription: meta?.LicenseDescription ?? string.Empty,
+            AuthorDetails: meta?.AuthorDetails ?? [],
+            Links: meta?.Links ?? new Dictionary<string, string>());
 
         byte[]? fallbackTexture = null;
         if (resources.Textures.Count > 0)

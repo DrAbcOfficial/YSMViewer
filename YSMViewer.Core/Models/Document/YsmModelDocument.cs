@@ -1,4 +1,5 @@
 using System.Numerics;
+using YSMViewer.Services;
 
 namespace YSMViewer.Models.Document;
 
@@ -69,7 +70,15 @@ public sealed record YsmDocumentModelInfo(
     string Authors,
     string License,
     string Tips,
-    bool IsFree);
+    bool IsFree,
+    int InnerFormat = 0,
+    string LicenseDescription = "",
+    IReadOnlyList<YsmAuthorInfo> AuthorDetails = null!,
+    IReadOnlyDictionary<string, string> Links = null!)
+{
+    public IReadOnlyList<YsmAuthorInfo> AuthorDetails { get; init; } = AuthorDetails ?? [];
+    public IReadOnlyDictionary<string, string> Links { get; init; } = Links ?? new Dictionary<string, string>();
+}
 
 public sealed record YsmGeometryModel(
     string Id,

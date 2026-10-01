@@ -284,3 +284,20 @@ public sealed partial class SoundItemViewModel : ObservableObject
         OnTogglePlayback?.Invoke(this);
     }
 }
+
+/// <summary>One clickable metadata link (metadata.link or author contact).</summary>
+public sealed record ModelLinkItem(string Key, string Label, string Url);
+
+/// <summary>One rich metadata.authors[] card for the info panel.</summary>
+public sealed record ModelAuthorItem(
+    string Name,
+    string? Role,
+    string? Comment,
+    Avalonia.Media.Imaging.Bitmap? Avatar,
+    IReadOnlyList<ModelLinkItem> Contacts)
+{
+    public bool HasAvatar => Avatar is not null;
+    public bool HasRole => !string.IsNullOrEmpty(Role);
+    public bool HasComment => !string.IsNullOrEmpty(Comment);
+    public bool HasContacts => Contacts.Count > 0;
+}

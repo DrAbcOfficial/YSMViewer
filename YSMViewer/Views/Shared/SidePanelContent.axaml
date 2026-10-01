@@ -46,16 +46,38 @@
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="Version" FontSize="11"
                                        Foreground="{DynamicResource ThemeTextMuted}" Width="60" />
-                            <TextBlock Text="{Binding ModelVersion}"
+                            <TextBlock Text="{Binding ModelVersionText}"
                                        FontSize="12" Foreground="{DynamicResource ThemeTextSecondary}" />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="8"
-                                    IsVisible="{Binding HasModelAuthors}">
+                                    IsVisible="{Binding ShowPlainAuthors}">
                             <TextBlock Text="Authors" FontSize="11"
                                        Foreground="{DynamicResource ThemeTextMuted}" Width="60" />
                             <TextBlock Text="{Binding ModelAuthors}"
                                        FontSize="12" Foreground="{DynamicResource ThemeTextSecondary}"
                                        TextWrapping="Wrap" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8"
+                                    IsVisible="{Binding HasModelLinks}">
+                            <TextBlock Text="Links" FontSize="11"
+                                       Foreground="{DynamicResource ThemeTextMuted}" Width="60" />
+                            <ItemsControl ItemsSource="{Binding ModelLinks}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="4" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ModelLinkItem">
+                                        <Button Click="OnOpenLinkClick" Tag="{Binding Url}"
+                                                Padding="7,2" CornerRadius="4"
+                                                Background="{DynamicResource ThemeBgElevated}">
+                                            <TextBlock Text="{Binding Label}" FontSize="11"
+                                                       Foreground="{DynamicResource ThemeAccent}" />
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="8"
                                     IsVisible="{Binding HasModelLicense}">
@@ -71,6 +93,67 @@
                             </Border>
                         </StackPanel>
                     </StackPanel>
+                    <TextBlock Text="{Binding ModelLicenseDescription}"
+                               FontSize="11" Foreground="{DynamicResource ThemeTextLabel}"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding HasModelLicenseDescription}" />
+                    <ItemsControl ItemsSource="{Binding ModelAuthorItems}"
+                                  IsVisible="{Binding HasModelAuthorItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ModelAuthorItem">
+                                <Border CornerRadius="6" Padding="8" Margin="0,0,0,6"
+                                        Background="{DynamicResource ThemeBgElevated}">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <Border Grid.Column="0" Width="44" Height="44"
+                                                CornerRadius="6"
+                                                Background="{DynamicResource ThemeBgViewport}"
+                                                ClipToBounds="True"
+                                                IsVisible="{Binding HasAvatar}">
+                                            <Image Source="{Binding Avatar}" Stretch="UniformToFill" />
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center" Margin="8,0,0,0">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="{Binding Name}" FontSize="12"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource ThemeTextPrimary}" />
+                                                <Border CornerRadius="3" Padding="5,1"
+                                                        VerticalAlignment="Center"
+                                                        Background="{DynamicResource ThemeAccent}"
+                                                        IsVisible="{Binding HasRole}">
+                                                    <TextBlock Text="{Binding Role}" FontSize="9"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource ThemeBgViewport}" />
+                                                </Border>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Comment}"
+                                                       FontSize="10"
+                                                       Foreground="{DynamicResource ThemeTextLabel}"
+                                                       TextWrapping="Wrap"
+                                                       IsVisible="{Binding HasComment}" />
+                                            <ItemsControl ItemsSource="{Binding Contacts}"
+                                                          IsVisible="{Binding HasContacts}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal" Spacing="4" />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:ModelLinkItem">
+                                                        <Button Click="OnOpenLinkClick" Tag="{Binding Url}"
+                                                                Padding="6,1" CornerRadius="4"
+                                                                Background="{DynamicResource ThemeBgViewport}">
+                                                            <TextBlock Text="{Binding Label}" FontSize="10"
+                                                                       Foreground="{DynamicResource ThemeAccent}" />
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                     <TextBlock Text="{Binding ModelTips}"
                                FontSize="11" Foreground="{DynamicResource ThemeTextLabel}"
                                TextWrapping="Wrap"

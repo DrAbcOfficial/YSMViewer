@@ -219,6 +219,9 @@ public sealed partial class MainViewModel : ViewModelBase
     public partial int ModelVersion { get; set; }
 
     [ObservableProperty]
+    public partial string ModelVersionText { get; set; } = string.Empty;
+
+    [ObservableProperty]
     public partial bool HasModel { get; set; }
 
     [ObservableProperty]
@@ -258,6 +261,24 @@ public sealed partial class MainViewModel : ViewModelBase
     public partial string ModelLicense { get; set; } = string.Empty;
 
     [ObservableProperty]
+    public partial string ModelLicenseDescription { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial bool HasModelLicenseDescription { get; set; }
+
+    [ObservableProperty]
+    public partial IReadOnlyList<ModelLinkItem> ModelLinks { get; set; } = [];
+
+    [ObservableProperty]
+    public partial bool HasModelLinks { get; set; }
+
+    [ObservableProperty]
+    public partial IReadOnlyList<ModelAuthorItem> ModelAuthorItems { get; set; } = [];
+
+    [ObservableProperty]
+    public partial bool HasModelAuthorItems { get; set; }
+
+    [ObservableProperty]
     public partial string ModelTips { get; set; } = string.Empty;
 
     [ObservableProperty]
@@ -279,6 +300,9 @@ public sealed partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial bool HasModelAuthors { get; set; }
+
+    [ObservableProperty]
+    public partial bool ShowPlainAuthors { get; set; }
 
     [ObservableProperty]
     public partial bool HasModelLicense { get; set; }
@@ -454,6 +478,7 @@ public sealed partial class MainViewModel : ViewModelBase
         StopSoundPlaybackUi();
         ModelName = document.Info.Name;
         ModelVersion = document.Info.Version;
+        ModelVersionText = FormatVersionLabel(document.Info.Version, document.Info.InnerFormat);
         HasModel = true;
         _currentDocument = document;
 
@@ -465,7 +490,30 @@ public sealed partial class MainViewModel : ViewModelBase
         IsFreeModel = document.Info.IsFree;
         ModelTips = document.Info.Tips;
 
+        ModelLicenseDescription = document.Info.LicenseDescription ?? string.Empty;
+        HasModelLicenseDescription = !string.IsNullOrWhiteSpace(ModelLicenseDescription);
+
+        ModelLinks = document.Info.Links
+            .Select(kv => new ModelLinkItem(kv.Key, LinkLabel(kv.Key), kv.Value))
+            .ToList();
+        HasModelLinks = ModelLinks.Count > 0;
+
+        var avatarImages = document.Images.Where(i => i.Category == "Avatar").ToList();
+        ModelAuthorItems = document.Info.AuthorDetails
+            .Where(a => !string.IsNullOrWhiteSpace(a.Name))
+            .Select(a => new ModelAuthorItem(
+                MinecraftFormatHelper.StripFormatting(a.Name),
+                string.IsNullOrWhiteSpace(a.Role) ? null : MinecraftFormatHelper.StripFormatting(a.Role),
+                string.IsNullOrWhiteSpace(a.Comment) ? null : MinecraftFormatHelper.StripFormatting(a.Comment),
+                DecodeAvatar(a.Avatar, avatarImages),
+                a.Contacts
+                    .Select(c => new ModelLinkItem(c.Key, LinkLabel(c.Key), c.Value))
+                    .ToList()))
+            .ToList();
+        HasModelAuthorItems = ModelAuthorItems.Count > 0;
+
         HasModelAuthors = !string.IsNullOrEmpty(ModelAuthors);
+        ShowPlainAuthors = HasModelAuthors && !HasModelAuthorItems;
         HasModelLicense = !string.IsNullOrEmpty(ModelLicense);
         HasModelTips = !string.IsNullOrEmpty(ModelTips);
 
@@ -593,6 +641,45 @@ public sealed partial class MainViewModel : ViewModelBase
             Height = height,
             Thumbnail = thumbnail,
         });
+    }
+
+    private static string FormatVersionLabel(int version, int innerFormat) => version switch
+    {
+        1 => "V1",
+        2 => "V2",
+        3 => innerFormat > 0 ? $"V3 · f{innerFormat}" : "V3",
+        _ => "Zip",
+    };
+
+    private static string LinkLabel(string key) =>
+        string.IsNullOrEmpty(key) ? key : char.ToUpperInvariant(key[0]) + key[1..];
+
+    private Bitmap? DecodeAvatar(string? avatarPath, List<YsmImageResource> avatars)
+    {
+        if (string.IsNullOrWhiteSpace(avatarPath) || avatars.Count == 0) return null;
+
+        var normalized = avatarPath.Replace('\\', '/').TrimStart('/');
+        var fileName = normalized[(normalized.LastIndexOf('/') + 1)..];
+
+        foreach (var img in avatars)
+        {
+            var name = img.Name.Replace('\\', '/');
+            var nameFile = name[(name.LastIndexOf('/') + 1)..];
+            if (!name.Equals(normalized, StringComparison.OrdinalIgnoreCase) &&
+                !name.EndsWith(normalized, StringComparison.OrdinalIgnoreCase) &&
+                !nameFile.Equals(fileName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            try { return new Bitmap(new MemoryStream(img.Data)); }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to decode author avatar '{Avatar}'", avatarPath);
+                return null;
+            }
+        }
+
+        Logger.LogDebug("Author avatar '{Avatar}' not found among {Count} avatar images", avatarPath, avatars.Count);
+        return null;
     }
 
     private void AddSoundEntry(string name, byte[] data)

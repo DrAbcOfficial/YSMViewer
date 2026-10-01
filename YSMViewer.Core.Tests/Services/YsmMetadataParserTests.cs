@@ -143,6 +143,69 @@ public sealed class YsmMetadataParserTests
     }
 
     [Fact]
+    public void Parse_RichMetadata_LinksLicenseDescAuthorDetails()
+    {
+        var ysmJson = """
+            {
+              "metadata": {
+                "name": "Rich",
+                "license": { "type": "CC-BY", "desc": "Attribution required" },
+                "link": { "home": "https://example.com", "bilibili": "https://space.bilibili.com/1" },
+                "authors": [
+                  {
+                    "name": "Alice",
+                    "role": "Modeler",
+                    "comment": "Lead artist",
+                    "avatar": "avatars/alice.png",
+                    "contact": { "twitter": "https://x.com/alice", "email": "alice@example.com" }
+                  },
+                  { "name": "Bob" }
+                ]
+              }
+            }
+            """u8;
+
+        var result = YsmMetadataParser.Parse(ysmJson.ToArray(), null);
+
+        Assert.NotNull(result);
+        Assert.Equal("CC-BY", result!.LicenseType);
+        Assert.Equal("Attribution required", result.LicenseDescription);
+        Assert.Equal(2, result.Links.Count);
+        Assert.Equal("https://example.com", result.Links["home"]);
+
+        Assert.Equal(2, result.AuthorDetails.Count);
+        var alice = result.AuthorDetails[0];
+        Assert.Equal("Alice", alice.Name);
+        Assert.Equal("Modeler", alice.Role);
+        Assert.Equal("Lead artist", alice.Comment);
+        Assert.Equal("avatars/alice.png", alice.Avatar);
+        Assert.Equal(2, alice.Contacts.Count);
+        Assert.Equal("https://x.com/alice", alice.Contacts["twitter"]);
+        Assert.Equal("Bob", result.AuthorDetails[1].Name);
+        Assert.Null(result.AuthorDetails[1].Role);
+    }
+
+    [Fact]
+    public void Merge_RichFields_FallBackToInfoJson()
+    {
+        var ysmJson = JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            metadata = new { name = "Primary" }
+        });
+        var infoJson = JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            name = "Fallback",
+            authors = new[] { "Alice" }
+        });
+
+        var result = YsmMetadataParser.Parse(ysmJson, infoJson);
+
+        Assert.NotNull(result);
+        Assert.Equal("Primary", result!.Name);
+        Assert.Equal(["Alice"], result.Authors);
+    }
+
+    [Fact]
     public void Parse_InvalidJson_ReturnsNull()
     {
         var result = YsmMetadataParser.Parse("not valid json"u8.ToArray(), null);

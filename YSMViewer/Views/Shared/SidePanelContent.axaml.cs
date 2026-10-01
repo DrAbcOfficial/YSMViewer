@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
+using Microsoft.Extensions.Logging;
 using YSMViewer.ViewModels;
 
 namespace YSMViewer.Views.Shared;
@@ -34,6 +35,20 @@ public partial class SidePanelContent : UserControl
     {
         if (ViewModel is not { } vm) return;
         vm.IsRightPanelVisible = false;
+    }
+
+    private async void OnOpenLinkClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string url } || string.IsNullOrEmpty(url)) return;
+        if (TopLevel.GetTopLevel(this) is not { } topLevel) return;
+        try
+        {
+            await topLevel.Launcher.LaunchUriAsync(new Uri(url));
+        }
+        catch (Exception ex)
+        {
+            YsmLog.For<SidePanelContent>().LogWarning(ex, "Failed to open link '{Url}'", url);
+        }
     }
 
     private void OnShowAllComponentsClick(object? sender, RoutedEventArgs e)
