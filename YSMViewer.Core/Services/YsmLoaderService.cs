@@ -701,14 +701,20 @@ public sealed class YsmLoaderService
                         ? ConvertBedrockRotationDoc(cube.Rotation)
                         : Vector3.Zero;
 
+                    // Blockbench parseCube semantics: an explicitly set cube
+                    // value wins; an absent one falls back to the bone's.
+                    var inflate = cube.Inflate ?? bone.Inflate ?? 0f;
+                    var mirror = cube.Mirror ?? bone.Mirror ?? false;
+
                     cubes.Add(new YsmCubeInfo(
                         Id: $"cube_{bone.Name}_{cubeIdx}",
                         Origin: origin,
                         Size: size,
                         Pivot: cubePivot,
                         Rotation: cubeRotation,
-                        Inflate: cube.Inflate,
-                        Uv: cube.Uv));
+                        Inflate: inflate,
+                        Uv: cube.Uv,
+                        Mirror: mirror));
                     cubeIdx++;
                 }
             }

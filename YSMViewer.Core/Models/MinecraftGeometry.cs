@@ -3,9 +3,101 @@ using System.Text.Json.Serialization;
 
 namespace YSMViewer.Models;
 
+[JsonConverter(typeof(MinecraftGeometryFileConverter))]
 public sealed record MinecraftGeometryFile(
-    [property: JsonPropertyName("format_version")] string FormatVersion,
+    [property: JsonPropertyName("format_version")] string? FormatVersion,
     [property: JsonPropertyName("minecraft:geometry")] List<MinecraftGeometry> Geometries);
+
+/// <summary>
+/// Accepts both Bedrock geometry layouts: the modern
+/// <c>{"format_version":..., "minecraft:geometry":[...]}</c> envelope and the
+/// legacy single-object <c>{"geometry.<name>": {...bones/cubes...}}</c> file
+/// (mirrors Blockbench's bedrock_old codec and the GUI's pickGeometry).
+/// </summary>
+public sealed class MinecraftGeometryFileConverter : JsonConverter<MinecraftGeometryFile>
+{
+    public override MinecraftGeometryFile? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+            return null;
+
+        using var doc = JsonDocument.ParseValue(ref reader);
+        var root = doc.RootElement;
+        if (root.ValueKind != JsonValueKind.Object)
+            return null;
+
+        if (root.TryGetProperty("minecraft:geometry", out var modern) && modern.ValueKind == JsonValueKind.Array)
+        {
+            string? formatVersion = root.TryGetProperty("format_version", out var fv) && fv.ValueKind == JsonValueKind.String
+                ? fv.GetString()
+                : null;
+            return new MinecraftGeometryFile(
+                formatVersion,
+                Deserialize(modern, options, () => new List<MinecraftGeometry>()));
+        }
+
+        foreach (var prop in root.EnumerateObject())
+        {
+            if (!prop.Name.StartsWith("geometry.", StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (prop.Value.ValueKind != JsonValueKind.Object)
+                continue;
+            if (!prop.Value.TryGetProperty("bones", out var bones) || bones.ValueKind != JsonValueKind.Array)
+                continue;
+
+            var value = prop.Value;
+            var description = new MinecraftGeometryDescription(
+                Identifier: prop.Name,
+                TextureWidth: GetFloat(value, "texturewidth", 64f),
+                TextureHeight: GetFloat(value, "textureheight", 64f),
+                VisibleBoundsWidth: GetFloat(value, "visible_bounds_width", 0f),
+                VisibleBoundsHeight: GetFloat(value, "visible_bounds_height", 0f),
+                VisibleBoundsOffset: value.TryGetProperty("visible_bounds_offset", out var vbo) && vbo.ValueKind == JsonValueKind.Array
+                    ? Deserialize(vbo, options, () => new List<float>())
+                    : null);
+
+            var geometry = new MinecraftGeometry(
+                description,
+                Deserialize(bones, options, () => new List<MinecraftBone>()));
+
+            return new MinecraftGeometryFile(null, [geometry]);
+        }
+
+        return new MinecraftGeometryFile(null, []);
+    }
+
+    public override void Write(Utf8JsonWriter writer, MinecraftGeometryFile value, JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+        if (value.FormatVersion is not null)
+        {
+            writer.WriteString("format_version", value.FormatVersion);
+            writer.WritePropertyName("minecraft:geometry");
+        }
+        JsonSerializer.Serialize(writer, value.Geometries, options);
+        writer.WriteEndObject();
+    }
+
+    private static T Deserialize<T>(JsonElement element, JsonSerializerOptions options, Func<T> fallback)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<T>(element.GetRawText(), options) ?? fallback();
+        }
+        catch (JsonException)
+        {
+            return fallback();
+        }
+    }
+
+    private static float GetFloat(JsonElement element, string propertyName, float fallback)
+    {
+        return element.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.Number
+            && property.TryGetSingle(out var value)
+            ? value
+            : fallback;
+    }
+}
 
 public sealed record MinecraftGeometry(
     MinecraftGeometryDescription Description,
@@ -25,7 +117,8 @@ public sealed record MinecraftBone(
     List<float>? Pivot = null,
     List<float>? Rotation = null,
     [property: JsonPropertyName("bind_pose_rotation")] List<float>? BindPoseRotation = null,
-    bool Mirror = false,
+    bool? Mirror = null,
+    float? Inflate = null,
     List<MinecraftCube>? Cubes = null);
 
 public sealed record MinecraftCube(
@@ -34,8 +127,8 @@ public sealed record MinecraftCube(
     List<float>? Pivot = null,
     List<float>? Rotation = null,
     MinecraftCubeUV? Uv = null,
-    float Inflate = 0f,
-    bool Mirror = false);
+    float? Inflate = null,
+    bool? Mirror = null);
 
 [JsonConverter(typeof(MinecraftCubeUVConverter))]
 public sealed record MinecraftCubeUV(
@@ -54,7 +147,12 @@ public sealed record MinecraftCubeUV(
     [JsonIgnore]
     public bool IsBoxUV => BoxU.HasValue && BoxV.HasValue;
 
-    public MinecraftCubeUV Expand(float sizeX, float sizeY, float sizeZ)
+    /// <summary>
+    /// Expands box UV [u,v] into per-face UVs. With <paramref name="mirror"/>
+    /// (cube mirror, falling back to the bone's), every face's U axis is
+    /// flipped and East/West are swapped — the Blockbench mirror_uv layout.
+    /// </summary>
+    public MinecraftCubeUV Expand(float sizeX, float sizeY, float sizeZ, bool mirror = false)
     {
         if (!IsBoxUV) return this;
 
@@ -64,26 +162,44 @@ public sealed record MinecraftCubeUV(
         float y = sizeY;
         float z = sizeZ;
 
-        return new MinecraftCubeUV(
-            North: new MinecraftCubeFaceUV(
-                [u + z, v + z],
-                [x, y]),
-            South: new MinecraftCubeFaceUV(
-                [u + z + z + x, v + z],
-                [x, y]),
-            East: new MinecraftCubeFaceUV(
-                [u, v + z],
-                [z, y]),
-            West: new MinecraftCubeFaceUV(
-                [u + z + x, v + z],
-                [z, y]),
-            Up: new MinecraftCubeFaceUV(
-                [u + z + x, v + z],
-                [-x, -z]),
-            Down: new MinecraftCubeFaceUV(
-                [u + z + x + x, v],
-                [-x, z])
-        );
+        var north = new MinecraftCubeFaceUV(
+            [u + z, v + z],
+            [x, y]);
+        var south = new MinecraftCubeFaceUV(
+            [u + z + z + x, v + z],
+            [x, y]);
+        var east = new MinecraftCubeFaceUV(
+            [u, v + z],
+            [z, y]);
+        var west = new MinecraftCubeFaceUV(
+            [u + z + x, v + z],
+            [z, y]);
+        var up = new MinecraftCubeFaceUV(
+            [u + z + x, v + z],
+            [-x, -z]);
+        var down = new MinecraftCubeFaceUV(
+            [u + z + x + x, v],
+            [-x, z]);
+
+        if (mirror)
+        {
+            north = FlipU(north);
+            south = FlipU(south);
+            east = FlipU(east);
+            west = FlipU(west);
+            up = FlipU(up);
+            down = FlipU(down);
+            (east, west) = (west, east);
+        }
+
+        return new MinecraftCubeUV(north, south, east, west, up, down);
+    }
+
+    private static MinecraftCubeFaceUV FlipU(MinecraftCubeFaceUV face)
+    {
+        var uv = face.UvCoords!;
+        var size = face.UvSize!;
+        return new MinecraftCubeFaceUV([uv[0] + size[0], uv[1]], [-size[0], size[1]]);
     }
 }
 

@@ -97,7 +97,8 @@ public sealed record YsmCubeInfo(
     Vector3 Pivot,
     Vector3 Rotation,
     float Inflate,
-    MinecraftCubeUV? Uv);
+    MinecraftCubeUV? Uv,
+    bool Mirror = false);
 
 public sealed record YsmTextureResource(
     string Id,

@@ -130,7 +130,7 @@ public static class ThreeJsPayloadBuilder
     {
         var cubeUV = cube.Uv;
         if (cubeUV?.IsBoxUV == true && cube.Size != Vector3.Zero)
-            cubeUV = cubeUV.Expand(cube.Size.X, cube.Size.Y, cube.Size.Z);
+            cubeUV = cubeUV.Expand(cube.Size.X, cube.Size.Y, cube.Size.Z, cube.Mirror);
 
         float inflate = cube.Inflate;
         var from = new Vector3(cube.Origin.X - cube.Size.X, cube.Origin.Y, cube.Origin.Z);

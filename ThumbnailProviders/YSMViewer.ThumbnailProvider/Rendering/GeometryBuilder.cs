@@ -178,7 +178,7 @@ public static class GeometryBuilder
     {
         var cubeUV = cube.Uv;
         if (cubeUV?.IsBoxUV == true && cube.Size != Vector3.Zero)
-            cubeUV = cubeUV.Expand(cube.Size.X, cube.Size.Y, cube.Size.Z);
+            cubeUV = cubeUV.Expand(cube.Size.X, cube.Size.Y, cube.Size.Z, cube.Mirror);
 
         float ox = cube.Origin.X, oy = cube.Origin.Y, oz = cube.Origin.Z;
         float sx = cube.Size.X, sy = cube.Size.Y, sz = cube.Size.Z;

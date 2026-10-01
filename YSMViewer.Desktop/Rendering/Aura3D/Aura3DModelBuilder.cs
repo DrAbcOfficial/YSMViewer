@@ -196,7 +196,7 @@ public static class Aura3DModelBuilder
 
         var cubeUV = cube.Uv;
         if (cubeUV?.IsBoxUV == true && cube.Size != Vector3.Zero)
-            cubeUV = cubeUV.Expand(cube.Size.X, cube.Size.Y, cube.Size.Z);
+            cubeUV = cubeUV.Expand(cube.Size.X, cube.Size.Y, cube.Size.Z, cube.Mirror);
 
         AddFace(positions, normals, uvs, indices,
             maxX, maxY, maxZ, maxX, maxY, minZ, maxX, minY, maxZ, maxX, minY, minZ,
