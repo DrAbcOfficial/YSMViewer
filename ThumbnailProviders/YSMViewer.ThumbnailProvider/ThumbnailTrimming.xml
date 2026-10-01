@@ -12,7 +12,7 @@
     <type fullname="YSMViewer.Models.YsmJsonContext" />
     <type fullname="YSMViewer.Services.YsmLoaderService" />
     <type fullname="YSMViewer.Services.YsmMetadataParser" />
-    <type fullname="YSMViewer.Services.ZipYsmParser" />
+    <type fullname="YSMViewer.Services.YsmParserLogDiagnostics" />
     <type fullname="YSMViewer.Services.YsmImageHelper" />
     <type fullname="YSMViewer.MinecraftFormatHelper" />
   </assembly>
