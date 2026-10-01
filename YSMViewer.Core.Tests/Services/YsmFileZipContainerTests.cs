@@ -7,7 +7,10 @@ namespace YSMViewer.Core.Tests.Services;
 /// <summary>
 /// Plain-zip (zipver) container coverage on top of YSMParser.Core's YsmFile
 /// API plus the viewer's <see cref="YsmLoaderService.SanitizeZipResources"/>
-/// compensation layer. Replaces the former ZipYsmParser subclass tests.
+/// gap compensation. Since Core 1.1.1 the library itself filters macOS junk,
+/// routes .webp to Textures and keeps animation controllers out of
+/// Animations; these tests lock that end-to-end behavior through the
+/// viewer's public entry points.
 /// </summary>
 public sealed class YsmFileZipContainerTests
 {
@@ -76,6 +79,8 @@ public sealed class YsmFileZipContainerTests
     [Fact]
     public void Sanitize_FiltersMacOsxJunkEntries()
     {
+        // Locked by the library since 1.1.1 (dropped at zip read time); kept
+        // as an end-to-end regression guard through the viewer entry point.
         var zipBytes = CreateZip(new Dictionary<string, byte[]>
         {
             ["__MACOSX/._model.json"] = [0x00, 0x01],
@@ -93,6 +98,8 @@ public sealed class YsmFileZipContainerTests
     [Fact]
     public void Sanitize_ReroutesFlatRuleMisfits()
     {
+        // .webp is routed to Textures by the library since 1.1.1; the viewer
+        // sanitize layer still re-routes .lang/.mcfunction and non-.ogg audio.
         var zipBytes = CreateZip(new Dictionary<string, byte[]>
         {
             ["skin.webp"] = [0x12, 0x34],
@@ -115,10 +122,10 @@ public sealed class YsmFileZipContainerTests
     [Fact]
     public void Sanitize_ReroutesRootAnimationControllers()
     {
+        // The library keeps animation_controller names out of Animations
+        // since 1.1.1; kept as an end-to-end regression guard.
         var zipBytes = CreateZip(new Dictionary<string, byte[]>
         {
-            // The library flat rule matches "animation" in the name and files
-            // root-level controllers under Animations.
             ["npc.animation_controller.json"] = Encoding.UTF8.GetBytes("{}"),
             ["walk.animation.json"] = Encoding.UTF8.GetBytes("{}"),
         });

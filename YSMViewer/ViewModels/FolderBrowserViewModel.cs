@@ -246,11 +246,6 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         {
             var data = await File.ReadAllBytesAsync(filePath);
 
-            var container = YSMParser.Core.YsmFile.Detect(data);
-            if (container is YSMParser.Core.YsmContainer.NewContainer
-                       or YSMParser.Core.YsmContainer.Unsupported)
-                return (displayName, complexity);
-
             var doc = YSMParser.Core.YsmFile.Peek(data);
             var resources = YsmLoaderService.GetSanitizedResources(doc);
 
@@ -282,14 +277,9 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
                     ? resources
                     : YsmLoaderService.GetSanitizedResources(full);
 
-                // v1/v2 keep ysm.json/info.json as plain entries; the library
-                // surfaces them through the Models list.
-                var ysmJson = fullResources.YsmJson ?? FindMetaEntry(fullResources.Models, "ysm.json");
-                var infoJson = fullResources.InfoJson ?? FindMetaEntry(fullResources.Models, "info.json");
-
                 displayName = MinecraftFormatHelper.StripFormatting(
-                    ParseMetaName(ysmJson)
-                    ?? ParseMetaName(infoJson)
+                    ParseMetaName(fullResources.YsmJson)
+                    ?? ParseMetaName(fullResources.InfoJson)
                     ?? doc.HeaderName
                     ?? displayName);
 
@@ -302,18 +292,6 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         }
 
         return (displayName, complexity);
-    }
-
-    private static byte[]? FindMetaEntry(
-        IReadOnlyList<YSMParser.Core.Parsers.YsmResourceEntry> entries, string fileName)
-    {
-        foreach (var entry in entries)
-        {
-            var name = entry.Name.Replace('\\', '/');
-            if (name.Equals(fileName, StringComparison.OrdinalIgnoreCase))
-                return entry.Data;
-        }
-        return null;
     }
 
     private static int ComputeComplexity(YSMParser.Core.Parsers.YsmResourceData resources)

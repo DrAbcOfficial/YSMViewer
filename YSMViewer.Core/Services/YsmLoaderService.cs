@@ -152,9 +152,9 @@ public sealed class YsmLoaderService
 
     private static CoreDocument ParseWithGuards(byte[] data)
     {
+        // YSGP2 containers are rejected by YsmFile.Parse itself since 1.1.1;
+        // only unrecognized magic gets the viewer's friendly wrapper here.
         var container = YsmFile.Detect(data);
-        if (container == YsmContainerKind.NewContainer)
-            throw new NotSupportedException("This file uses the new YSGP2 asset container, which is not supported yet.");
         if (container == YsmContainerKind.Unsupported)
             throw new InvalidOperationException("Unrecognized YSM file format.");
 
@@ -163,8 +163,8 @@ public sealed class YsmLoaderService
 
     /// <summary>
     /// Resources of a parsed document, with plain-zip entries re-sanitized
-    /// (macOS junk dropped, flat-rule misfits re-routed) — see
-    /// <see cref="SanitizeZipResources"/>.
+    /// (.lang/.mcfunction and audio re-routed, specular/special images split
+    /// out) — see <see cref="SanitizeZipResources"/>.
     /// </summary>
     public static YsmResourceData GetSanitizedResources(CoreDocument document) =>
         document.Container == YsmContainerKind.ZipArchive
@@ -751,34 +751,28 @@ public sealed class YsmLoaderService
     }
 
     /// <summary>
-    /// Restores the viewer's plain-zip classification semantics on top of the
-    /// library's directory/extension rules (Core 1.1.0
-    /// <c>Output.ResourceClassifier</c>): drops macOS junk entries
-    /// (<c>__MACOSX/</c>, <c>._*</c> resource forks) and re-routes entries the
-    /// flat rules cannot place (.webp textures, .lang/.mcfunction files,
-    /// audio, specular/special images, root animation controllers).
+    /// Restores the viewer's plain-zip classification semantics for the gaps
+    /// that remain in the library's directory/extension rules (Core 1.1.1
+    /// <c>Output.ResourceClassifier</c>): re-routes root .lang/.mcfunction
+    /// files and non-.ogg audio the flat rules dump into Models, and moves
+    /// <c>special/</c>-prefixed or <c>specular</c>-named entries the classifier
+    /// leaves in Textures into SpecialImages. macOS junk entries, .webp
+    /// textures and animation controllers are handled by the library itself.
     /// </summary>
     public static YsmResourceData SanitizeZipResources(YsmResourceData resources)
     {
         var models = new List<YsmResourceEntry>();
         var textures = new List<YsmResourceEntry>();
-        var animations = new List<YsmResourceEntry>();
-        var animControllers = new List<YsmResourceEntry>(resources.AnimationControllers.Where(e => !IsMacOsJunk(e.Name)));
-        var sounds = new List<YsmResourceEntry>();
-        var functions = new List<YsmResourceEntry>();
-        var languages = new List<YsmResourceEntry>();
-        var avatars = new List<YsmResourceEntry>(resources.Avatars.Where(e => !IsMacOsJunk(e.Name)));
-        var backgrounds = new List<YsmResourceEntry>(resources.Backgrounds.Where(e => !IsMacOsJunk(e.Name)));
-        var specialImages = new List<YsmResourceEntry>(resources.SpecialImages.Where(e => !IsMacOsJunk(e.Name)));
+        var sounds = new List<YsmResourceEntry>(resources.Sounds);
+        var functions = new List<YsmResourceEntry>(resources.Functions);
+        var languages = new List<YsmResourceEntry>(resources.Languages);
+        var specialImages = new List<YsmResourceEntry>(resources.SpecialImages);
 
         foreach (var entry in resources.Models)
         {
-            if (IsMacOsJunk(entry.Name)) continue;
             var name = entry.Name.Replace('\\', '/');
 
-            if (name.EndsWith(".webp", StringComparison.OrdinalIgnoreCase))
-                textures.Add(entry);
-            else if (name.EndsWith(".lang", StringComparison.OrdinalIgnoreCase))
+            if (name.EndsWith(".lang", StringComparison.OrdinalIgnoreCase))
                 languages.Add(entry);
             else if (name.EndsWith(".mcfunction", StringComparison.OrdinalIgnoreCase))
                 functions.Add(entry);
@@ -790,7 +784,6 @@ public sealed class YsmLoaderService
 
         foreach (var entry in resources.Textures)
         {
-            if (IsMacOsJunk(entry.Name)) continue;
             var name = entry.Name.Replace('\\', '/');
 
             if (name.StartsWith("special/", StringComparison.OrdinalIgnoreCase) ||
@@ -800,50 +793,15 @@ public sealed class YsmLoaderService
                 textures.Add(entry);
         }
 
-        foreach (var entry in resources.Animations)
-        {
-            if (IsMacOsJunk(entry.Name)) continue;
-
-            if (entry.Name.Contains("animation_controller", StringComparison.OrdinalIgnoreCase))
-                animControllers.Add(entry);
-            else
-                animations.Add(entry);
-        }
-
-        foreach (var entry in resources.Sounds)
-            if (!IsMacOsJunk(entry.Name))
-                sounds.Add(entry);
-        foreach (var entry in resources.Functions)
-            if (!IsMacOsJunk(entry.Name))
-                functions.Add(entry);
-        foreach (var entry in resources.Languages)
-            if (!IsMacOsJunk(entry.Name))
-                languages.Add(entry);
-
         return resources with
         {
             Models = models,
             Textures = textures,
-            Animations = animations,
-            AnimationControllers = animControllers,
             Sounds = sounds,
             Functions = functions,
             Languages = languages,
-            Avatars = avatars,
-            Backgrounds = backgrounds,
             SpecialImages = specialImages,
         };
-    }
-
-    private static bool IsMacOsJunk(string name)
-    {
-        var normalized = name.Replace('\\', '/');
-        if (normalized.StartsWith("__MACOSX/", StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        var slash = normalized.LastIndexOf('/');
-        var file = slash >= 0 ? normalized[(slash + 1)..] : normalized;
-        return file.StartsWith("._", StringComparison.Ordinal);
     }
 
     private static bool IsAudioFile(string name) =>
