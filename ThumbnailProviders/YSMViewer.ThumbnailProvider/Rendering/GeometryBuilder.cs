@@ -210,17 +210,17 @@ public static class GeometryBuilder
         var faces = new List<TexturedFace>();
 
         AddTransformedFace(faces, worldMatrix, texture, hx, hy, hz, hx, hy, lz, hx, ly, lz, hx, ly, hz,
-            Vector3.UnitX, GetFaceUV(cubeUV?.East, tw, th));
+            Vector3.UnitX, CubeFaceUvMapper.GetFaceUv(cubeUV?.East, tw, th));
         AddTransformedFace(faces, worldMatrix, texture, lx, hy, lz, lx, hy, hz, lx, ly, hz, lx, ly, lz,
-            -Vector3.UnitX, GetFaceUV(cubeUV?.West, tw, th));
+            -Vector3.UnitX, CubeFaceUvMapper.GetFaceUv(cubeUV?.West, tw, th));
         AddTransformedFace(faces, worldMatrix, texture, lx, hy, lz, hx, hy, lz, hx, hy, hz, lx, hy, hz,
-            Vector3.UnitY, GetFaceUV(cubeUV?.Up, tw, th));
+            Vector3.UnitY, CubeFaceUvMapper.GetFaceUv(cubeUV?.Up, tw, th));
         AddTransformedFace(faces, worldMatrix, texture, lx, ly, hz, hx, ly, hz, hx, ly, lz, lx, ly, lz,
-            -Vector3.UnitY, GetFaceUV(cubeUV?.Down, tw, th));
+            -Vector3.UnitY, CubeFaceUvMapper.GetFaceUv(cubeUV?.Down, tw, th));
         AddTransformedFace(faces, worldMatrix, texture, lx, hy, hz, hx, hy, hz, hx, ly, hz, lx, ly, hz,
-            Vector3.UnitZ, GetFaceUV(cubeUV?.South, tw, th));
+            Vector3.UnitZ, CubeFaceUvMapper.GetFaceUv(cubeUV?.South, tw, th));
         AddTransformedFace(faces, worldMatrix, texture, hx, hy, lz, lx, hy, lz, lx, ly, lz, hx, ly, lz,
-            -Vector3.UnitZ, GetFaceUV(cubeUV?.North, tw, th));
+            -Vector3.UnitZ, CubeFaceUvMapper.GetFaceUv(cubeUV?.North, tw, th));
 
         return faces;
     }
@@ -241,25 +241,5 @@ public static class GeometryBuilder
         var worldNormal = Vector3.TransformNormal(localNormal, worldMatrix);
 
         faces.Add(new TexturedFace(v0, v1, v2, v3, texture, worldNormal, uv.u0, uv.v0, uv.u1, uv.v1, uv.u2, uv.v2, uv.u3, uv.v3));
-    }
-
-    private static (float u0, float v0, float u1, float v1, float u2, float v2, float u3, float v3) GetFaceUV(
-        MinecraftCubeFaceUV? faceUv, float texW, float texH)
-    {
-        if (faceUv?.UvCoords is { Count: >= 2 })
-        {
-            float fu = faceUv.UvCoords[0];
-            float fv = faceUv.UvCoords[1];
-            float du = faceUv.UvSize is { Count: >= 2 } ? faceUv.UvSize[0] : 0f;
-            float dv = faceUv.UvSize is { Count: >= 2 } ? faceUv.UvSize[1] : 0f;
-
-            float u0 = fu / texW;
-            float v0 = fv / texH;
-            float u1 = (fu + du) / texW;
-            float v1 = (fv + dv) / texH;
-
-            return (u0, v0, u1, v0, u0, v1, u1, v1);
-        }
-        return (0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f);
     }
 }

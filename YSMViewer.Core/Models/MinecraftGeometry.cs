@@ -206,7 +206,8 @@ public sealed record MinecraftCubeUV(
 public sealed record MinecraftCubeFaceUV(
     [property: JsonPropertyName("uv")] List<float>? UvCoords = null,
     [property: JsonPropertyName("uv_size")] List<float>? UvSize = null,
-    [property: JsonPropertyName("material_instance")] string? MaterialInstance = null);
+    [property: JsonPropertyName("material_instance")] string? MaterialInstance = null,
+    [property: JsonPropertyName("uv_rotation")] int? UvRotation = null);
 
 public sealed class MinecraftCubeUVConverter : JsonConverter<MinecraftCubeUV>
 {
@@ -285,6 +286,7 @@ public sealed class MinecraftCubeUVConverter : JsonConverter<MinecraftCubeUV>
         List<float>? uv = null;
         List<float>? uvSize = null;
         string? material = null;
+        int? uvRotation = null;
 
         while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
         {
@@ -304,6 +306,12 @@ public sealed class MinecraftCubeUVConverter : JsonConverter<MinecraftCubeUV>
                     case "material_instance":
                         material = reader.GetString();
                         break;
+                    case "uv_rotation":
+                        if (reader.TokenType == JsonTokenType.Number)
+                            uvRotation = (int)reader.GetSingle();
+                        else
+                            reader.Skip();
+                        break;
                     default:
                         reader.Skip();
                         break;
@@ -311,7 +319,7 @@ public sealed class MinecraftCubeUVConverter : JsonConverter<MinecraftCubeUV>
             }
         }
 
-        return new MinecraftCubeFaceUV(uv, uvSize, material);
+        return new MinecraftCubeFaceUV(uv, uvSize, material, uvRotation);
     }
 
     private static void WriteFaceUV(Utf8JsonWriter writer, string name, MinecraftCubeFaceUV? face)
@@ -323,6 +331,8 @@ public sealed class MinecraftCubeUVConverter : JsonConverter<MinecraftCubeUV>
         WriteFloatArray(writer, "uv_size", face.UvSize);
         if (face.MaterialInstance is not null)
             writer.WriteString("material_instance", face.MaterialInstance);
+        if (face.UvRotation is { } rotation)
+            writer.WriteNumber("uv_rotation", rotation);
         writer.WriteEndObject();
     }
 

@@ -201,32 +201,32 @@ public static class Aura3DModelBuilder
         AddFace(positions, normals, uvs, indices,
             maxX, maxY, maxZ, maxX, maxY, minZ, maxX, minY, maxZ, maxX, minY, minZ,
             1, 0, 0,
-            GetFaceUV(cubeUV?.East, tw, th));
+            CubeFaceUvMapper.GetFaceUv(cubeUV?.East, tw, th));
 
         AddFace(positions, normals, uvs, indices,
             minX, maxY, minZ, minX, maxY, maxZ, minX, minY, minZ, minX, minY, maxZ,
             -1, 0, 0,
-            GetFaceUV(cubeUV?.West, tw, th));
+            CubeFaceUvMapper.GetFaceUv(cubeUV?.West, tw, th));
 
         AddFace(positions, normals, uvs, indices,
             minX, maxY, minZ, maxX, maxY, minZ, minX, maxY, maxZ, maxX, maxY, maxZ,
             0, 1, 0,
-            GetFaceUV(cubeUV?.Up, tw, th));
+            CubeFaceUvMapper.GetFaceUv(cubeUV?.Up, tw, th));
 
         AddFace(positions, normals, uvs, indices,
             minX, minY, maxZ, maxX, minY, maxZ, minX, minY, minZ, maxX, minY, minZ,
             0, -1, 0,
-            GetFaceUV(cubeUV?.Down, tw, th));
+            CubeFaceUvMapper.GetFaceUv(cubeUV?.Down, tw, th));
 
         AddFace(positions, normals, uvs, indices,
             minX, maxY, maxZ, maxX, maxY, maxZ, minX, minY, maxZ, maxX, minY, maxZ,
             0, 0, 1,
-            GetFaceUV(cubeUV?.South, tw, th));
+            CubeFaceUvMapper.GetFaceUv(cubeUV?.South, tw, th));
 
         AddFace(positions, normals, uvs, indices,
             maxX, maxY, minZ, minX, maxY, minZ, maxX, minY, minZ, minX, minY, minZ,
             0, 0, -1,
-            GetFaceUV(cubeUV?.North, tw, th));
+            CubeFaceUvMapper.GetFaceUv(cubeUV?.North, tw, th));
 
         var geometry = new Geometry();
         geometry.SetVertexAttribute(BuildInVertexAttribute.Position, 3, positions);
@@ -235,26 +235,6 @@ public static class Aura3DModelBuilder
         geometry.SetIndices(indices);
 
         return geometry;
-    }
-
-    private static (float u0, float v0, float u1, float v1, float u2, float v2, float u3, float v3) GetFaceUV(
-        MinecraftCubeFaceUV? faceUv, float texW, float texH)
-    {
-        if (faceUv?.UvCoords is { Count: >= 2 })
-        {
-            float fu = faceUv.UvCoords[0];
-            float fv = faceUv.UvCoords[1];
-            float du = faceUv.UvSize is { Count: >= 2 } ? faceUv.UvSize[0] : 0f;
-            float dv = faceUv.UvSize is { Count: >= 2 } ? faceUv.UvSize[1] : 0f;
-
-            float u0 = fu / texW;
-            float v0 = fv / texH;
-            float u1 = (fu + du) / texW;
-            float v1 = (fv + dv) / texH;
-
-            return (u0, v0, u1, v0, u0, v1, u1, v1);
-        }
-        return (0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f);
     }
 
     private static void AddFace(

@@ -134,6 +134,63 @@ public sealed class YsmGeometryConversionTests
         Assert.True(cube.Mirror);
     }
 
+    [Fact]
+    public void LoadDocument_PerFaceUvRotation_IsParsed()
+    {
+        var doc = LoadWithGeometry("""
+            {
+              "format_version": "1.21.0",
+              "minecraft:geometry": [{
+                "description": { "identifier": "geometry.rot", "texture_width": 16, "texture_height": 16 },
+                "bones": [
+                  {
+                    "name": "panel",
+                    "pivot": [0, 0, 0],
+                    "cubes": [
+                      {
+                        "origin": [-2, 0, -2], "size": [4, 4, 0],
+                        "uv": {
+                          "north": { "uv": [0, 0], "uv_size": [4, 4], "uv_rotation": 90 },
+                          "south": { "uv": [8, 0], "uv_size": [4, 4] }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }]
+            }
+            """);
+
+        var cube = Assert.Single(Assert.Single(doc.Models[0].Bones).Cubes);
+        Assert.Equal(90, cube.Uv!.North!.UvRotation);
+        Assert.Null(cube.Uv.South!.UvRotation);
+    }
+
+    [Fact]
+    public void GetFaceUv_Rotation_CyclesCornersLikeBlockbench()
+    {
+        // 16x16 texture, face uv [0,0] size [16,16] → corners TL(0,0) TR(1,0) BL(0,1) BR(1,1).
+        static MinecraftCubeFaceUV Face(int rotation) =>
+            new([0f, 0f], [16f, 16f], null, rotation);
+
+        var identity = CubeFaceUvMapper.GetFaceUv(Face(0), 16f, 16f);
+        Assert.Equal((0f, 0f, 1f, 0f, 0f, 1f, 1f, 1f), identity);
+
+        // Each 90° step: TL←BL, TR←TL, BL←BR, BR←TR (Blockbench cube.js updateUV).
+        var rot90 = CubeFaceUvMapper.GetFaceUv(Face(90), 16f, 16f);
+        Assert.Equal((0f, 1f, 0f, 0f, 1f, 1f, 1f, 0f), rot90);
+
+        var rot180 = CubeFaceUvMapper.GetFaceUv(Face(180), 16f, 16f);
+        Assert.Equal((1f, 1f, 0f, 1f, 1f, 0f, 0f, 0f), rot180);
+
+        var rot270 = CubeFaceUvMapper.GetFaceUv(Face(270), 16f, 16f);
+        Assert.Equal((1f, 0f, 1f, 1f, 0f, 0f, 0f, 1f), rot270);
+
+        // Missing face degenerates to a single-point sample, as before.
+        var missing = CubeFaceUvMapper.GetFaceUv(null, 16f, 16f);
+        Assert.Equal((0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f), missing);
+    }
+
     private static YsmModelDocument LoadWithGeometry(string geometryJson)
     {
         var zipBytes = CreateZip(new Dictionary<string, byte[]>

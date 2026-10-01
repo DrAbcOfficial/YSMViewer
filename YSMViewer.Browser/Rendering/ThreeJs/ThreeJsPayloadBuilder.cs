@@ -162,27 +162,27 @@ public static class ThreeJsPayloadBuilder
 
         AddQuadFace(positions, normals, uvs, indices,
             hx, hy, hz, hx, hy, lz, hx, ly, hz, hx, ly, lz,
-            1, 0, 0, GetFaceUV(cubeUV?.East, tw, th));
+            1, 0, 0, CubeFaceUvMapper.GetFaceUv(cubeUV?.East, tw, th));
 
         AddQuadFace(positions, normals, uvs, indices,
             lx, hy, lz, lx, hy, hz, lx, ly, lz, lx, ly, hz,
-            -1, 0, 0, GetFaceUV(cubeUV?.West, tw, th));
+            -1, 0, 0, CubeFaceUvMapper.GetFaceUv(cubeUV?.West, tw, th));
 
         AddQuadFace(positions, normals, uvs, indices,
             lx, hy, lz, hx, hy, lz, lx, hy, hz, hx, hy, hz,
-            0, 1, 0, GetFaceUV(cubeUV?.Up, tw, th));
+            0, 1, 0, CubeFaceUvMapper.GetFaceUv(cubeUV?.Up, tw, th));
 
         AddQuadFace(positions, normals, uvs, indices,
             lx, ly, hz, hx, ly, hz, lx, ly, lz, hx, ly, lz,
-            0, -1, 0, GetFaceUV(cubeUV?.Down, tw, th));
+            0, -1, 0, CubeFaceUvMapper.GetFaceUv(cubeUV?.Down, tw, th));
 
         AddQuadFace(positions, normals, uvs, indices,
             lx, hy, hz, hx, hy, hz, lx, ly, hz, hx, ly, hz,
-            0, 0, 1, GetFaceUV(cubeUV?.South, tw, th));
+            0, 0, 1, CubeFaceUvMapper.GetFaceUv(cubeUV?.South, tw, th));
 
         AddQuadFace(positions, normals, uvs, indices,
             hx, hy, lz, lx, hy, lz, hx, ly, lz, lx, ly, lz,
-            0, 0, -1, GetFaceUV(cubeUV?.North, tw, th));
+            0, 0, -1, CubeFaceUvMapper.GetFaceUv(cubeUV?.North, tw, th));
 
         var localPosition = (cube.Pivot - bonePivot) * ExportScale;
 
@@ -221,26 +221,6 @@ public static class ThreeJsPayloadBuilder
 
         indices.AddRange([baseIdx, baseIdx + 2, baseIdx + 1]);
         indices.AddRange([baseIdx + 2, baseIdx + 3, baseIdx + 1]);
-    }
-
-    private static (float u0, float v0, float u1, float v1, float u2, float v2, float u3, float v3) GetFaceUV(
-        MinecraftCubeFaceUV? faceUv, float texW, float texH)
-    {
-        if (faceUv?.UvCoords is { Count: >= 2 })
-        {
-            float fu = faceUv.UvCoords[0];
-            float fv = faceUv.UvCoords[1];
-            float du = faceUv.UvSize is { Count: >= 2 } ? faceUv.UvSize[0] : 0f;
-            float dv = faceUv.UvSize is { Count: >= 2 } ? faceUv.UvSize[1] : 0f;
-
-            float u0 = fu / texW;
-            float v0 = fv / texH;
-            float u1 = (fu + du) / texW;
-            float v1 = (fv + dv) / texH;
-
-            return (u0, v0, u1, v0, u0, v1, u1, v1);
-        }
-        return (0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f);
     }
 
     private static Quaternion CreateBlockbenchQuaternion(Vector3 eulerDegrees)
