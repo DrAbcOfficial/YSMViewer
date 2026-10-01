@@ -7,7 +7,7 @@
 
 ## NuGet
 
-`YSMParser.Core` is consumed from **nuget.org** (no submodule, no local project reference).
+`YSMParser.Core` is consumed from **nuget.org** (no submodule, no local project reference); the version is pinned in `Directory.Packages.props`. Parse entry point: `YsmFile.Detect/Parse/Peek` (covers encrypted v3, legacy v1/v2, and plain-zip containers). Plain-zip classification quirks are compensated in `YsmLoaderService.SanitizeZipResources`; parser warnings flow into the viewer log via `YsmParserLogDiagnostics`.
 
 ## Build & Run
 
@@ -25,7 +25,11 @@ dotnet run --project YSMViewer.Desktop -- path\to\file.ysm
 dotnet publish ThumbnailProviders/YSMViewer.ThumbnailProvider -c Release -r win-x64
 ```
 
-There are **no tests** in YSMViewer.
+There are **no tests** for the UI heads; `YSMViewer.Core.Tests` (xUnit) covers the shared parsing library:
+
+```powershell
+dotnet test YSMViewer.Core.Tests
+```
 
 ## Solution
 
@@ -49,7 +53,7 @@ Shared model library (`net10.0`) consumed by all other projects. Contains:
 
 - **Models/**: `YsmModelDocument`, `YsmGeometryModel`, `YsmTextureResource`, `YsmBoneInfo`, `YsmCubeInfo` — document model types.
 - **Models/Document/**: `YsmModelDocument`, `MinecraftGeometry.cs`, `MinecraftAnimation.cs`, `MinecraftCubeFaceUV.cs`.
-- **Services/**: `YsmLoaderService` (file → JSON → document), `YsmImageHelper` (PNG conversion via SixLabors.ImageSharp), `YsmMetadataParser`, `ZipYsmParser`.
+- **Services/**: `YsmLoaderService` (file → JSON → document), `YsmImageHelper` (PNG conversion via SixLabors.ImageSharp), `YsmMetadataParser`, `YsmParserLogDiagnostics` (parser diagnostics → viewer log).
 
 NuGet: `YSMParser.Core`, `SixLabors.ImageSharp`.
 
@@ -132,7 +136,7 @@ An `IRenderer` abstraction (`Rendering/IRenderer.cs`) has two implementations:
 
 ### Services (`YSMViewer.Core/Services/`)
 
-`YsmLoaderService`, `YsmImageHelper`, `YsmMetadataParser`, `ZipYsmParser`.
+`YsmLoaderService`, `YsmImageHelper`, `YsmMetadataParser`, `YsmParserLogDiagnostics`.
 
 ### Views (`YSMViewer/Views/`)
 
