@@ -7,7 +7,7 @@
 
 ## NuGet
 
-`YSMParser.Core` is consumed from **nuget.org** (no submodule, no local project reference); the version is pinned in `Directory.Packages.props`. Parse entry point: `YsmFile.Detect/Parse/Peek` (covers encrypted v3, legacy v1/v2, and plain-zip containers). Plain-zip classification quirks are compensated in `YsmLoaderService.SanitizeZipResources`; parser warnings flow into the viewer log via `YsmParserLogDiagnostics`.
+`YSMParser.Core` is consumed from **nuget.org** (no submodule, no local project reference); the version is pinned in `Directory.Packages.props`. Parse entry point: `YsmFile.Detect/Parse/Peek` (covers encrypted v3, legacy v1/v2, and plain-zip containers). Since Core 1.1.1 the library itself handles macOS junk filtering, .webp routing, animation_controller classification, V1/V2 metadata and YSGP2 rejection; the viewer's `YsmLoaderService.SanitizeZipResources` only compensates the remaining plain-zip gaps (root .lang/.mcfunction and non-.ogg audio re-routing, special//specular → SpecialImages). Parser warnings flow into the viewer log via `YsmParserLogDiagnostics`.
 
 ## Build & Run
 

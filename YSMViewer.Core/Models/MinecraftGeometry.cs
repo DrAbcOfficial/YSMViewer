@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace YSMViewer.Models;
 
@@ -74,7 +75,8 @@ public sealed class MinecraftGeometryFileConverter : JsonConverter<MinecraftGeom
             writer.WriteString("format_version", value.FormatVersion);
             writer.WritePropertyName("minecraft:geometry");
         }
-        JsonSerializer.Serialize(writer, value.Geometries, options);
+        var geometriesInfo = (JsonTypeInfo<List<MinecraftGeometry>>)options.GetTypeInfo(typeof(List<MinecraftGeometry>));
+        JsonSerializer.Serialize(writer, value.Geometries, geometriesInfo);
         writer.WriteEndObject();
     }
 
@@ -82,7 +84,8 @@ public sealed class MinecraftGeometryFileConverter : JsonConverter<MinecraftGeom
     {
         try
         {
-            return JsonSerializer.Deserialize<T>(element.GetRawText(), options) ?? fallback();
+            var info = (JsonTypeInfo<T>)options.GetTypeInfo(typeof(T));
+            return JsonSerializer.Deserialize(element, info) ?? fallback();
         }
         catch (JsonException)
         {
