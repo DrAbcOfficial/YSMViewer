@@ -245,32 +245,55 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         try
         {
             var data = await File.ReadAllBytesAsync(filePath);
-            using var parser = YsmLoaderService.IsZipData(data)
-                ? new ZipYsmParser(data)
-                : YSMParser.Core.Parsers.YSMParserFactory.CreateFromBytes(data);
 
-            var peekResult = parser.Peek();
+            var container = YSMParser.Core.YsmFile.Detect(data);
+            if (container is YSMParser.Core.YsmContainer.NewContainer
+                       or YSMParser.Core.YsmContainer.Unsupported)
+                return (displayName, complexity);
 
-            displayName = MinecraftFormatHelper.StripFormatting(
-                ParseMetaName(peekResult.YsmJson)
-                ?? ParseMetaName(peekResult.InfoJson)
-                ?? peekResult.HeaderName
-                ?? displayName);
+            var doc = YSMParser.Core.YsmFile.Peek(data);
+            var resources = YsmLoaderService.GetSanitizedResources(doc);
 
-            if (peekResult.Models is { Count: > 0 })
+            if (doc.ModelSummaries is { Count: > 0 })
             {
+                displayName = MinecraftFormatHelper.StripFormatting(
+                    ParseMetaName(resources.YsmJson)
+                    ?? ParseMetaName(resources.InfoJson)
+                    ?? doc.HeaderName
+                    ?? displayName);
+
                 if (displayName == Path.GetFileName(filePath))
                 {
-                    var ident = peekResult.Models[0].Identifier;
+                    var ident = doc.ModelSummaries[0].Identifier;
                     if (!string.IsNullOrEmpty(ident) && ident != "geometry.unknown")
                         displayName = ident;
                 }
 
-                complexity = peekResult.Models.Sum(m => m.BoneCount + m.TotalCubeCount);
+                complexity = doc.ModelSummaries.Sum(m => m.BoneCount + m.TotalCubeCount);
             }
             else
             {
-                complexity = ComputeComplexityV1V2(parser, peekResult);
+                // v1/v2 containers expose no peek summaries (and zip peek is
+                // already a full read), so fall back to a full parse.
+                var full = doc.Container == YSMParser.Core.YsmContainer.ZipArchive
+                    ? doc
+                    : YSMParser.Core.YsmFile.Parse(data);
+                var fullResources = ReferenceEquals(full, doc)
+                    ? resources
+                    : YsmLoaderService.GetSanitizedResources(full);
+
+                // v1/v2 keep ysm.json/info.json as plain entries; the library
+                // surfaces them through the Models list.
+                var ysmJson = fullResources.YsmJson ?? FindMetaEntry(fullResources.Models, "ysm.json");
+                var infoJson = fullResources.InfoJson ?? FindMetaEntry(fullResources.Models, "info.json");
+
+                displayName = MinecraftFormatHelper.StripFormatting(
+                    ParseMetaName(ysmJson)
+                    ?? ParseMetaName(infoJson)
+                    ?? doc.HeaderName
+                    ?? displayName);
+
+                complexity = ComputeComplexity(fullResources);
             }
         }
         catch (Exception ex)
@@ -281,15 +304,20 @@ public sealed partial class FolderBrowserViewModel : ViewModelBase
         return (displayName, complexity);
     }
 
-    private static int ComputeComplexityV1V2(
-        YSMParser.Core.Parsers.YSMParser parser,
-        YSMParser.Core.Parsers.YsmPeekResult peekResult)
+    private static byte[]? FindMetaEntry(
+        IReadOnlyList<YSMParser.Core.Parsers.YsmResourceEntry> entries, string fileName)
     {
-        if (peekResult.ResourceNames is not { Count: > 0 })
-            return 0;
+        foreach (var entry in entries)
+        {
+            var name = entry.Name.Replace('\\', '/');
+            if (name.Equals(fileName, StringComparison.OrdinalIgnoreCase))
+                return entry.Data;
+        }
+        return null;
+    }
 
-        parser.Parse();
-        var resources = parser.GetResources();
+    private static int ComputeComplexity(YSMParser.Core.Parsers.YsmResourceData resources)
+    {
         int complexity = 0;
 
         foreach (var model in resources.Models)

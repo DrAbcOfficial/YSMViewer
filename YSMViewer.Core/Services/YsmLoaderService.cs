@@ -4,6 +4,10 @@ using System.Text.Json;
 using YSMParser.Core.Parsers;
 using YSMViewer.Models;
 using YSMViewer.Models.Document;
+using CoreDocument = YSMParser.Core.YsmModelDocument;
+using YsmContainerKind = YSMParser.Core.YsmContainer;
+using YsmFile = YSMParser.Core.YsmFile;
+using YsmParseOptions = YSMParser.Core.YsmParseOptions;
 
 namespace YSMViewer.Services;
 
@@ -133,40 +137,51 @@ public sealed class YsmLoaderService
 
     public static YsmModelDocument LoadDocumentFromFile(string filePath)
     {
-        if (IsZipFile(filePath))
-        {
-            var data = File.ReadAllBytes(filePath);
-            return LoadDocumentFromBytes(data);
-        }
-
-        using var parser = YSMParserFactory.Create(filePath);
-        parser.Parse();
-        return LoadDocument(parser);
+        return LoadDocumentFromBytes(File.ReadAllBytes(filePath));
     }
 
     public static YsmModelDocument LoadDocumentFromBytes(byte[] data)
     {
-        using var parser = IsZipData(data) ? new ZipYsmParser(data) : YSMParserFactory.CreateFromBytes(data);
-        parser.Parse();
-        return LoadDocument(parser);
+        return LoadDocument(ParseWithGuards(data));
     }
 
     public static YsmModelDocument LoadDocumentForThumbnail(byte[] data)
     {
-        using var parser = IsZipData(data) ? new ZipYsmParser(data) : YSMParserFactory.CreateFromBytes(data);
-        parser.Parse();
-        return LoadDocumentThumbnail(parser);
+        return LoadDocumentThumbnail(ParseWithGuards(data));
     }
 
-    public static bool IsZipFile(string filePath) =>
-        filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
-
-    public static bool IsZipData(byte[] data) =>
-        data.Length >= 4 && data[0] == 0x50 && data[1] == 0x4B && data[2] == 0x03 && data[3] == 0x04;
-
-    private static YsmModelDocument LoadDocumentThumbnail(YSMParser.Core.Parsers.YSMParser parser)
+    private static CoreDocument ParseWithGuards(byte[] data)
     {
-        var resources = parser.GetResources();
+        var container = YsmFile.Detect(data);
+        if (container == YsmContainerKind.NewContainer)
+            throw new NotSupportedException("This file uses the new YSGP2 asset container, which is not supported yet.");
+        if (container == YsmContainerKind.Unsupported)
+            throw new InvalidOperationException("Unrecognized YSM file format.");
+
+        return YsmFile.Parse(data, new YsmParseOptions(Diagnostics: YsmParserLogDiagnostics.Instance));
+    }
+
+    /// <summary>
+    /// Resources of a parsed document, with plain-zip entries re-sanitized
+    /// (macOS junk dropped, flat-rule misfits re-routed) — see
+    /// <see cref="SanitizeZipResources"/>.
+    /// </summary>
+    public static YsmResourceData GetSanitizedResources(CoreDocument document) =>
+        document.Container == YsmContainerKind.ZipArchive
+            ? SanitizeZipResources(document.Resources)
+            : document.Resources;
+
+    private static int ContainerToVersion(YsmContainerKind container) => container switch
+    {
+        YsmContainerKind.LegacyV1 => 1,
+        YsmContainerKind.LegacyV2 => 2,
+        YsmContainerKind.EncryptedV3 => 3,
+        _ => 0,
+    };
+
+    private static YsmModelDocument LoadDocumentThumbnail(CoreDocument document)
+    {
+        var resources = GetSanitizedResources(document);
 
         if (resources.Models.Count == 0)
             throw new InvalidOperationException("No models found in YSM file");
@@ -176,7 +191,7 @@ public sealed class YsmLoaderService
         var info = new YsmDocumentModelInfo(
             Name: meta?.Name ?? "Unknown",
             DisplayName: MinecraftFormatHelper.StripFormatting(meta?.Name ?? "Unknown"),
-            Version: parser.GetYSGPVersion(),
+            Version: ContainerToVersion(document.Container),
             Authors: meta?.Authors is { Length: > 0 } ? string.Join(", ", meta.Authors) : string.Empty,
             License: meta?.LicenseType ?? string.Empty,
             Tips: meta?.Tips ?? string.Empty,
@@ -247,9 +262,9 @@ public sealed class YsmLoaderService
             YsmExtraAnimationLayout.Empty);
     }
 
-    private static YsmModelDocument LoadDocument(YSMParser.Core.Parsers.YSMParser parser)
+    private static YsmModelDocument LoadDocument(CoreDocument document)
     {
-        var resources = parser.GetResources();
+        var resources = GetSanitizedResources(document);
 
         if (resources.Models.Count == 0)
             throw new InvalidOperationException("No models found in YSM file");
@@ -259,7 +274,7 @@ public sealed class YsmLoaderService
         var info = new YsmDocumentModelInfo(
             Name: meta?.Name ?? "Unknown",
             DisplayName: MinecraftFormatHelper.StripFormatting(meta?.Name ?? "Unknown"),
-            Version: parser.GetYSGPVersion(),
+            Version: ContainerToVersion(document.Container),
             Authors: meta?.Authors is { Length: > 0 } ? string.Join(", ", meta.Authors) : string.Empty,
             License: meta?.LicenseType ?? string.Empty,
             Tips: meta?.Tips ?? string.Empty,
@@ -734,4 +749,105 @@ public sealed class YsmLoaderService
                 Height: height));
         }
     }
+
+    /// <summary>
+    /// Restores the viewer's plain-zip classification semantics on top of the
+    /// library's directory/extension rules (Core 1.1.0
+    /// <c>Output.ResourceClassifier</c>): drops macOS junk entries
+    /// (<c>__MACOSX/</c>, <c>._*</c> resource forks) and re-routes entries the
+    /// flat rules cannot place (.webp textures, .lang/.mcfunction files,
+    /// audio, specular/special images, root animation controllers).
+    /// </summary>
+    public static YsmResourceData SanitizeZipResources(YsmResourceData resources)
+    {
+        var models = new List<YsmResourceEntry>();
+        var textures = new List<YsmResourceEntry>();
+        var animations = new List<YsmResourceEntry>();
+        var animControllers = new List<YsmResourceEntry>(resources.AnimationControllers.Where(e => !IsMacOsJunk(e.Name)));
+        var sounds = new List<YsmResourceEntry>();
+        var functions = new List<YsmResourceEntry>();
+        var languages = new List<YsmResourceEntry>();
+        var avatars = new List<YsmResourceEntry>(resources.Avatars.Where(e => !IsMacOsJunk(e.Name)));
+        var backgrounds = new List<YsmResourceEntry>(resources.Backgrounds.Where(e => !IsMacOsJunk(e.Name)));
+        var specialImages = new List<YsmResourceEntry>(resources.SpecialImages.Where(e => !IsMacOsJunk(e.Name)));
+
+        foreach (var entry in resources.Models)
+        {
+            if (IsMacOsJunk(entry.Name)) continue;
+            var name = entry.Name.Replace('\\', '/');
+
+            if (name.EndsWith(".webp", StringComparison.OrdinalIgnoreCase))
+                textures.Add(entry);
+            else if (name.EndsWith(".lang", StringComparison.OrdinalIgnoreCase))
+                languages.Add(entry);
+            else if (name.EndsWith(".mcfunction", StringComparison.OrdinalIgnoreCase))
+                functions.Add(entry);
+            else if (IsAudioFile(name))
+                sounds.Add(entry);
+            else
+                models.Add(entry);
+        }
+
+        foreach (var entry in resources.Textures)
+        {
+            if (IsMacOsJunk(entry.Name)) continue;
+            var name = entry.Name.Replace('\\', '/');
+
+            if (name.StartsWith("special/", StringComparison.OrdinalIgnoreCase) ||
+                name.Contains("specular", StringComparison.OrdinalIgnoreCase))
+                specialImages.Add(entry);
+            else
+                textures.Add(entry);
+        }
+
+        foreach (var entry in resources.Animations)
+        {
+            if (IsMacOsJunk(entry.Name)) continue;
+
+            if (entry.Name.Contains("animation_controller", StringComparison.OrdinalIgnoreCase))
+                animControllers.Add(entry);
+            else
+                animations.Add(entry);
+        }
+
+        foreach (var entry in resources.Sounds)
+            if (!IsMacOsJunk(entry.Name))
+                sounds.Add(entry);
+        foreach (var entry in resources.Functions)
+            if (!IsMacOsJunk(entry.Name))
+                functions.Add(entry);
+        foreach (var entry in resources.Languages)
+            if (!IsMacOsJunk(entry.Name))
+                languages.Add(entry);
+
+        return resources with
+        {
+            Models = models,
+            Textures = textures,
+            Animations = animations,
+            AnimationControllers = animControllers,
+            Sounds = sounds,
+            Functions = functions,
+            Languages = languages,
+            Avatars = avatars,
+            Backgrounds = backgrounds,
+            SpecialImages = specialImages,
+        };
+    }
+
+    private static bool IsMacOsJunk(string name)
+    {
+        var normalized = name.Replace('\\', '/');
+        if (normalized.StartsWith("__MACOSX/", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var slash = normalized.LastIndexOf('/');
+        var file = slash >= 0 ? normalized[(slash + 1)..] : normalized;
+        return file.StartsWith("._", StringComparison.Ordinal);
+    }
+
+    private static bool IsAudioFile(string name) =>
+        name.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase) ||
+        name.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase) ||
+        name.EndsWith(".wav", StringComparison.OrdinalIgnoreCase);
 }
