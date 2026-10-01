@@ -68,8 +68,56 @@ public sealed class MinecraftAnimation
     [JsonPropertyName("anim_time_update")]
     public string? AnimTimeUpdate { get; set; }
 
+    /// <summary>Raw blend_weight; a number or a MoLang expression (stored as string).</summary>
     [JsonPropertyName("blend_weight")]
-    public float BlendWeight { get; set; } = 1.0f;
+    public JsonElement? BlendWeightRaw { get; set; }
+
+    /// <summary>Raw start_delay; seconds or a MoLang expression.</summary>
+    [JsonPropertyName("start_delay")]
+    public JsonElement? StartDelayRaw { get; set; }
+
+    /// <summary>Raw loop_delay; seconds or a MoLang expression (loop mode only).</summary>
+    [JsonPropertyName("loop_delay")]
+    public JsonElement? LoopDelayRaw { get; set; }
+
+    [JsonIgnore]
+    public float BlendWeight => ResolveScalar(BlendWeightRaw, 1f);
+
+    [JsonIgnore]
+    public string? BlendWeightExpression => RawExpression(BlendWeightRaw);
+
+    [JsonIgnore]
+    public float StartDelay => ResolveScalar(StartDelayRaw, 0f);
+
+    [JsonIgnore]
+    public string? StartDelayExpression => RawExpression(StartDelayRaw);
+
+    [JsonIgnore]
+    public float LoopDelay => ResolveScalar(LoopDelayRaw, 0f);
+
+    [JsonIgnore]
+    public string? LoopDelayExpression => RawExpression(LoopDelayRaw);
+
+    private static float ResolveScalar(JsonElement? raw, float fallback) => raw switch
+    {
+        null => fallback,
+        { ValueKind: JsonValueKind.Number } e => e.GetSingle(),
+        { ValueKind: JsonValueKind.String } e => float.TryParse(
+            e.GetString(),
+            System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var f) ? f : fallback,
+        _ => fallback,
+    };
+
+    private static string? RawExpression(JsonElement? raw) =>
+        raw is { ValueKind: JsonValueKind.String } e && !float.TryParse(
+            e.GetString(),
+            System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out _)
+            ? e.GetString()
+            : null;
 
     [JsonPropertyName("bones")]
     public JsonElement? BonesRaw { get; set; }

@@ -19,6 +19,7 @@ public sealed class AnimationService(
     private readonly Dictionary<MinecraftKeyframeSet, BoneKeyFrame[]> _processedKeyframes = [];
     private MinecraftAnimation? _currentAnimation;
     private float _currentTime;
+    private float _delayRemaining;
     private bool _isPlaying = true;
 
     public MolangService? MolangService { get; set; }
@@ -51,6 +52,7 @@ public sealed class AnimationService(
         _baseEulers.Clear();
         _allAnimations.Clear();
         _currentAnimation = null;
+        _delayRemaining = 0f;
 
         foreach (var kv in boneNodes)
         {
@@ -141,6 +143,7 @@ public sealed class AnimationService(
             Logger.LogDebug("Playing animation '{Name}' ({Length}s, loop={LoopMode})", name, anim.AnimationLength, anim.LoopMode);
             _currentAnimation = anim;
             _currentTime = 0f;
+            _delayRemaining = ResolveScalar(anim.StartDelay, anim.StartDelayExpression);
             _isPlaying = true;
         }
     }
@@ -148,59 +151,96 @@ public sealed class AnimationService(
     private static bool IsValidLength(float length) =>
         length > 0f && !float.IsInfinity(length) && !float.IsNaN(length);
 
+    private float ResolveScalar(float constant, string? expression)
+    {
+        if (expression is null || MolangService is null)
+            return constant;
+
+        var value = MolangService.EvaluateString(expression);
+        return float.IsNaN(value) || float.IsInfinity(value) ? constant : value;
+    }
+
     public void Update(float deltaTime)
     {
         if (!_isPlaying || _currentAnimation is null) return;
+        var anim = _currentAnimation;
 
-        _currentTime += deltaTime;
-        float length = _currentAnimation.AnimationLength;
+        // start_delay / loop_delay: hold the pose (no keyframe application)
+        // until the countdown expires, then feed the overflow into playback.
+        if (_delayRemaining > 0f)
+        {
+            _delayRemaining -= deltaTime;
+            if (_delayRemaining > 0f) return;
+            deltaTime = -_delayRemaining;
+            _delayRemaining = 0f;
+        }
+
+        float length = anim.AnimationLength;
         if (length <= 0f) return;
+
+        // anim_time_update: the expression drives time progression (Blockbench
+        // timeline.loop); fall back to plain accumulation when it stalls.
+        float newTime;
+        if (anim.AnimTimeUpdate is { Length: > 0 } atue && MolangService is not null)
+        {
+            MolangService.SetAnimVariable("anim_time", _currentTime);
+            MolangService.SetAnimVariable("delta_time", deltaTime);
+            newTime = MolangService.EvaluateString(atue);
+            if (float.IsNaN(newTime) || float.IsInfinity(newTime) || newTime <= _currentTime)
+                newTime = _currentTime + deltaTime;
+        }
+        else
+        {
+            newTime = _currentTime + deltaTime;
+        }
+        _currentTime = newTime;
 
         if (_currentTime >= length)
         {
-            if (_currentAnimation.LoopMode == AnimationLoopMode.HoldOnLastFrame)
+            if (anim.LoopMode == AnimationLoopMode.HoldOnLastFrame)
                 _currentTime = length;
-            else if (_currentAnimation.LoopMode == AnimationLoopMode.Loop)
+            else if (anim.LoopMode == AnimationLoopMode.Loop)
+            {
                 _currentTime %= length;
+                var loopDelay = ResolveScalar(anim.LoopDelay, anim.LoopDelayExpression);
+                if (loopDelay > 0f)
+                    _delayRemaining = loopDelay;
+            }
             else
                 _currentTime = length;
         }
 
-        if (_currentAnimation.Bones is null) return;
+        if (anim.Bones is null) return;
 
-        foreach (var (boneName, boneAnim) in _currentAnimation.Bones)
+        // blend_weight scales the animation's pull away from the rest pose
+        // (Blockbench clamps it to [0, ∞); 1 is the default and a no-op).
+        float blendWeight = MathF.Max(0f, ResolveScalar(anim.BlendWeight, anim.BlendWeightExpression));
+
+        foreach (var (boneName, boneAnim) in anim.Bones)
         {
             if (!_boneNodes.TryGetValue(boneName, out var node)) continue;
 
             var basePos = _basePositions.GetValueOrDefault(boneName);
             var baseEulerGltf = _baseEulers.GetValueOrDefault(boneName);
 
+            // Keyframe values are increments on top of the rest pose for every
+            // channel combination (Blockbench/GUI semantics).
             if (boneAnim.Rotation is not null)
             {
                 var animDeltaBedrock = KeyframeEvaluator.Sanitize(EvaluateKeyframeSet(boneAnim.Rotation, _currentTime));
                 var animDeltaGltf = new Vector3(-animDeltaBedrock.X, -animDeltaBedrock.Y, animDeltaBedrock.Z);
-
-                Vector3 combinedGltf;
-                if (boneAnim.Position is not null || boneAnim.Scale is not null)
-                {
-                    combinedGltf = animDeltaGltf;
-                }
-                else
-                {
-                    combinedGltf = baseEulerGltf + animDeltaGltf;
-                }
-                node.RotationQuaternion = CreateBlockbenchQuaternion(combinedGltf);
+                node.RotationQuaternion = CreateBlockbenchQuaternion(baseEulerGltf + animDeltaGltf * blendWeight);
             }
             if (boneAnim.Position is not null)
             {
                 var animDeltaBedrock = KeyframeEvaluator.Sanitize(EvaluateKeyframeSet(boneAnim.Position, _currentTime));
                 var animDeltaGltf = new Vector3(-animDeltaBedrock.X, animDeltaBedrock.Y, animDeltaBedrock.Z) / BedrockUnits.PixelsPerBlock;
-                node.Position = KeyframeEvaluator.Sanitize(basePos + animDeltaGltf);
+                node.Position = KeyframeEvaluator.Sanitize(basePos + animDeltaGltf * blendWeight);
             }
             if (boneAnim.Scale is not null)
             {
                 var animScale = KeyframeEvaluator.Sanitize(EvaluateKeyframeSet(boneAnim.Scale, _currentTime));
-                node.Scale = animScale;
+                node.Scale = Vector3.Lerp(Vector3.One, animScale, blendWeight);
             }
         }
     }
