@@ -55,8 +55,8 @@ public static class Aura3DModelBuilder
                         sharedTexture = TextureLoader.LoadTexture(texture.Data)
                             .SetMinFilter(TextureFilterMode.Nearest)
                             .SetMagFilter(TextureFilterMode.Nearest)
-                            .SetWarpS(TextureWrapMode.Repeat)
-                            .SetWarpT(TextureWrapMode.Repeat);
+                            .SetWrapS(TextureWrapMode.Repeat)
+                            .SetWrapT(TextureWrapMode.Repeat);
                         _textureCache[hash] = sharedTexture;
                     }
                 }

@@ -9,7 +9,7 @@ public sealed class NoLightTranslucentPass(RenderPipeline renderPipeline) : YSMN
 {
     public override void BeforeRender(Camera camera)
     {
-        BindOutPutRenderTarget(camera);
+        BindOutputRenderTarget(camera);
         gl.Enable(EnableCap.Blend);
         gl.BlendFunc(GLEnum.SrcAlpha, GLEnum.OneMinusSrcAlpha);
         gl.DepthMask(false);

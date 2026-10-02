@@ -12,7 +12,6 @@ public class YSMNoLightPass : NoLightPass
 {
     private const int MaxShaderBones = 256;
     private readonly global::Aura3D.Core.Resources.Texture _defaultBaseColor;
-    private bool _defaultBaseColorUploaded;
 
     /// <summary>0 = off, >0 = simple shading intensity</summary>
     public float SimpleShadingIntensity { get; set; } = 0.5f;
@@ -127,18 +126,7 @@ void main()
     public override void Setup()
     {
         base.Setup();
-        if (!_defaultBaseColorUploaded && gl != null)
-        {
-            _defaultBaseColor.Upload(gl);
-            _defaultBaseColorUploaded = true;
-        }
-    }
-
-    public override void Destroy()
-    {
-        if (_defaultBaseColorUploaded)
-            _defaultBaseColor.Destroy(gl);
-        base.Destroy();
+        renderPipeline.EnsureSynced(_defaultBaseColor);
     }
 
     private void SetupUniform(Material? material, Matrix4x4 view, Matrix4x4 projection)

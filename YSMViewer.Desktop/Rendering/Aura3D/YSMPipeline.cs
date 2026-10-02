@@ -17,30 +17,29 @@ public sealed class YSMPipeline : RenderPipeline
 
     public YSMPipeline(Scene scene) : base(scene)
     {
-        RegisterRenderPass(new BackgroundPass(this).SetOutPutRenderTarget("BaseRenderTarget"), RenderPassGroup.EveryCamera);
+        var baseRenderTarget = RegisterRenderTarget("BaseRenderTarget")
+            .AddTexture("Color", TextureFormat.Rgba8)
+            .SetDepthTexture(Settings.DepthFormat);
+
+        var gammaOutput = RegisterRenderTarget("GammaOutput")
+            .AddTexture("Color", TextureFormat.Rgba8)
+            .SetDepthTexture(Settings.DepthFormat);
+
+        RegisterRenderPass(new BackgroundPass(this).SetOutput(baseRenderTarget), RenderPassGroup.EveryCamera);
         _noLightPass = new YSMNoLightPass(this);
-        RegisterRenderPass(_noLightPass.SetOutPutRenderTarget("BaseRenderTarget"), RenderPassGroup.EveryCamera);
-        RegisterRenderPass(new NoLightTranslucentPass(this).SetOutPutRenderTarget("BaseRenderTarget"), RenderPassGroup.EveryCamera);
+        RegisterRenderPass(_noLightPass.SetOutput(baseRenderTarget), RenderPassGroup.EveryCamera);
+        RegisterRenderPass(new NoLightTranslucentPass(this).SetOutput(baseRenderTarget), RenderPassGroup.EveryCamera);
 
-        RegisterRenderPass(new GammaCorrectionPass(this, "BaseRenderTarget", "Color").SetOutPutRenderTarget("GammaOutput"), RenderPassGroup.EveryCamera);
-        RegisterRenderPass(new FxaaPass(this, "GammaOutput", "Color"), RenderPassGroup.EveryCamera);
-        RegisterRenderPass(new DebugDrawPass(this, "BaseRenderTarget"), RenderPassGroup.EveryCamera);
+        RegisterRenderPass(new GammaCorrectionPass(this, baseRenderTarget.GetTexture("Color")).SetOutput(gammaOutput), RenderPassGroup.EveryCamera);
+        RegisterRenderPass(new FxaaPass(this, gammaOutput.GetTexture("Color")).SetOutput(CameraOutput), RenderPassGroup.EveryCamera);
 
-        RegisterRenderTarget("BaseRenderTarget")
-            .AddTexture("Color", TextureFormat.Rgba8)
-            .SetDepthTexture(Settings.DepthFormat);
-
-        RegisterRenderTarget("GammaOutput")
-            .AddTexture("Color", TextureFormat.Rgba8)
-            .SetDepthTexture(Settings.DepthFormat);
+        RegisterDebugPass(baseRenderTarget);
     }
 
     public override void BeforeCameraRender(Camera camera)
     {
         if (gl == null) return;
         SortMeshes(VisibleMeshesInCamera, camera);
-        uint width = Math.Max(1u, camera.RenderTarget.Width);
-        uint height = Math.Max(1u, camera.RenderTarget.Height);
-        gl.Viewport(0, 0, width, height);
+        gl.Viewport(0, 0, camera.Width, camera.Height);
     }
 }
