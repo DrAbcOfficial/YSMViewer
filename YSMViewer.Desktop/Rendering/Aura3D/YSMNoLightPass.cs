@@ -8,19 +8,28 @@ using System.Numerics;
 
 namespace YSMViewer.Desktop.Rendering.Aura3D;
 
+/// <summary>
+/// No-light pass with Minecraft-style simple shading. YSM geometry is always
+/// node-animated static meshes (no Skeleton, no InstancedMesh), so only the
+/// static Opaque/Masked/Translucent variants are driven; skinned and instanced
+/// branches of the base pass are dead weight here and are not issued.
+/// </summary>
 public class YSMNoLightPass : NoLightPass
 {
-    private const int MaxShaderBones = 256;
     private readonly global::Aura3D.Core.Resources.Texture _defaultBaseColor;
 
     /// <summary>0 = off, >0 = simple shading intensity</summary>
-    public float SimpleShadingIntensity { get; set; } = 0.5f;
-
-    /// <summary>
-    /// Bone capacity injected into the skinned shader as <c>#define BONE_NUMBER N</c>.
-    /// Updated each frame from the visible skinned meshes; clamped to MaxShaderBones.
-    /// </summary>
-    protected int CurrentBoneCapacity { get; set; } = MaxShaderBones;
+    public float SimpleShadingIntensity
+    {
+        get => _simpleShadingIntensity;
+        set
+        {
+            if (_simpleShadingIntensity == value) return;
+            _simpleShadingIntensity = value;
+            _perProgramUniformsShader = null;
+        }
+    }
+    private float _simpleShadingIntensity = 0.5f;
 
     public YSMNoLightPass(RenderPipeline renderPipeline) : base(renderPipeline)
     {
@@ -37,27 +46,10 @@ precision mediump float;
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec2 texCoord;
-layout(location = 2) in vec4 color;
 layout(location = 3) in vec3 normal;
-layout(location = 4) in vec3 tangent;
-layout(location = 5) in vec3 bitangent;
-layout(location = 6) in vec4 boneIndices;
-layout(location = 7) in vec4 boneWeights;
 
-#ifdef INSTANCED_MESH
-layout(location = 8) in mat4 modelMatrix;
-layout(location = 12) in mat4 normalMatrix;
-#endif
-
-#ifdef SKINNED_MESH
-uniform mat4 BoneMatrices[BONE_NUMBER];
-#endif
-
-#ifndef INSTANCED_MESH
 uniform mat4 modelMatrix;
 uniform mat4 normalMatrix;
-#endif
-
 uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
 
@@ -67,30 +59,8 @@ out vec3 vNormal;
 void main()
 {
 	vTexCoord = texCoord;
-
-#ifdef SKINNED_MESH
-
-	int idx0 = clamp(int(boneIndices.x), 0, BONE_NUMBER - 1);
-    int idx1 = clamp(int(boneIndices.y), 0, BONE_NUMBER - 1);
-    int idx2 = clamp(int(boneIndices.z), 0, BONE_NUMBER - 1);
-    int idx3 = clamp(int(boneIndices.w), 0, BONE_NUMBER - 1);
-
-	float sum = boneWeights.x + boneWeights.y + boneWeights.z + boneWeights.w;
-    vec4 w = (sum > 0.0001) ? boneWeights / sum : vec4(1.0, 0.0, 0.0, 0.0);
-
-	mat4 skinMatrix = w.x * BoneMatrices[idx0];
-    skinMatrix      += w.y * BoneMatrices[idx1];
-    skinMatrix      += w.z * BoneMatrices[idx2];
-    skinMatrix      += w.w * BoneMatrices[idx3];
-
-	vec4 worldPosition = modelMatrix * skinMatrix * vec4(position, 1.0);
-
-#else
-	vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-#endif
-
 	vNormal = normalize(mat3(normalMatrix) * normal);
-	gl_Position = projectionMatrix * viewMatrix * worldPosition;
+	gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
 }
 ";
 
@@ -129,10 +99,36 @@ void main()
         renderPipeline.EnsureSynced(_defaultBaseColor);
     }
 
-    private void SetupUniform(Material? material, Matrix4x4 view, Matrix4x4 projection)
+    private global::Aura3D.Core.Renderers.Shader? _perProgramUniformsShader;
+    private Matrix4x4 _perProgramUniformsView;
+    private Matrix4x4 _perProgramUniformsProjection;
+
+    /// <summary>
+    /// viewMatrix/projectionMatrix/simpleShadingIntensity only change per camera or per
+    /// program, not per mesh; the engine binds the program before RenderMesh is called,
+    /// so uniforms persist in the program object until the next change.
+    /// </summary>
+    private void EnsurePerProgramUniforms(Matrix4x4 view, Matrix4x4 projection)
     {
+        if (ReferenceEquals(_perProgramUniformsShader, CurrentShader)
+            && _perProgramUniformsView == view
+            && _perProgramUniformsProjection == projection)
+            return;
+
         UniformMatrix4("viewMatrix", view);
         UniformMatrix4("projectionMatrix", projection);
+        UniformFloat("simpleShadingIntensity", SimpleShadingIntensity);
+        _perProgramUniformsShader = CurrentShader;
+        _perProgramUniformsView = view;
+        _perProgramUniformsProjection = projection;
+    }
+
+    private Material? _lastUniformMaterial;
+
+    private void SetupUniform(Material? material)
+    {
+        if (ReferenceEquals(material, _lastUniformMaterial))
+            return;
 
         UniformTexture("BaseColorTexture", material?.GetTexture("BaseColor") ?? _defaultBaseColor);
 
@@ -150,6 +146,8 @@ void main()
             gl.Enable(EnableCap.CullFace);
             UniformFloat("alphaCutoff", 0.0f);
         }
+
+        _lastUniformMaterial = material;
     }
 
     public override void Render(Camera camera)
@@ -159,75 +157,18 @@ void main()
 
         UseShader("BLENDMODE_MASKED");
         RenderVisibleMeshesInCamera(mesh => mesh.IsStaticMesh && IsMaterialBlendMode(mesh, BlendMode.Masked), camera.View, camera.Projection);
-
-        CurrentBoneCapacity = ComputeSkinnedBoneCapacity();
-
-        UseShader("SKINNED_MESH", $"BONE_NUMBER {CurrentBoneCapacity}");
-        RenderVisibleMeshesInCamera(mesh => mesh.IsSkinnedMesh && IsMaterialBlendMode(mesh, BlendMode.Opaque), camera.View, camera.Projection);
-
-        UseShader("SKINNED_MESH", "BLENDMODE_MASKED", $"BONE_NUMBER {CurrentBoneCapacity}");
-        RenderVisibleMeshesInCamera(mesh => mesh.IsSkinnedMesh && IsMaterialBlendMode(mesh, BlendMode.Masked), camera.View, camera.Projection);
-
-        UseShader("INSTANCED_MESH");
-        RenderVisibleInstancedMeshesInCamera(instancedMesh => IsMaterialBlendMode(instancedMesh.Material, BlendMode.Opaque), camera.View, camera.Projection);
-
-        UseShader("INSTANCED_MESH", "BLENDMODE_MASKED");
-        RenderVisibleInstancedMeshesInCamera(instancedMesh => IsMaterialBlendMode(instancedMesh.Material, BlendMode.Masked), camera.View, camera.Projection);
-    }
-
-    /// <summary>
-    /// Scans currently visible skinned meshes and returns the maximum bone count,
-    /// clamped to <see cref="MaxShaderBones"/>. Falls back to <see cref="MaxShaderBones"/>
-    /// when no skinned mesh is visible so the cached default shader remains reusable.
-    /// </summary>
-    protected int ComputeSkinnedBoneCapacity()
-    {
-        int max = 0;
-        foreach (var mesh in VisibleMeshesInCamera)
-        {
-            if (!mesh.IsSkinnedMesh) continue;
-            int count = mesh.Skeleton?.Bones.Count ?? 0;
-            if (count > max) max = count;
-        }
-        return Math.Clamp(Math.Max(max, 1), 1, MaxShaderBones);
     }
 
     public override void RenderMesh(Mesh mesh, Matrix4x4 view, Matrix4x4 projection)
     {
+        EnsurePerProgramUniforms(view, projection);
         ClearTextureUnit();
-        SetupUniform(mesh.Material, view, projection);
+        SetupUniform(mesh.Material);
 
         var nm = mesh.WorldTransform.Inverse();
         nm = Matrix4x4.Transpose(nm);
         UniformMatrix4("normalMatrix", nm);
 
-        UniformFloat("simpleShadingIntensity", SimpleShadingIntensity);
-
-        if (mesh.IsSkinnedMesh)
-        {
-            var skeleton = mesh.Skeleton;
-            int uploadCount = Math.Min(skeleton.Bones.Count, CurrentBoneCapacity);
-            if (mesh.Model.AnimationSampler != null)
-            {
-                for (int i = 0; i < uploadCount; i++)
-                    UniformMatrix4($"BoneMatrices[{i}]", skeleton.Bones[i].InverseWorldMatrix * mesh.Model.AnimationSampler.BonesTransform[i]);
-            }
-            else
-            {
-                for (int i = 0; i < uploadCount; i++)
-                    UniformMatrix4($"BoneMatrices[{i}]", skeleton.Bones[i].InverseWorldMatrix * skeleton.Bones[i].WorldMatrix);
-            }
-        }
         base.RenderMesh(mesh, view, projection);
-    }
-
-    public override void RenderInstancedMesh(InstancedMesh instancedMesh, Matrix4x4 view, Matrix4x4 projection)
-    {
-        ClearTextureUnit();
-        SetupUniform(instancedMesh.Material, view, projection);
-
-        UniformFloat("simpleShadingIntensity", SimpleShadingIntensity);
-
-        base.RenderInstancedMesh(instancedMesh, view, projection);
     }
 }

@@ -44,6 +44,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
     private bool _useAnimationController;
 
     private readonly HashSet<string> _bonesAnimatedThisFrame = [];
+    private readonly Dictionary<string, bool> _lastBoneVisibility = [];
     private const float ResetSpeed = 0.15f;
 
     public (float Pitch, float Yaw) GetCameraOrbit() => (_cameraPitch, _cameraYaw);
@@ -150,6 +151,9 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
         Clear();
         _document = document;
 
+        int totalCubes = 0, totalBones = 0, totalMeshes = 0;
+        var loadStart = System.Diagnostics.Stopwatch.StartNew();
+
         foreach (var geoModel in document.Models)
         {
             YsmTextureResource? tex = null;
@@ -165,6 +169,10 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
             var result = Aura3DModelBuilder.BuildFromDocument(geoModel, tex);
             result.RootModel.Enable = geoModel.DefaultVisible;
             _componentModels[geoModel.Id] = result.RootModel;
+            totalMeshes += result.MergedMeshCount;
+            totalBones += geoModel.Bones.Count;
+            foreach (var bone in geoModel.Bones)
+                totalCubes += bone.Cubes.Count;
 
             // Use compound key to distinguish bones across components
             foreach (var kv in result.BoneNodes)
@@ -258,6 +266,11 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
                 _useAnimationController = true;
             }
         }
+
+        loadStart.Stop();
+        Logger.LogInformation(
+            "Loaded '{Name}': {Components} components, {Bones} bones, {Cubes} cubes merged into {Meshes} meshes in {Ms} ms",
+            document.Info.DisplayName, document.Models.Count, totalBones, totalCubes, totalMeshes, loadStart.ElapsedMilliseconds);
     }
 
     private static (string? Key, AnimationControllerEntry? Entry, Dictionary<string, AnimationControllerEntry>? AllControllers) ParseFirstController(byte[] data)
@@ -323,6 +336,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
         _boneNameToNodes.Clear();
         _baseBoneEulers.Clear();
         _basePositions.Clear();
+        _lastBoneVisibility.Clear();
         Aura3DModelBuilder.ClearTextureCache();
     }
 
@@ -415,8 +429,11 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
             foreach (var (boneName, entries) in _boneNameToNodes)
             {
                 var vis = _stateMachine.GetBoneVisibility(boneName);
+                if (_lastBoneVisibility.TryGetValue(boneName, out var last) && last == vis)
+                    continue;
                 foreach (var (_, node) in entries)
                     node.Enable = vis;
+                _lastBoneVisibility[boneName] = vis;
             }
 
             if (_bonesAnimatedThisFrame.Count > 0 && _animBones is not null)
@@ -501,8 +518,7 @@ public sealed class Aura3DRenderer : IAnimationRenderer, IInteractiveRenderer, I
 
             var camera = _view.MainCamera;
             camera.FieldOfView = 50f;
-            camera.NearPlane = 0.1f;
-            camera.FarPlane = 5000f;
+            camera.SetClippingPlanes(0.1f, 5000f);
             UpdateCameraPosition();
 
             if (_loadedModel is not null && _document is not null)

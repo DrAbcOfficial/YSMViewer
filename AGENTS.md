@@ -113,7 +113,7 @@ Minimal Objective-C Quick Look generator. It loads `libYSMViewer.ThumbnailProvid
 ### Two rendering backends
 
 An `IRenderer` abstraction (`Rendering/IRenderer.cs`) has two implementations:
-- **Desktop** (`Aura3D/Aura3DRenderer.cs`) — Aura3D + GLTF loader.
+- **Desktop** (`Aura3D/Aura3DRenderer.cs`) — Aura3D (0.0.5) + custom `YSMPipeline` (no-light simple shading + FXAA). Geometry is built as **one merged mesh per bone** (`Aura3DModelBuilder`: cube rotations/pivot offsets are baked into vertices, so draw calls scale with bone count, not cube count). Bones are animated purely through node transforms — YSM never uses skinned meshes or instancing, and the custom passes only drive the static Opaque/Masked/Translucent variants.
 - **Browser** (`ThreeJs/ThreeJsRenderer.cs`) — Three.js via JS interop (no Aura3D in WASM).
 
 `App.axaml.cs` selects the renderer based on `ApplicationLifetime` type.

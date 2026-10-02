@@ -26,7 +26,8 @@ public static class Aura3DModelBuilder
     public sealed record BuildResult(
         Model RootModel,
         Dictionary<string, Node> BoneNodes,
-        Dictionary<string, Vector3> BaseBoneEulers);
+        Dictionary<string, Vector3> BaseBoneEulers,
+        int MergedMeshCount);
 
     public static BuildResult BuildFromDocument(YsmGeometryModel geoModel, YsmTextureResource? texture)
     {
@@ -114,54 +115,49 @@ public static class Aura3DModelBuilder
                 model.AddChild(rootNode, AttachToParentRule.KeepLocal);
         }
 
+        // One merged mesh per bone: every cube's rotation/pivot offset is baked into
+        // vertices, so animating the bone node still moves all of its cubes while
+        // draw calls drop from one-per-cube to one-per-bone.
+        int meshCount = 0;
         foreach (var bone in geoModel.Bones)
         {
+            if (bone.Cubes.Count == 0) continue;
+
             var bonePivot = bonePivots[bone.Id];
-            int cubeIdx = 0;
+            int vertexCount = 0;
+            foreach (var cube in bone.Cubes)
+                vertexCount += 24;
+
+            var positions = new List<float>(vertexCount * 3);
+            var normals = new List<float>(vertexCount * 3);
+            var uvs = new List<float>(vertexCount * 2);
+            var indices = new List<uint>(bone.Cubes.Count * 36);
 
             foreach (var cube in bone.Cubes)
             {
-                var (from, to) = ConvertCubeBoundsDoc(cube);
-                float inflate = cube.Inflate;
-
-                var center = (from + to) * 0.5f;
-                var halfSize = (to - from) * 0.5f;
-                var min = center - new Vector3(halfSize.X + inflate, halfSize.Y + inflate, halfSize.Z + inflate) - cube.Pivot;
-                var max = center + new Vector3(halfSize.X + inflate, halfSize.Y + inflate, halfSize.Z + inflate) - cube.Pivot;
-                if (min.X == max.X) max.X += 0.001f;
-                if (min.Y == max.Y) max.Y += 0.001f;
-                if (min.Z == max.Z) max.Z += 0.001f;
-
-                float lx = min.X * ExportScale;
-                float ly = min.Y * ExportScale;
-                float lz = min.Z * ExportScale;
-                float hx = max.X * ExportScale;
-                float hy = max.Y * ExportScale;
-                float hz = max.Z * ExportScale;
-
-                var geom = BuildCubeGeometry(cube, geoModel.TextureWidth, geoModel.TextureHeight, lx, ly, lz, hx, hy, hz);
-
-                var cubeMesh = new Mesh
-                {
-                    Name = $"cube_{bone.Name}_{cubeIdx}",
-                    Geometry = geom,
-                    Material = material,
-                    Scale = Vector3.One,
-                };
-
-                var txLocal = cube.Pivot - bonePivot;
-                cubeMesh.Position = new Vector3(txLocal.X * ExportScale, txLocal.Y * ExportScale, txLocal.Z * ExportScale);
-
-                if (cube.Rotation != Vector3.Zero)
-                    cubeMesh.RotationQuaternion = CreateBlockbenchQuaternion(cube.Rotation);
-
-                if (boneNodes.TryGetValue(bone.Id, out var parentBoneNode))
-                    parentBoneNode.AddChild(cubeMesh, AttachToParentRule.KeepLocal);
-                else
-                    model.AddChild(cubeMesh, AttachToParentRule.KeepLocal);
-
-                cubeIdx++;
+                AppendCube(positions, normals, uvs, indices, cube, geoModel.TextureWidth, geoModel.TextureHeight, bonePivot);
             }
+
+            var geometry = new Geometry();
+            geometry.SetVertexAttribute(BuildInVertexAttribute.Position, 3, positions);
+            geometry.SetVertexAttribute(BuildInVertexAttribute.Normal, 3, normals);
+            geometry.SetVertexAttribute(BuildInVertexAttribute.TexCoord_0, 2, uvs);
+            geometry.SetIndices(indices);
+
+            var mesh = new Mesh
+            {
+                Name = $"bone_{bone.Name}",
+                Geometry = geometry,
+                Material = material,
+                Scale = Vector3.One,
+            };
+
+            if (boneNodes.TryGetValue(bone.Id, out var parentBoneNode))
+                parentBoneNode.AddChild(mesh, AttachToParentRule.KeepLocal);
+            else
+                model.AddChild(mesh, AttachToParentRule.KeepLocal);
+
+            meshCount++;
         }
 
         foreach (var bone in geoModel.Bones)
@@ -172,24 +168,36 @@ public static class Aura3DModelBuilder
             }
         }
 
-        return new BuildResult(model, boneNodes, baseEulers);
+        return new BuildResult(model, boneNodes, baseEulers, meshCount);
     }
 
-    private static (Vector3 From, Vector3 To) ConvertCubeBoundsDoc(YsmCubeInfo cube)
+    /// <summary>
+    /// Appends the six faces of one cube into the bone-level vertex buffers, baking the
+    /// cube's pivot offset (relative to the bone) and its local rotation into each vertex.
+    /// </summary>
+    private static void AppendCube(
+        List<float> positions, List<float> normals, List<float> uvs, List<uint> indices,
+        YsmCubeInfo cube, float texW, float texH, Vector3 bonePivot)
     {
-        var from = new Vector3(cube.Origin.X - cube.Size.X, cube.Origin.Y, cube.Origin.Z);
-        var to = new Vector3(from.X + cube.Size.X, from.Y + cube.Size.Y, from.Z + cube.Size.Z);
-        return (from, to);
-    }
+        var (from, to) = ConvertCubeBoundsDoc(cube);
+        float inflate = cube.Inflate;
 
-    private static Geometry BuildCubeGeometry(
-        YsmCubeInfo cube, float texW, float texH,
-        float minX, float minY, float minZ, float maxX, float maxY, float maxZ)
-    {
-        var positions = new List<float>();
-        var normals = new List<float>();
-        var uvs = new List<float>();
-        var indices = new List<uint>();
+        var center = (from + to) * 0.5f;
+        var halfSize = (to - from) * 0.5f;
+        var min = center - new Vector3(halfSize.X + inflate, halfSize.Y + inflate, halfSize.Z + inflate) - cube.Pivot;
+        var max = center + new Vector3(halfSize.X + inflate, halfSize.Y + inflate, halfSize.Z + inflate) - cube.Pivot;
+        if (min.X == max.X) max.X += 0.001f;
+        if (min.Y == max.Y) max.Y += 0.001f;
+        if (min.Z == max.Z) max.Z += 0.001f;
+
+        var mn = min * ExportScale;
+        var mx = max * ExportScale;
+        var offset = (cube.Pivot - bonePivot) * ExportScale;
+        var rotation = cube.Rotation != Vector3.Zero
+            ? CreateBlockbenchQuaternion(cube.Rotation)
+            : Quaternion.Identity;
+
+        Vector3 Xform(Vector3 v) => Vector3.Transform(v, rotation) + offset;
 
         float tw = texW > 0 ? texW : 64f;
         float th = texH > 0 ? texH : 64f;
@@ -199,60 +207,65 @@ public static class Aura3DModelBuilder
             cubeUV = cubeUV.Expand(cube.Size.X, cube.Size.Y, cube.Size.Z, cube.Mirror);
 
         AddFace(positions, normals, uvs, indices,
-            maxX, maxY, maxZ, maxX, maxY, minZ, maxX, minY, maxZ, maxX, minY, minZ,
-            1, 0, 0,
+            Xform(new Vector3(mx.X, mx.Y, mx.Z)), Xform(new Vector3(mx.X, mx.Y, mn.Z)),
+            Xform(new Vector3(mx.X, mn.Y, mx.Z)), Xform(new Vector3(mx.X, mn.Y, mn.Z)),
+            Vector3.Transform(Vector3.UnitX, rotation),
             CubeFaceUvMapper.GetFaceUv(cubeUV?.East, tw, th));
 
         AddFace(positions, normals, uvs, indices,
-            minX, maxY, minZ, minX, maxY, maxZ, minX, minY, minZ, minX, minY, maxZ,
-            -1, 0, 0,
+            Xform(new Vector3(mn.X, mx.Y, mn.Z)), Xform(new Vector3(mn.X, mx.Y, mx.Z)),
+            Xform(new Vector3(mn.X, mn.Y, mn.Z)), Xform(new Vector3(mn.X, mn.Y, mx.Z)),
+            Vector3.Transform(-Vector3.UnitX, rotation),
             CubeFaceUvMapper.GetFaceUv(cubeUV?.West, tw, th));
 
         AddFace(positions, normals, uvs, indices,
-            minX, maxY, minZ, maxX, maxY, minZ, minX, maxY, maxZ, maxX, maxY, maxZ,
-            0, 1, 0,
+            Xform(new Vector3(mn.X, mx.Y, mn.Z)), Xform(new Vector3(mx.X, mx.Y, mn.Z)),
+            Xform(new Vector3(mn.X, mx.Y, mx.Z)), Xform(new Vector3(mx.X, mx.Y, mx.Z)),
+            Vector3.Transform(Vector3.UnitY, rotation),
             CubeFaceUvMapper.GetFaceUv(cubeUV?.Up, tw, th));
 
         AddFace(positions, normals, uvs, indices,
-            minX, minY, maxZ, maxX, minY, maxZ, minX, minY, minZ, maxX, minY, minZ,
-            0, -1, 0,
+            Xform(new Vector3(mn.X, mn.Y, mx.Z)), Xform(new Vector3(mx.X, mn.Y, mx.Z)),
+            Xform(new Vector3(mn.X, mn.Y, mn.Z)), Xform(new Vector3(mx.X, mn.Y, mn.Z)),
+            Vector3.Transform(-Vector3.UnitY, rotation),
             CubeFaceUvMapper.GetFaceUv(cubeUV?.Down, tw, th));
 
         AddFace(positions, normals, uvs, indices,
-            minX, maxY, maxZ, maxX, maxY, maxZ, minX, minY, maxZ, maxX, minY, maxZ,
-            0, 0, 1,
+            Xform(new Vector3(mn.X, mx.Y, mx.Z)), Xform(new Vector3(mx.X, mx.Y, mx.Z)),
+            Xform(new Vector3(mn.X, mn.Y, mx.Z)), Xform(new Vector3(mx.X, mn.Y, mx.Z)),
+            Vector3.Transform(Vector3.UnitZ, rotation),
             CubeFaceUvMapper.GetFaceUv(cubeUV?.South, tw, th));
 
         AddFace(positions, normals, uvs, indices,
-            maxX, maxY, minZ, minX, maxY, minZ, maxX, minY, minZ, minX, minY, minZ,
-            0, 0, -1,
+            Xform(new Vector3(mx.X, mx.Y, mn.Z)), Xform(new Vector3(mn.X, mx.Y, mn.Z)),
+            Xform(new Vector3(mx.X, mn.Y, mn.Z)), Xform(new Vector3(mn.X, mn.Y, mn.Z)),
+            Vector3.Transform(-Vector3.UnitZ, rotation),
             CubeFaceUvMapper.GetFaceUv(cubeUV?.North, tw, th));
+    }
 
-        var geometry = new Geometry();
-        geometry.SetVertexAttribute(BuildInVertexAttribute.Position, 3, positions);
-        geometry.SetVertexAttribute(BuildInVertexAttribute.Normal, 3, normals);
-        geometry.SetVertexAttribute(BuildInVertexAttribute.TexCoord_0, 2, uvs);
-        geometry.SetIndices(indices);
-
-        return geometry;
+    private static (Vector3 From, Vector3 To) ConvertCubeBoundsDoc(YsmCubeInfo cube)
+    {
+        var from = new Vector3(cube.Origin.X - cube.Size.X, cube.Origin.Y, cube.Origin.Z);
+        var to = new Vector3(from.X + cube.Size.X, from.Y + cube.Size.Y, from.Z + cube.Size.Z);
+        return (from, to);
     }
 
     private static void AddFace(
         List<float> positions, List<float> normals, List<float> uvs, List<uint> indices,
-        float x0, float y0, float z0, float x1, float y1, float z1,
-        float x2, float y2, float z2, float x3, float y3, float z3,
-        float nx, float ny, float nz,
+        Vector3 c0, Vector3 c1, Vector3 c2, Vector3 c3, Vector3 normal,
         (float u0, float v0, float u1, float v1, float u2, float v2, float u3, float v3) faceUV)
     {
         uint baseIndex = (uint)(positions.Count / 3);
 
-        positions.AddRange([x0, y0, z0]);
-        positions.AddRange([x1, y1, z1]);
-        positions.AddRange([x2, y2, z2]);
-        positions.AddRange([x3, y3, z3]);
+        positions.AddRange([c0.X, c0.Y, c0.Z]);
+        positions.AddRange([c1.X, c1.Y, c1.Z]);
+        positions.AddRange([c2.X, c2.Y, c2.Z]);
+        positions.AddRange([c3.X, c3.Y, c3.Z]);
 
-        for (int i = 0; i < 4; i++)
-            normals.AddRange([nx, ny, nz]);
+        normals.AddRange([normal.X, normal.Y, normal.Z]);
+        normals.AddRange([normal.X, normal.Y, normal.Z]);
+        normals.AddRange([normal.X, normal.Y, normal.Z]);
+        normals.AddRange([normal.X, normal.Y, normal.Z]);
 
         uvs.AddRange([faceUV.u0, faceUV.v0]);
         uvs.AddRange([faceUV.u1, faceUV.v1]);
